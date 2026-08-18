@@ -58,6 +58,7 @@
     pub('aconex/aconex_itp_dashboard.js')
       .then(function (c) { (0, eval)(c); return pub('aconex/mps_ui_tweaks.js'); })
       .then(function (c) { (0, eval)(c); return pub('aconex/rfi_newdata.js'); })
+      .then(function (c) { (0, eval)(c); return pub('aconex/deliverable_fix.js'); })
       .then(function (c) { (0, eval)(c); })
       .catch(function (e) { console.error('[MPS] Aconex dashboard load failed:', e); alert('MPS Dashboard: could not load the latest version.\n' + e.message); });
 
