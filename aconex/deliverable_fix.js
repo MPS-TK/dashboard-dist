@@ -1,17 +1,22 @@
 /* =====================================================================
  * MPS GROUP — Deliverable-type capture fix (Aconex Doc. Registers/ITP tab)
  *
- * Problem: the dashboard initialises the SUBSYSTEM filter to all ITP
- * subsystems by default and applies it to EVERY deliverable type. Only
- * Inspection & Test Plans carry those subsystems, so selecting any other
- * deliverable type (Register, Report, Plan, Certificate, ...) filters the
- * whole view to zero — the items are captured in the data but hidden.
+ * Problem: the dashboard initialises the SUBSYSTEM whitelist to all ITP
+ * subsystems (e.g. 3150-xx) by default and applies it to EVERY deliverable
+ * type. Only Inspection & Test Plans carry those subsystems, so selecting
+ * any other deliverable type (Register, Report, Plan, Certificate, ...)
+ * filters the whole view to zero — the items are captured in the data but
+ * hidden.
  *
- * Fix: the subsystem filter applies ONLY to "Inspection and Test Plan".
- * For every other deliverable type (and the "All" view) the subsystem
- * filter is not applied, so all deliverable types are always captured.
- * The ITP subsystem selection is saved and restored when toggling back to
- * the ITP view, so nothing is lost.
+ * Fix: whenever the DELIVERABLE TYPE changes to a non-ITP type, clear the
+ * subsystem whitelist so every doc of that type is shown (including docs
+ * with a blank subsystem). The ITP subsystem selection is saved and
+ * restored when switching back to the ITP view, so nothing is lost.
+ *
+ * IMPORTANT: this only acts on an actual deliverable-type CHANGE event — it
+ * never runs on a timer and never touches the filter while you are working,
+ * so a subsystem filter you apply on the column (col D) persists normally.
+ * The interval below ONLY re-binds the change listener after re-renders.
  *
  * Self-contained external layer — no edit to the module source. Loaded by
  * loader.js after the ITP module builds. Idempotent.
@@ -21,53 +26,41 @@
 
   function host() { var h = document.getElementById(HOST); return h && h.shadowRoot; }
 
-  function curType(M) {
-    var root = host(), sel = root && root.querySelector('select.dtsel');
-    if (sel) return sel.value;
-    return M._state && M._state.deliverableType;
-  }
-
-  // Enforce the invariant on the given (or current) deliverable type.
-  // Returns true if it changed the subsystem filter.
-  function enforce(newType) {
-    var M = window[G]; if (!M || !M.__live) return false;
-    var S = M._state; if (!S || !S.selFilters) return false;
-    var t = (newType != null) ? newType : curType(M);
-    var sub = S.selFilters.subsystem;
-    var hasSub = Array.isArray(sub) && sub.length > 0;
+  // Act on an actual deliverable-type change only.
+  function onType(t) {
+    var M = window[G]; if (!M || !M.__live) return;
+    var S = M._state; if (!S || !S.selFilters) return;
+    var sub = S.selFilters.subsystem, hasSub = Array.isArray(sub) && sub.length > 0;
     if (t !== ITP) {
-      // non-ITP view: subsystem filter must not apply
-      if (hasSub) { M.__mpsSavedSub = sub.slice(); S.selFilters.subsystem = null; return true; }
+      if (hasSub) { M.__mpsSavedSub = sub.slice(); }
+      S.selFilters.subsystem = null;   // show all docs of this type (incl. blank subsystem)
     } else {
-      // ITP view: restore the saved subsystem selection if we cleared it
-      if (!hasSub && M.__mpsSavedSub) { S.selFilters.subsystem = M.__mpsSavedSub; M.__mpsSavedSub = null; return true; }
+      if (M.__mpsSavedSub) { S.selFilters.subsystem = M.__mpsSavedSub; M.__mpsSavedSub = null; }
     }
-    return false;
   }
 
-  // Attach a CAPTURE-phase change listener on the deliverable-type dropdown,
-  // so the subsystem state is corrected BEFORE the module re-renders → no flash.
+  // Re-bind a CAPTURE-phase change listener on the deliverable-type dropdown
+  // (the dropdown is recreated on each render, so this runs periodically).
   function attach() {
     var root = host(); if (!root) return;
     var sel = root.querySelector('select.dtsel');
     if (sel && !sel.__mpsCapHook) {
       sel.__mpsCapHook = true;
-      sel.addEventListener('change', function (e) { try { enforce(e.target.value); } catch (_) {} }, true);
+      // capture phase runs BEFORE the module's own change handler → no flash
+      sel.addEventListener('change', function (e) { try { onType(e.target.value); } catch (_) {} }, true);
     }
   }
 
-  // Safety net: catch programmatic type changes; if the invariant is violated,
-  // fix it and re-render via the real path.
-  function tick() {
-    var M = window[G]; if (!M || !M.__live) return;
-    attach();
-    if (enforce(null)) {
+  // One-time on load: if we come up already on a non-ITP view with the stale
+  // ITP whitelist applied, correct it once (not repeated).
+  if (!window.__mpsDelivInit) {
+    window.__mpsDelivInit = true;
+    try {
       var root = host(), sel = root && root.querySelector('select.dtsel');
-      if (sel) { sel.dispatchEvent(new Event('change', { bubbles: true })); }
-      else { try { M.boot(); } catch (_) {} }
-    }
+      if (sel && sel.value !== ITP) { onType(sel.value); sel.dispatchEvent(new Event('change', { bubbles: true })); }
+    } catch (e) {}
   }
 
-  if (!window.__mpsDelivFixIv) { window.__mpsDelivFixIv = setInterval(tick, 700); }
-  try { attach(); tick(); } catch (e) {}
+  if (!window.__mpsDelivFixIv) { window.__mpsDelivFixIv = setInterval(attach, 800); }
+  try { attach(); } catch (e) {}
 })();
