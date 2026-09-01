@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='RFI v11', BUILD_DATE='11 Aug 2026';
+  var VERSION='RFI v12', BUILD_DATE='1 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -410,7 +410,13 @@
     +'.dark .muted{color:#9aa8bb;opacity:1}.dark .ccount{background:#0e1621;color:#9fb0c4;border-color:#37485e}'
     +'.dark .dtlbl{color:#9fb0c4}.dark .toolbar select.dtsel{background:#2a1d12;color:#ffd7bf;border-color:'+ACCENT+'}'
     +'.dark .chip{background:#1e2a3a;color:#cfe0f2;border-color:#37485e}.dark .mini{background:#1e2a3a;color:#cfe0f2;border-color:#37485e}'
-    +'.dark .rng{accent-color:'+ACCENT+'}';}
+    +'.dark .rng{accent-color:'+ACCENT+'}'
+    +'#wrap table th.mps-selcell,#wrap table td.mps-selcell{width:34px;min-width:34px;max-width:34px;text-align:left;vertical-align:middle}'
+    +'.mps-selcell input[type=checkbox]{margin:0;cursor:pointer;width:13px;height:13px;vertical-align:middle;accent-color:'+ACCENT+'}'
+    +'tr.mps-selrow td.mps-selcell{box-shadow:inset 3px 0 0 '+ACCENT+'}'
+    +'.btn.mps-open{font-weight:700;color:#0a58c2;border:2px solid #0a84ff;background:#eaf3ff}.btn.mps-open:hover{background:#dcebff;border-color:#0070e0}'
+    +'.dark .btn.mps-open{color:#8ec5ff;background:#0e2438;border-color:#2f8bff}'
+    +'.btn[disabled]{opacity:.45;cursor:not-allowed}.btn[disabled]:hover{background:#eaf3ff}.dark .btn[disabled]:hover{background:#0e2438}';}
 
   // ---- collapsible panels ----
   function makeCPanel(id,titleText,ctlEl,bodyEl,tip,shortTitle){
@@ -469,6 +475,7 @@
       btn('↻ Reload','Reload the register from its saved data and recalculate the day counts',function(){initRows();applyScope();renderAll();}),
       btn('Fonts','Choose the dashboard font and base size for all elements',function(ev){toggleFontPanel(ev&&ev.currentTarget);},'pnltrig'),
       btn((S.darkMode?'☀ Light Mode':'☾ Dark Mode'),'Toggle dark mode',function(){S.darkMode=!S.darkMode;saveCfg();renderAll();}),
+      (function(){selBtnEl=el('button',{class:'btn mps-open',onclick:openSelected},['🔗 Open Selected']);selBtnEl.setAttribute('disabled','disabled');selBtnEl.setAttribute('title','Tick one or more rows in the left-hand column to enable this');return selBtnEl;})(),
       btn('⟳ Cross-check Aconex Mail','Scan the Request For Information, Technical Query, Response to RFI and Response to Technical Query mails in the selected Aconex project and auto-fill the Aconex-sourced columns (matched on Aconex Reference No)',function(ev){fullScan();}),
       (function(){var b=el('button',{class:'btn pnltrig',id:'projbtn',title:'Choose which Aconex project the cross-check queries',onclick:function(){openProjectPanel(b);}},[el('span',{style:'opacity:.7'},['Project: ']),el('span',{id:'projlbl',style:'font-weight:700'},[projectLabel()]),el('span',{style:'margin-left:5px'},['▾'])]);return b;})(),
       el('span',{class:'muted',id:'xsync',style:'font-size:11px',title:'When the Aconex-sourced columns were last cross-checked against the mail module'},[lastXText()]),
@@ -760,6 +767,42 @@
     var ar=anchor.getBoundingClientRect(),wr=wrapEl.getBoundingClientRect();panel.style.left=Math.min(Math.max(4,wr.width-220),Math.max(4,ar.left-wr.left))+'px';panel.style.top=(ar.bottom-wr.top+2)+'px';
   }
 
+  // ---- row selection (left-hand tick column) + "Open Selected" (opens each in its own tab) ----
+  var SELW=34, selBtnEl=null;
+  function isRowSel(r){return !!(S.rowSel&&S.rowSel[rowKey(r)]);}
+  function setRowSel(r,v){S.rowSel=S.rowSel||{};if(v)S.rowSel[rowKey(r)]=1;else delete S.rowSel[rowKey(r)];}
+  function selRows(){return S.filtered.filter(isRowSel);}   // register order = current sort/filter order
+  function updateSelBtn(){
+    var n=selRows().length;
+    if(selBtnEl){
+      selBtnEl.textContent='🔗 Open Selected'+(n?' ('+n+')':'');
+      if(n){selBtnEl.removeAttribute('disabled');selBtnEl.setAttribute('title','Open the '+n+' selected RFI/TQ'+(n===1?'':'s')+' in Aconex — each in its own new tab, in the order they appear in the register');}
+      else{selBtnEl.setAttribute('disabled','disabled');selBtnEl.setAttribute('title','Tick one or more rows in the left-hand column to enable this');}
+    }
+    var m=root&&root.getElementById('mps-selall');
+    if(m){var t=S.filtered.length;m.checked=(t>0&&n===t);m.indeterminate=(n>0&&n<t);}
+  }
+  function openSelected(){
+    var rows=selRows();if(!rows.length)return;
+    var opened=0,blocked=0,nolink=0;
+    rows.forEach(function(r){
+      if(!r._refMailId){nolink++;return;}
+      var w=null;try{w=window.open(refUrl(r),'_blank');}catch(e){}
+      if(w)opened++;else blocked++;
+    });
+    var msg='Opened '+opened+' of '+rows.length+' selected in new tabs';
+    if(nolink)msg+=' · '+nolink+' with no Aconex mail link yet';
+    if(blocked)msg+=' · '+blocked+' blocked — allow pop-ups for this site';
+    toast(msg);
+  }
+  function selCellTd(row,pad){
+    var cb=el('input',{type:'checkbox',title:'Select this RFI/TQ for “Open Selected”'});
+    cb.checked=isRowSel(row);
+    var td=el('td',{class:'mps-selcell',style:'padding:'+pad+'px 4px'},[cb]);
+    cb.onclick=function(e){e.stopPropagation();};
+    cb.onchange=function(){setRowSel(row,cb.checked);var tr=td.parentNode;if(tr)tr.classList.toggle('mps-selrow',cb.checked);updateSelBtn();};
+    return td;
+  }
   var dragKey=null;
   function renderTable(){
     var tw=root.querySelector('.tablewrap');if(!tw)return;tw.innerHTML='';
@@ -767,6 +810,8 @@
     if(S.error){tw.appendChild(el('div',{class:'err'},['Could not load: '+S.error]));return;}
     var table=el('table');table.style.fontSize=S.fontSize+'px';
     var thead=el('thead'),htr=el('tr',{class:'hdr'}),letr=el('tr',{class:'colletrow'});
+    letr.appendChild(el('th',{class:'colc mps-selcell',title:'Selection column — tick rows here, then press “Open Selected”'},['☑']));
+    (function(){var m=el('input',{type:'checkbox',id:'mps-selall',title:'Select / clear every row currently shown'});m.onchange=function(){var v=m.checked;S.filtered.forEach(function(r){setRowSel(r,v);});renderBody();};htr.appendChild(el('th',{class:'mps-selcell',style:'padding:1px 2px'},[m]));})();
     visKeys().forEach(function(k,vi){
       var cd=COLDEF[k],w=S.cols[k].w,lab=colLabel(k);
       letr.appendChild(el('th',{class:'colc',style:'width:'+w+'px;min-width:'+w+'px',title:'Column '+colAlpha(vi)+' · '+lab},[colAlpha(vi)]));
@@ -785,7 +830,7 @@
       htr.appendChild(th);
     });
     thead.appendChild(letr);thead.appendChild(htr);
-    var ftr=el('tr',{class:'f'});
+    var ftr=el('tr',{class:'f'});ftr.appendChild(el('td',{class:'mps-selcell'},[]));
     visKeys().forEach(function(k){
       var cell;
       if(COLDEF[k].dfilter){cell=el('td',{style:'width:'+S.cols[k].w+'px'},[multiFilterBtn(k)]);}
@@ -851,7 +896,7 @@ async function mpsRfiCorrectAll(force){try{if(mpsRfiCorrectAll._busy)return;var 
 function mpsRfiSR(){var els=document.querySelectorAll('*');for(var i=0;i<els.length;i++){var sr=els[i].shadowRoot;if(sr){var tc=sr.textContent||'';if(sr.querySelector('th')&&tc.indexOf('Aconex Reference No')>=0&&tc.indexOf('Follow up Sent Date')>=0)return sr;}}return null;}
 function mpsRfiPop(anchor,corr,pid){try{var old=document.getElementById('mps-ij-pop');if(old)old.remove();var box=document.createElement('div');box.id='mps-ij-pop';box.style.cssText='position:fixed;z-index:2147483647;background:#fff;border:1px solid #cfd6dd;border-radius:4px;box-shadow:0 4px 14px rgba(0,0,0,.18);padding:4px 0;font:12px/1.5 Arial,Helvetica,sans-serif;color:#1f2d3d;min-width:170px;max-height:260px;overflow:auto;';corr.forEach(function(c){var a=document.createElement('a');a.textContent=c.n;a.title=c.o+' \u2022 '+(c.d||'');a.href=(c.id?('https://au1.aconex.com/ViewCorrespondence?Correspondence_ID='+c.id+'&CORRESPONDENCE_MAILBOX='+(c.o==='MPS'?'5':'4')+'&PROJECT_ID='+pid):'#');a.target='_blank';a.rel='noopener';a.style.cssText='display:block;padding:3px 12px;text-decoration:none;color:'+(c.o==='BHP'?'#b8541a':'#1f6fb2')+';white-space:nowrap;';a.addEventListener('mouseenter',function(){a.style.background='#f0f4f8';});a.addEventListener('mouseleave',function(){a.style.background='';});box.appendChild(a);});document.body.appendChild(box);var rc=anchor.getBoundingClientRect();box.style.left=Math.max(4,Math.min(rc.left,window.innerWidth-box.offsetWidth-8))+'px';box.style.top=(rc.bottom+2)+'px';setTimeout(function(){document.addEventListener('click',function h(){var b=document.getElementById('mps-ij-pop');if(b)b.remove();document.removeEventListener('click',h);});},0);}catch(e){}}
 function mpsRfiIJ(td,row,dateVal,pid){try{if(!td||td.getAttribute('data-mps-ij'))return;var day=mpsDay(dateVal);if(!day)return;var corr=(row._corr||[]).filter(function(c){return mpsDay(c.d)===day;});if(!corr.length)return;td.setAttribute('data-mps-ij','1');td.style.position='relative';var car=document.createElement('span');car.textContent=' \u25be';car.title=corr.length+' correspondence on this date';car.style.cssText='cursor:pointer;color:#8a939b;font-size:10px;margin-left:2px;user-select:none;';car.addEventListener('click',function(ev){ev.stopPropagation();mpsRfiPop(car,corr,pid);});td.appendChild(car);}catch(e){}}
-function mpsRfiEnhance(){try{var sr=mpsRfiSR();if(!sr)return;var tips={'Date Response Required':'H \u2014 Date Response Required: the response-due date carried on the RFI/TQ in Aconex (the originating mail\'s \u201cRespond by\u201d date). Taken from the register, not calculated.','Follow up Sent Date 1':'I \u2014 Follow up Sent Date 1: auto-filled from the date of the 1st MPS follow-up correspondence sent after the RFI/TQ was issued (earliest MPS mail in the conversation after the original). Editable. Click the \u25be to list the correspondence on this date.','Follow up Sent Date 2':'J \u2014 Follow up Sent Date 2: auto-filled from the date of the 2nd MPS follow-up correspondence sent after the RFI/TQ was issued. Editable. Click the \u25be to list the correspondence on this date.'};var ths=sr.querySelectorAll('th');for(var i=0;i<ths.length;i++){var t=(ths[i].textContent||'').replace(/[\u21d5\ud83c\udfa8]/g,'').trim();if(tips[t]){ths[i].title=tips[t];ths[i].style.cursor='help';}}var rows=(S&&S.filtered&&S.filtered.length?S.filtered:(S&&S.allRows))||[];var byRef={};for(var r=0;r<rows.length;r++){byRef[String(rows[r].aconexRef).toUpperCase()]=rows[r];}var pid=mpsPidGuess();var trs=sr.querySelectorAll('tbody tr');for(var k=0;k<trs.length;k++){var tds=trs[k].querySelectorAll('td');if(tds.length<10)continue;var refTxt=(tds[1].textContent||'').trim().toUpperCase();var row=byRef[refTxt];if(!row)continue;mpsRfiIJ(tds[8],row,row.followUp1||row._autoFu1,pid);mpsRfiIJ(tds[9],row,row.followUp2||row._autoFu2,pid);}}catch(e){}}
+function mpsRfiEnhance(){try{var sr=mpsRfiSR();if(!sr)return;var tips={'Date Response Required':'H \u2014 Date Response Required: the response-due date carried on the RFI/TQ in Aconex (the originating mail\'s \u201cRespond by\u201d date). Taken from the register, not calculated.','Follow up Sent Date 1':'I \u2014 Follow up Sent Date 1: auto-filled from the date of the 1st MPS follow-up correspondence sent after the RFI/TQ was issued (earliest MPS mail in the conversation after the original). Editable. Click the \u25be to list the correspondence on this date.','Follow up Sent Date 2':'J \u2014 Follow up Sent Date 2: auto-filled from the date of the 2nd MPS follow-up correspondence sent after the RFI/TQ was issued. Editable. Click the \u25be to list the correspondence on this date.'};var ths=sr.querySelectorAll('th');for(var i=0;i<ths.length;i++){var t=(ths[i].textContent||'').replace(/[\u21d5\ud83c\udfa8]/g,'').trim();if(tips[t]){ths[i].title=tips[t];ths[i].style.cursor='help';}}var rows=(S&&S.filtered&&S.filtered.length?S.filtered:(S&&S.allRows))||[];var byRef={};for(var r=0;r<rows.length;r++){byRef[String(rows[r].aconexRef).toUpperCase()]=rows[r];}var pid=mpsPidGuess();var trs=sr.querySelectorAll('tbody tr');for(var k=0;k<trs.length;k++){var tds=trs[k].querySelectorAll('td');var off=(tds[0]&&tds[0].classList&&tds[0].classList.contains('mps-selcell'))?1:0;if(tds.length<10+off)continue;var refTxt=(tds[1+off].textContent||'').trim().toUpperCase();var row=byRef[refTxt];if(!row)continue;mpsRfiIJ(tds[8+off],row,row.followUp1||row._autoFu1,pid);mpsRfiIJ(tds[9+off],row,row.followUp2||row._autoFu2,pid);}}catch(e){}}
 try{var __mpsOrigRB=renderBody;renderBody=function(){var _r=__mpsOrigRB.apply(this,arguments);try{mpsRfiEnhance();}catch(e){}return _r;};}catch(e){}
 try{(function(){var t=0;function tick(){t++;try{if(S&&S.allRows&&S.allRows.length){mpsRfiCorrectAll(false);return;}}catch(e){}if(t<60)setTimeout(tick,1000);}setTimeout(tick,1800);})();}catch(e){}
 
@@ -897,6 +942,8 @@ async function fullScan(){
     var pad=Math.max(0,Math.round(S.rowPad*(S.padScale||100)/100)),ws=S.wrap?'normal':'nowrap',ov=S.wrap?'visible':'hidden';
     S.filtered.forEach(function(row){
       var tr=el('tr');
+      if(isRowSel(row))tr.classList.add('mps-selrow');
+      tr.appendChild(selCellTd(row,pad));
       visKeys().forEach(function(k){
         var td,w=S.cols[k].w;
         var base='width:'+w+'px;max-width:'+w+'px;padding:'+pad+'px 6px;white-space:'+ws+';overflow:'+ov+';text-overflow:ellipsis';
@@ -911,6 +958,7 @@ async function fullScan(){
       });
       tb.appendChild(tr);
     });
+    updateSelBtn();
   }
   function cd0(k,row){if(k==='daysSinceSub')return 'Calendar days since Date Sent ('+cellVal(row,'dateSent')+')';return 'Calendar days since Date Response Received ('+cellVal(row,'dateRespRecd')+')';}
   // Custom editable dropdown (Status / Yes-No) with a left "×" to delete an option.
@@ -1047,7 +1095,7 @@ async function fullScan(){
     // Each column's rendered width = its width value + ~PAD_OH of padding/border, so budget for that overhead
     // to actually land inside the viewport instead of overshooting into a horizontal scroll.
     var PAD_OH=13;
-    var avail=Math.max(240,tw.clientWidth-18-keys.length*PAD_OH);
+    var avail=Math.max(240,tw.clientWidth-18-SELW-keys.length*PAD_OH);
     var probe=document.createElement('span');probe.style.cssText='position:absolute;visibility:hidden;white-space:nowrap;font:'+S.fontSize+'px "Segoe UI",Arial';root.appendChild(probe);
     // Two-tier floors: prefer the no-clip floor (shows short fixed data: dates, numbers, pills; long text capped 160).
     // If those don't all fit the page, fall back to the tightest 2-line-header minimum so we shrink as far as possible.
