@@ -411,9 +411,12 @@
     +'.dark .dtlbl{color:#9fb0c4}.dark .toolbar select.dtsel{background:#2a1d12;color:#ffd7bf;border-color:'+ACCENT+'}'
     +'.dark .chip{background:#1e2a3a;color:#cfe0f2;border-color:#37485e}.dark .mini{background:#1e2a3a;color:#cfe0f2;border-color:#37485e}'
     +'.dark .rng{accent-color:'+ACCENT+'}'
-    +'#wrap table th.mps-selcell,#wrap table td.mps-selcell{width:34px;min-width:34px;max-width:34px;text-align:left;vertical-align:middle}'
+    +'#wrap table th.mps-selcell,#wrap table td.mps-selcell{width:13px;min-width:13px;max-width:13px;text-align:center;vertical-align:middle}'
+    +'#wrap table tr>th.mps-selcell:first-child,#wrap table tr>td.mps-selcell:first-child{padding-left:1px!important;padding-right:1px!important}'
     +'.mps-selcell input[type=checkbox]{margin:0;cursor:pointer;width:13px;height:13px;vertical-align:middle;accent-color:'+ACCENT+'}'
-    +'tr.mps-selrow td.mps-selcell{box-shadow:inset 3px 0 0 '+ACCENT+'}'
+    +'.mps-pophelp{position:absolute;left:50%;transform:translateX(-50%);bottom:14px;max-width:760px;background:#fff8e6;border:2px solid '+ACCENT+';border-radius:8px;padding:10px 34px 10px 12px;font-size:12px;line-height:1.45;color:'+INK+';box-shadow:0 6px 24px rgba(0,0,0,.22);z-index:30}'
+    +'.mps-pophelp b{color:#b3400f}.mps-pophelp a{position:absolute;top:5px;right:9px;cursor:pointer;font-weight:700;color:#8a939b;text-decoration:none}.mps-pophelp a:hover{color:'+INK+'}'
+    +'.dark .mps-pophelp{background:#2a1d12;color:#ffe9d6;border-color:'+ACCENT+'}.dark .mps-pophelp b{color:#ffb37a}'
     +'.btn.mps-open{font-weight:700;color:#0a58c2;border:2px solid #0a84ff;background:#eaf3ff}.btn.mps-open:hover{background:#dcebff;border-color:#0070e0}'
     +'.dark .btn.mps-open{color:#8ec5ff;background:#0e2438;border-color:#2f8bff}'
     +'.btn[disabled]{opacity:.45;cursor:not-allowed}.btn[disabled]:hover{background:#eaf3ff}.dark .btn[disabled]:hover{background:#0e2438}';}
@@ -768,7 +771,7 @@
   }
 
   // ---- row selection (left-hand tick column) + "Open Selected" (opens each in its own tab) ----
-  var SELW=34, selBtnEl=null;
+  var SELW=16, selBtnEl=null;
   function isRowSel(r){return !!(S.rowSel&&S.rowSel[rowKey(r)]);}
   function setRowSel(r,v){S.rowSel=S.rowSel||{};if(v)S.rowSel[rowKey(r)]=1;else delete S.rowSel[rowKey(r)];}
   function selRows(){return S.filtered.filter(isRowSel);}   // register order = current sort/filter order
@@ -782,19 +785,44 @@
     var m=root&&root.getElementById('mps-selall');
     if(m){var t=S.filtered.length;m.checked=(t>0&&n===t);m.indeterminate=(n>0&&n<t);}
   }
+  // Chrome allows only ONE new tab per click — the pop-up blocker consumes the
+  // page's user activation on the first open — so a multi-select can only open in a
+  // single press once pop-ups are allowed for this site. Open as many as the browser
+  // permits, untick the ones that actually opened, and say plainly how to get the
+  // rest; pressing again continues down the list, so every selected item does end up
+  // in its own tab either way.
   function openSelected(){
     var rows=selRows();if(!rows.length)return;
-    var opened=0,blocked=0,nolink=0;
-    rows.forEach(function(r){
-      if(!r._refMailId){nolink++;return;}
-      var w=null;try{w=window.open(refUrl(r),'_blank');}catch(e){}
-      if(w)opened++;else blocked++;
-    });
-    var msg='Opened '+opened+' of '+rows.length+' selected in new tabs';
-    if(nolink)msg+=' · '+nolink+' with no Aconex mail link yet';
-    if(blocked)msg+=' · '+blocked+' blocked — allow pop-ups for this site';
-    toast(msg);
+    var todo=[],nolink=0;
+    rows.forEach(function(r){var u=selLink(r);if(u)todo.push({r:r,u:u});else nolink++;});
+    var got=[],blocked=0;
+    for(var i=0;i<todo.length;i++){
+      var w=null;try{w=window.open(todo[i].u,'_blank');}catch(e){}
+      if(w){got.push(todo[i].r);}else{blocked=todo.length-i;break;}
+    }
+    // Untick whatever actually opened, so the count always reads "still to open",
+    // reaches 0, and pressing again can never re-open a tab you already have.
+    if(got.length){got.forEach(function(r){setRowSel(r,false);});renderBody();}
+    if(!blocked){var hp=root.getElementById('mps-popuphelp');if(hp)hp.remove();}
+    var msg='Opened '+got.length+' of '+rows.length+' selected in new tabs';
+    if(nolink)msg+=' · '+nolink+' with no Aconex link';
+    if(blocked)popupHelp(blocked,msg);else toast(msg);
   }
+  // A toast is too easy to miss for something the user has to act on, so this is a
+  // persistent, dismissable notice with the exact steps. It replaces the toast when
+  // pop-ups were blocked, because both sit bottom-centre.
+  function popupHelp(n,msg){
+    var wrapEl=root.getElementById('wrap');if(!wrapEl)return;
+    var ex=root.getElementById('mps-popuphelp');if(ex)ex.remove();
+    var box=el('div',{id:'mps-popuphelp',class:'mps-pophelp'},[
+      el('b',{},[msg+' — this browser blocked '+n+' pop-up'+(n===1?'':'s')+'.']),
+      el('span',{},[' Chrome lets a page open only one tab per click. To open every selected item in one press: click the blocked-pop-up icon at the right of the address bar, choose “Always allow pop-ups and redirects from this site”, then press Open Selected again.']),
+      el('span',{},[' Until then, pressing Open Selected again opens the next one — the ones already open have been unticked.']),
+      el('a',{title:'Dismiss this notice',onclick:function(){var b=root.getElementById('mps-popuphelp');if(b)b.remove();}},['✕'])
+    ]);
+    wrapEl.appendChild(box);
+  }
+  function selLink(r){return r._refMailId?refUrl(r):'';}
   function selCellTd(row,pad){
     var cb=el('input',{type:'checkbox',title:'Select this RFI/TQ for “Open Selected”'});
     cb.checked=isRowSel(row);
