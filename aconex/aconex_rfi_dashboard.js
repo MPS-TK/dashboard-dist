@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='RFI v12.2', BUILD_DATE='1 Sep 2026';
+  var VERSION='v12.4', BUILD_DATE='1 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -414,6 +414,7 @@
     +'#wrap table th.mps-selcell,#wrap table td.mps-selcell{width:13px;min-width:13px;max-width:13px;text-align:center;vertical-align:middle}'
     +'#wrap table tr>th.mps-selcell:first-child,#wrap table tr>td.mps-selcell:first-child{padding-left:1px!important;padding-right:1px!important}'
     +'.mps-selcell input[type=checkbox]{margin:0;cursor:pointer;width:13px;height:13px;vertical-align:middle;accent-color:'+ACCENT+'}'
+    +'.mps-selcell input.mps-opened{accent-color:#1e7e34;box-shadow:0 0 0 2px rgba(30,126,52,.5);border-radius:2px}'
     +'.mps-pophelp{position:absolute;left:50%;transform:translateX(-50%);bottom:14px;max-width:760px;background:#fff8e6;border:2px solid '+ACCENT+';border-radius:8px;padding:10px 34px 10px 12px;font-size:12px;line-height:1.45;color:'+INK+';box-shadow:0 6px 24px rgba(0,0,0,.22);z-index:30}'
     +'.mps-pophelp b{color:#b3400f}.mps-pophelp a{position:absolute;top:5px;right:9px;cursor:pointer;font-weight:700;color:#8a939b;text-decoration:none}.mps-pophelp a:hover{color:'+INK+'}'
     +'.dark .mps-pophelp{background:#2a1d12;color:#ffe9d6;border-color:'+ACCENT+'}.dark .mps-pophelp b{color:#ffb37a}'
@@ -779,11 +780,19 @@
   function isRowSel(r){return !!(S.rowSel&&S.rowSel[rowKey(r)]);}
   function setRowSel(r,v){S.rowSel=S.rowSel||{};if(v)S.rowSel[rowKey(r)]=1;else delete S.rowSel[rowKey(r)];}
   function selRows(){return S.filtered.filter(isRowSel);}   // register order = current sort/filter order
+  // Rows whose tab has already been opened this session. Ticks are NEVER cleared by
+  // opening — the user wants to see afterwards what they opened — so "already opened"
+  // is tracked separately and shown as a green tick. Untick a row and the mark clears,
+  // so re-ticking makes it openable again.
+  function isRowOpened(r){return !!(S.rowOpened&&S.rowOpened[rowKey(r)]);}
+  function setRowOpened(r,v){S.rowOpened=S.rowOpened||{};if(v)S.rowOpened[rowKey(r)]=1;else delete S.rowOpened[rowKey(r)];}
+  function pendingRows(){return selRows().filter(function(r){return !isRowOpened(r);});}
   function updateSelBtn(){
-    var n=selRows().length;
+    var sel=selRows(), n=sel.length, pend=pendingRows().length;
     if(selBtnEl){
-      selBtnEl.textContent='🔗 Open Selected'+(n?' ('+n+')':'');
-      if(n){selBtnEl.removeAttribute('disabled');selBtnEl.setAttribute('title','Open the '+n+' selected RFI/TQ'+(n===1?'':'s')+' in Aconex — each in its own new tab, in the order they appear in the register');}
+      selBtnEl.textContent='🔗 Open Selected'+(pend?' ('+pend+')':(n?' ✓':''));
+      if(pend){selBtnEl.removeAttribute('disabled');selBtnEl.setAttribute('title','Open the '+pend+' selected RFI/TQ'+(pend===1?'':'s')+' not yet opened — each in its own new tab, in the order they appear in the register');}
+      else if(n){selBtnEl.setAttribute('disabled','disabled');selBtnEl.setAttribute('title','All '+n+' selected row'+(n===1?' is':'s are')+' already open (green ticks). Untick and re-tick a row to open it again.');}
       else{selBtnEl.setAttribute('disabled','disabled');selBtnEl.setAttribute('title','Tick one or more rows in the left-hand column to enable this');}
     }
     var m=root&&root.getElementById('mps-selall');
@@ -796,7 +805,7 @@
   // rest; pressing again continues down the list, so every selected item does end up
   // in its own tab either way.
   function openSelected(){
-    var rows=selRows();if(!rows.length)return;
+    var rows=pendingRows();if(!rows.length)return;
     var todo=[],nolink=0;
     rows.forEach(function(r){var u=selLink(r);if(u)todo.push({r:r,u:u});else nolink++;});
     var got=[],blocked=0;
@@ -804,11 +813,13 @@
       var w=null;try{w=window.open(todo[i].u,'_blank');}catch(e){}
       if(w){got.push(todo[i].r);}else{blocked=todo.length-i;break;}
     }
-    // Untick whatever actually opened, so the count always reads "still to open",
-    // reaches 0, and pressing again can never re-open a tab you already have.
-    if(got.length){got.forEach(function(r){setRowSel(r,false);});renderBody();}
-    var msg='Opened '+got.length+' of '+rows.length+' selected in new tabs';
-    if(nolink)msg+=' · '+nolink+' with no Aconex link';
+    // Mark what opened WITHOUT unticking it — the selection stays visible so the user can
+    // see on return exactly what they opened. The green tick is the "already open" mark and
+    // is what keeps a second press from duplicating tabs.
+    if(got.length){got.forEach(function(r){setRowOpened(r,true);});renderBody();}
+    var msg='Opened '+got.length+' of '+rows.length+' in new tabs.';
+    if(got.length)msg+=' They stay ticked — a green tick marks each one now open.';
+    if(nolink)msg+=' '+nolink+' had no Aconex link.';
     openNotice(msg,blocked);
   }
   // A toast is the little dark message that slides up at the bottom of the dashboard and
@@ -819,21 +830,28 @@
   function openNotice(msg,n){
     var wrapEl=root.getElementById('wrap');if(!wrapEl)return;
     var ex=root.getElementById('mps-popuphelp');if(ex)ex.remove();
-    var kids=[el('b',{},[msg+(n?(' — this browser blocked '+n+' pop-up'+(n===1?'':'s')+'.'):'.')])];
+    var kids=[el('b',{},[msg+(n?(' Chrome blocked '+n+' pop-up'+(n===1?'':'s')+'.'):'')])];
     if(n){
-      kids.push(el('span',{},[' Chrome lets a page open only one tab per click. To open every selected item in one press: click the blocked-pop-up icon at the right of the address bar, choose “Always allow pop-ups and redirects from this site”, then press Open Selected again.']));
-      kids.push(el('span',{},[' Until then, press Open Selected again for the next one — the ones already open have been unticked.']));
+      kids.push(el('span',{},[' It only lets a page open one tab per click. To open every selected item in one press: click the blocked-pop-up icon at the right of the address bar, choose “Always allow pop-ups and redirects from this site”, then press Open Selected again.']));
+      kids.push(el('span',{},[' Until then, press Open Selected again for the next one. Nothing gets unticked — the green ticks are the ones already open.']));
     }
     kids.push(el('a',{title:'Dismiss this notice',onclick:function(){var b=root.getElementById('mps-popuphelp');if(b)b.remove();}},['✕']));
     wrapEl.appendChild(el('div',{id:'mps-popuphelp',class:'mps-pophelp'+(n?'':' ok')},kids));
   }
   function selLink(r){return r._refMailId?refUrl(r):'';}
   function selCellTd(row,pad){
-    var cb=el('input',{type:'checkbox',title:'Select this RFI/TQ for “Open Selected”'});
+    var open=isRowOpened(row);
+    var cb=el('input',{type:'checkbox',title:open?'Already opened in a new tab — still selected. Untick to clear the mark.':'Select this RFI/TQ for “Open Selected”'});
     cb.checked=isRowSel(row);
+    if(open&&cb.checked)cb.classList.add('mps-opened');
     var td=el('td',{class:'mps-selcell',style:'padding:'+pad+'px 4px'},[cb]);
     cb.onclick=function(e){e.stopPropagation();};
-    cb.onchange=function(){setRowSel(row,cb.checked);var tr=td.parentNode;if(tr)tr.classList.toggle('mps-selrow',cb.checked);updateSelBtn();};
+    cb.onchange=function(){
+      setRowSel(row,cb.checked);
+      if(!cb.checked){setRowOpened(row,false);cb.classList.remove('mps-opened');cb.setAttribute('title','Select this RFI/TQ for “Open Selected”');}
+      var tr=td.parentNode;if(tr)tr.classList.toggle('mps-selrow',cb.checked);
+      updateSelBtn();
+    };
     return td;
   }
   var dragKey=null;
