@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='RFI v12', BUILD_DATE='1 Sep 2026';
+  var VERSION='RFI v12.2', BUILD_DATE='1 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -417,6 +417,10 @@
     +'.mps-pophelp{position:absolute;left:50%;transform:translateX(-50%);bottom:14px;max-width:760px;background:#fff8e6;border:2px solid '+ACCENT+';border-radius:8px;padding:10px 34px 10px 12px;font-size:12px;line-height:1.45;color:'+INK+';box-shadow:0 6px 24px rgba(0,0,0,.22);z-index:30}'
     +'.mps-pophelp b{color:#b3400f}.mps-pophelp a{position:absolute;top:5px;right:9px;cursor:pointer;font-weight:700;color:#8a939b;text-decoration:none}.mps-pophelp a:hover{color:'+INK+'}'
     +'.dark .mps-pophelp{background:#2a1d12;color:#ffe9d6;border-color:'+ACCENT+'}.dark .mps-pophelp b{color:#ffb37a}'
+    +'.mps-pophelp.ok{background:#eefaf0;border-color:#1e7e34}.mps-pophelp.ok b{color:#14682b}'
+    +'.dark .mps-pophelp.ok{background:#10251a;color:#d7f5e0;border-color:#1e7e34}.dark .mps-pophelp.ok b{color:#6fdc92}'
+    +'#wrap table th.mps-fill,#wrap table td.mps-fill{width:auto;min-width:0;max-width:none;border-right:0}'
+    +'#wrap table tr>th.mps-fill:last-child,#wrap table tr>td.mps-fill:last-child{padding:0!important}'
     +'.btn.mps-open{font-weight:700;color:#0a58c2;border:2px solid #0a84ff;background:#eaf3ff}.btn.mps-open:hover{background:#dcebff;border-color:#0070e0}'
     +'.dark .btn.mps-open{color:#8ec5ff;background:#0e2438;border-color:#2f8bff}'
     +'.btn[disabled]{opacity:.45;cursor:not-allowed}.btn[disabled]:hover{background:#eaf3ff}.dark .btn[disabled]:hover{background:#0e2438}';}
@@ -803,24 +807,25 @@
     // Untick whatever actually opened, so the count always reads "still to open",
     // reaches 0, and pressing again can never re-open a tab you already have.
     if(got.length){got.forEach(function(r){setRowSel(r,false);});renderBody();}
-    if(!blocked){var hp=root.getElementById('mps-popuphelp');if(hp)hp.remove();}
     var msg='Opened '+got.length+' of '+rows.length+' selected in new tabs';
     if(nolink)msg+=' · '+nolink+' with no Aconex link';
-    if(blocked)popupHelp(blocked,msg);else toast(msg);
+    openNotice(msg,blocked);
   }
-  // A toast is too easy to miss for something the user has to act on, so this is a
-  // persistent, dismissable notice with the exact steps. It replaces the toast when
-  // pop-ups were blocked, because both sit bottom-centre.
-  function popupHelp(n,msg){
+  // A toast is the little dark message that slides up at the bottom of the dashboard and
+  // vanishes after ~2s. It is the wrong tool here: Chrome moves focus to the tab it just
+  // opened, so the user is looking at another tab while it times out. This notice stays on
+  // the dashboard until it is dismissed or the next press replaces it — so it is still
+  // there when they come back.
+  function openNotice(msg,n){
     var wrapEl=root.getElementById('wrap');if(!wrapEl)return;
     var ex=root.getElementById('mps-popuphelp');if(ex)ex.remove();
-    var box=el('div',{id:'mps-popuphelp',class:'mps-pophelp'},[
-      el('b',{},[msg+' — this browser blocked '+n+' pop-up'+(n===1?'':'s')+'.']),
-      el('span',{},[' Chrome lets a page open only one tab per click. To open every selected item in one press: click the blocked-pop-up icon at the right of the address bar, choose “Always allow pop-ups and redirects from this site”, then press Open Selected again.']),
-      el('span',{},[' Until then, pressing Open Selected again opens the next one — the ones already open have been unticked.']),
-      el('a',{title:'Dismiss this notice',onclick:function(){var b=root.getElementById('mps-popuphelp');if(b)b.remove();}},['✕'])
-    ]);
-    wrapEl.appendChild(box);
+    var kids=[el('b',{},[msg+(n?(' — this browser blocked '+n+' pop-up'+(n===1?'':'s')+'.'):'.')])];
+    if(n){
+      kids.push(el('span',{},[' Chrome lets a page open only one tab per click. To open every selected item in one press: click the blocked-pop-up icon at the right of the address bar, choose “Always allow pop-ups and redirects from this site”, then press Open Selected again.']));
+      kids.push(el('span',{},[' Until then, press Open Selected again for the next one — the ones already open have been unticked.']));
+    }
+    kids.push(el('a',{title:'Dismiss this notice',onclick:function(){var b=root.getElementById('mps-popuphelp');if(b)b.remove();}},['✕']));
+    wrapEl.appendChild(el('div',{id:'mps-popuphelp',class:'mps-pophelp'+(n?'':' ok')},kids));
   }
   function selLink(r){return r._refMailId?refUrl(r):'';}
   function selCellTd(row,pad){
@@ -865,6 +870,14 @@
       else{var inp=el('input',{type:'text',title:'Filter '+COLDEF[k].label,placeholder:'⌕',value:S.colFilters[k]||''});inp.oninput=function(){S.colFilters[k]=inp.value;applyFilters();renderBody();renderChart();};cell=el('td',{style:'width:'+S.cols[k].w+'px'},[inp]);}
       ftr.appendChild(cell);
     });
+    // Filler column: `table{width:max-content;min-width:100%}` means that whenever the
+    // table is narrower than the panel the browser hands the surplus to EVERY column,
+    // ignoring max-width — which stretched the tick column to 45-56px after Optimise
+    // Widths. This empty auto-width column absorbs all of that surplus instead, so the
+    // tick column stays exactly 16px whatever the width tools do.
+    letr.appendChild(el('th',{class:'colc mps-fill'},[]));
+    htr.appendChild(el('th',{class:'mps-fill'},[]));
+    ftr.appendChild(el('td',{class:'mps-fill'},[]));
     thead.appendChild(ftr);
     table.appendChild(thead);table.appendChild(el('tbody',{id:'tbody'}));tw.appendChild(table);
     renderBody();
@@ -984,6 +997,7 @@ async function fullScan(){
         else{td=el('td',{style:base,title:cellVal(row,k)},[cellVal(row,k)]);}
         tr.appendChild(td);
       });
+      tr.appendChild(el('td',{class:'mps-fill'},[]));
       tb.appendChild(tr);
     });
     updateSelBtn();
