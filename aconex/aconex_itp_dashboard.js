@@ -16,7 +16,7 @@
   if (window.__MPS_ACONEX && window.__MPS_ACONEX.__live) { window.__MPS_ACONEX.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.5', BUILD_DATE='1 Sep 2026';
+  var VERSION='v12.6', BUILD_DATE='1 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -97,7 +97,7 @@
     comment:{label:'Comment',w:240,edit:'text',tip:'MPS tracking: free-text comment'},
     // extras (hidden by default)
     fileType:{label:'File',w:48,tip:'File type of the current version'},
-    transmittalNo:{label:'Transmittal No',w:120,edit:'text',tip:'MPS tracking: transmittal number'},
+    transmittalNo:{label:'Transmittal No',w:120,edit:'text',tip:'Latest transmittal the document was issued on, from any issuer (MPS or BHP). Filled by Sync Transmittals; editable if you need to override it.'},
     priority:{label:'Priority',w:110,edit:'priority',tip:'MPS tracking: priority (colour-coded)'},
     dateResub1:{label:'Date Resubmitted 1',w:130,edit:'date',tip:'MPS tracking: first resubmission date'},
     dateResub2:{label:'Date Resubmitted 2',w:130,edit:'date',tip:'MPS tracking: second resubmission date'},
@@ -160,50 +160,67 @@
     function setb(t){if(btn)btn.textContent=t;}
     (async function(){
       try{
-        // Full coverage: crawl BOTH boxes; the mail API caps each list at 250, so we page
-        // backward by sentdate window. A transmittal number can be in the MailNo (Transmittal
-        // type) OR in the Subject (Workflow Transmittal etc.), so match either.
-        var map={},seen={},done=0;
-        function listUrl(box,cutoff){return '/api/projects/'+pid+'/mail?mail_box='+box+'&page_size=250&search_query='+encodeURIComponent('sentdate:[* TO '+cutoff+']');}
-        async function crawl(ids){
-          var idx=0,CONC=10,minDate=null;
-          async function worker(){
-            while(idx<ids.length){var id=ids[idx++];
-              try{var rr=await fetch('/api/projects/'+pid+'/mail/'+id,{headers:{Accept:'application/xml'},credentials:'include'});
-                var dd=new DOMParser().parseFromString(await rr.text(),'text/xml'),rt=dd.documentElement;
-                var sd=(rt.querySelector('SentDate')||{}).textContent||'';if(sd&&(minDate===null||sd<minDate))minDate=sd;
-                var mno=(rt.querySelector('MailNo')||{}).textContent||'', subj=(rt.querySelector('Subject')||{}).textContent||'';
-                var tx=(mno.match(/MPSBE-TRANSMIT-\d+/)||[])[0]||(subj.match(/MPSBE-TRANSMIT-\d+/)||[])[0]||null;
-                if(tx){var ts=Date.parse(sd)||0;
-                  Array.prototype.forEach.call(rt.querySelectorAll('RegisteredDocumentAttachment'),function(a){var dnEl=a.querySelector('DocumentNo');if(!dnEl)return;var k=dnEl.textContent;if(!map[k]||ts>map[k].ts)map[k]={no:tx,ts:ts};});
-                }
+        // Ask per DOCUMENT, not per mail.
+        //
+        // The old crawl listed mail and walked a sentdate window backwards. That cannot
+        // work against this API: page_number is ignored (page 2 returns the identical
+        // 250), every result set is capped at 250, and no sort is applied unless asked,
+        // so the window walked an arbitrary subset and never reached most transmittals.
+        // Measured: today's MPSBE-TRANSMIT-000490 was absent from the very first page the
+        // old code fetched, which is why 20 of 48 ITPs had no transmittal number.
+        //
+        // Searching on the document number returns just the mails that reference that
+        // document, so coverage no longer depends on ordering or paging. Mail old enough
+        // to have fallen out of the search index can still be missed, but anything missed
+        // is OLDER than what comes back, so it can never change a "latest" answer.
+        //
+        // The value taken is the latest transmittal of ANY issuer (MPSBE-TRANSMIT,
+        // BHPCSAMP-TRANSMIT and BHPCSAMP-WTRAN all count) — matched on the correspondence
+        // type rather than a hard-coded prefix, so it holds on other projects too.
+        var rows=S.allRows.slice(), idx=0, done=0, found=0, applied=0, changed=[], nothing=[];
+        async function worker(){
+          while(idx<rows.length){
+            var row=rows[idx++], best=null, bestTs=-1;
+            for(var b=0;b<2;b++){
+              var box=b?'inbox':'sentbox';
+              try{
+                var u='/api/projects/'+pid+'/mail?mail_box='+box+'&page_size=100'
+                     +'&return_fields=docno,sentdate,corrtypeid&search_query='+encodeURIComponent(row.docNo);
+                var r=await fetch(u,{headers:{Accept:'application/xml'},credentials:'include'});
+                if(!r.ok)continue;
+                var dd=new DOMParser().parseFromString(await r.text(),'text/xml');
+                Array.prototype.forEach.call(dd.querySelectorAll('Mail'),function(m){
+                  function t(s){var n=m.querySelector(s);return n?(n.textContent||''):'';}
+                  if(!/transmittal/i.test(t('CorrespondenceType')))return;
+                  var no=t('MailNo'); if(!no)return;
+                  var ts=Date.parse(t('SentDate'))||0;
+                  if(ts>bestTs){bestTs=ts;best=no;}
+                });
               }catch(e){}
-              done++;if(done%5===0)setb('Syncing… '+done);
             }
+            if(best){
+              found++;
+              if(row.transmittalNo!==best){
+                if(row.transmittalNo)changed.push(row.docNo+': '+row.transmittalNo+' -> '+best);
+                row.transmittalNo=best;
+                var o=S.overrides[row.docNo]||(S.overrides[row.docNo]={});
+                o.transmittalNo=best; applied++;
+              }
+            } else nothing.push(row.docNo);
+            done++; if(done%5===0)setb('Syncing… '+done+'/'+rows.length);
           }
-          var ws=[];for(var w=0;w<CONC;w++)ws.push(worker());await Promise.all(ws);
-          return minDate;
         }
         setb('Syncing…');
-        var boxes=['sentbox','inbox'];
-        for(var bi=0;bi<boxes.length;bi++){var cutoff='2099-01-01';
-          for(var iter=0;iter<12;iter++){
-            var r=await fetch(listUrl(boxes[bi],cutoff),{headers:{Accept:'application/xml'},credentials:'include'});
-            var dd=new DOMParser().parseFromString(await r.text(),'text/xml');
-            var ids=Array.prototype.map.call(dd.querySelectorAll('Mail'),function(m){return m.getAttribute('MailId');}).filter(function(id){return !seen[id];});
-            if(!ids.length)break;
-            ids.forEach(function(id){seen[id]=1;});
-            var minD=await crawl(ids);
-            if(!minD)break;
-            cutoff=minD.slice(0,10);
-          }
-        }
-        var applied=0;
-        S.allRows.forEach(function(row){var m=map[row.docNo];if(m&&m.no&&row.transmittalNo!==m.no){row.transmittalNo=m.no;var o=S.overrides[row.docNo]||(S.overrides[row.docNo]={});o.transmittalNo=m.no;applied++;}});
+        var ws=[]; for(var w=0;w<8;w++)ws.push(worker());
+        await Promise.all(ws);
         if(applied){saveOverrides();ghPush();}
-        saveTxCache({ts:Date.now(),docs:Object.keys(map).length});
+        saveTxCache({ts:Date.now(),docs:found});
         applyScope();renderBody();
-        toast('Transmittals synced — '+done+' mails scanned, '+Object.keys(map).length+' doc(s) mapped, '+applied+' updated');
+        try{
+          if(changed.length)console.log('[MPS] Transmittal No replaced on '+changed.length+' document(s):\n'+changed.join('\n'));
+          if(nothing.length)console.log('[MPS] No transmittal found for '+nothing.length+' document(s):\n'+nothing.join('\n'));
+        }catch(e){}
+        toast('Transmittals synced — '+rows.length+' documents checked, '+found+' with a transmittal, '+applied+' updated, '+nothing.length+' with none yet'+(changed.length?'. '+changed.length+' replaced an earlier value (list in the browser console).':'.'));
       }catch(e){toast('Transmittal sync failed: '+(e&&e.message||e));}
       __txSyncing=false;setb(orig||'⟳ Sync Transmittals');
       var lbl=root.getElementById('txsync');if(lbl)lbl.textContent=lastSyncText();
@@ -464,7 +481,7 @@
       btn('Fonts','Choose the dashboard font and base size for all elements',function(ev){toggleFontPanel(ev&&ev.currentTarget);},'pnltrig'),
       btn((S.darkMode?'☀ Light Mode':'☾ Dark Mode'),'Toggle dark mode',function(){S.darkMode=!S.darkMode;saveCfg();renderAll();}),
       (function(){selBtnEl=el('button',{class:'btn mps-open',onclick:openSelected},['🔗 Open Selected']);selBtnEl.setAttribute('disabled','disabled');selBtnEl.setAttribute('title','Tick one or more rows in the left-hand column to enable this');return selBtnEl;})(),
-      btn('⟳ Sync Transmittals','Crawl the sent transmittals in Aconex and auto-fill the Transmittal No column with each document’s latest transmittal number',function(ev){syncTransmittals(ev&&ev.currentTarget);}),
+      btn('⟳ Sync Transmittals','Look up every document in the register and fill the Transmittal No column with the latest transmittal it was issued on, from any issuer (MPS or BHP). Overwrites existing values.',function(ev){syncTransmittals(ev&&ev.currentTarget);}),
       el('span',{class:'muted',id:'txsync',style:'font-size:11px',title:'When the Transmittal No column was last synced from Aconex transmittals (hours ago)'},[lastSyncText()]),
       el('div',{class:'spacer'}),
       el('div',{class:'badge',title:'This dashboard is running on the Aconex platform'},['ACONEX']),
