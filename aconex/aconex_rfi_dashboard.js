@@ -472,6 +472,22 @@
 
   // ---- tab cross-launch ----
   function gotoITP(){try{if(window.__MPS_ACONEX){close();window.__MPS_ACONEX.boot();return;}}catch(e){}toast('Doc. Registers module not loaded on this page.');}
+  // Variations tab — lazy-loads the Variations module from the public dist (token-free);
+  // falls back to the private repo with a token if the public fetch is blocked.
+  function gotoVAR(){
+    try{if(window.__MPS_ACONEX_VAR){close();window.__MPS_ACONEX_VAR.boot();return;}}catch(e){}
+    var PUB='https://raw.githubusercontent.com/MPS-TK/dashboard-dist/main/aconex/aconex_var_dashboard.js?_='+Date.now();
+    function run(s){(0,eval)(s);close();if(window.__MPS_ACONEX_VAR)window.__MPS_ACONEX_VAR.boot();}
+    fetch(PUB,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.text();}).then(run)
+      .catch(function(){
+        var u='https://api.github.com/repos/MPS-TK/ITR-Dashboard/contents/aconex/aconex_var_dashboard.js?ref=main';
+        var h={Accept:'application/vnd.github.raw'};
+        var t=(function(){try{return localStorage.getItem('mps_gh_token')||localStorage.getItem('__itr_gh_token__')||'';}catch(e){return '';}})();
+        if(t)h.Authorization='token '+t;
+        fetch(u,{headers:h}).then(function(r){return r.text();}).then(run)
+          .catch(function(e){alert('Could not load the Variations module: '+e);});
+      });
+  }
 
   function renderAll(){
     ensureShell();var wrap=root.getElementById('wrap');wrap.innerHTML='';
@@ -497,8 +513,8 @@
     wrap.appendChild(el('div',{class:'tabs'},[
       el('div',{class:'tab link',title:'Switch to the Document (ITP) registers',onclick:gotoITP},['Doc. Registers']),
       el('div',{class:'tab active',title:'RFI / TQ register'},['RFIs/TQs']),
-      el('div',{class:'tab disabled',title:'Coming soon'},['Drawings']),
-      el('div',{class:'tab disabled',title:'Coming soon'},['Transmittals'])
+      el('div',{class:'tab link',title:'Switch to the Variation register',onclick:gotoVAR},['Variations']),
+      el('div',{class:'tab disabled',title:'Coming soon'},['Drawings'])
     ]));
     // toolbar
     var search=el('input',{type:'search',class:'search',title:'Search across all columns',placeholder:'⌕ Search RFIs / TQs…',value:S.globalSearch});search.oninput=function(){S.globalSearch=search.value;applyFilters();renderBody();renderChart();};

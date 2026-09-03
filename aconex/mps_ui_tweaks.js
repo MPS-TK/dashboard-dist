@@ -1,12 +1,13 @@
 /* MPS GROUP — Aconex Register UI tweaks (both tabs). Self-contained enhancement layer loaded by launcher.js. */
 (function () {
   /* Single dashboard version — the Aconex Dashboard is ONE updatable element.
-     Both tabs (Doc. Registers + RFIs/TQs) display this exact string; bump it here in one place. */
-  var AC_VER = 'v12.7 \u00B7 1 Sep 2026';
+     All tabs (Doc. Registers + RFIs/TQs + Variations) display this exact string; bump it here in one place. */
+  var AC_VER = 'v12.8 \u00B7 3 Sep 2026';
 
   var MODS = [
     { host: 'mps-aconex-host',     g: '__MPS_ACONEX' },
-    { host: 'mps-aconex-rfi-host', g: '__MPS_ACONEX_RFI' }
+    { host: 'mps-aconex-rfi-host', g: '__MPS_ACONEX_RFI' },
+    { host: 'mps-aconex-var-host', g: '__MPS_ACONEX_VAR' }
   ];
   window.__mpsUiTweaks = function () {
     MODS.forEach(function (m) {

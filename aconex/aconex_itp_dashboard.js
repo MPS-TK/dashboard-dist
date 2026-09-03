@@ -490,7 +490,7 @@
       el('button',{class:'btn ghost',title:'Close the dashboard',onclick:close},['✕'])
     ]));
     // tabs
-    wrap.appendChild(el('div',{class:'tabs'},[el('div',{class:'tab active',title:'Document registers'},['Doc. Registers']),el('div',{class:'tab',title:'RFI / TQ register',onclick:gotoRFI},['RFIs/TQs']),el('div',{class:'tab disabled',title:'Coming soon'},['Drawings']),el('div',{class:'tab disabled',title:'Coming soon'},['Transmittals'])]));
+    wrap.appendChild(el('div',{class:'tabs'},[el('div',{class:'tab active',title:'Document registers'},['Doc. Registers']),el('div',{class:'tab',title:'RFI / TQ register',onclick:gotoRFI},['RFIs/TQs']),el('div',{class:'tab',title:'Variation register',onclick:gotoVAR},['Variations']),el('div',{class:'tab disabled',title:'Coming soon'},['Drawings'])]));
     // toolbar
     var search=el('input',{type:'search',class:'search',title:'Search across all columns',placeholder:'⌕ Search ITPs…',value:S.globalSearch});search.oninput=function(){S.globalSearch=search.value;applyFilters();renderBody();renderCharts();};
     var dsel=el('select',{class:'dtsel',title:'Filter by Aconex Deliverable Type'});var oa=el('option',{value:'__ALL__'},['All Deliverable Types']);if(S.deliverableType==='__ALL__')oa.selected=true;dsel.appendChild(oa);S.deliverableTypes.forEach(function(dt){var o=el('option',{value:dt},[delivDisp(dt)]);if(dt===S.deliverableType)o.selected=true;dsel.appendChild(o);});dsel.onchange=function(){S.deliverableType=dsel.value;applyScope();renderAll();};
@@ -1148,6 +1148,22 @@ function optimiseWidths(){var probe=document.createElement('span');probe.style.c
   function exportExcel(){try{var keys=visKeys(),data=buildXlsx(keys,S.filtered);var blob=new Blob([data],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Aconex_ITP_Register_'+CFG.projectName.replace(/\s+/g,'')+'_'+new Date().toISOString().slice(0,10)+'.xlsx';document.documentElement.appendChild(a);a.click();a.remove();}catch(e){alert('Export failed: '+e);}}
 
   function gotoRFI(){try{if(window.__MPS_ACONEX_RFI){close();window.__MPS_ACONEX_RFI.boot();return;}var u='https://api.github.com/repos/MPS-TK/ITR-Dashboard/contents/aconex/aconex_rfi_dashboard.js?ref=main';var h={Accept:'application/vnd.github.raw'};var t=(function(){try{return localStorage.getItem('mps_gh_token')||localStorage.getItem('__itr_gh_token__')||'';}catch(e){return '';}})();if(t)h.Authorization='token '+t;fetch(u,{headers:h}).then(function(r){return r.text();}).then(function(s){(0,eval)(s);close();if(window.__MPS_ACONEX_RFI)window.__MPS_ACONEX_RFI.boot();}).catch(function(e){alert('Could not load the RFI module: '+e);});}catch(e){}}
+  // Variations tab — lazy-loads the Variations module from the public dist (token-free);
+  // falls back to the private repo with a token if the public fetch is blocked.
+  function gotoVAR(){
+    try{if(window.__MPS_ACONEX_VAR){close();window.__MPS_ACONEX_VAR.boot();return;}}catch(e){}
+    var PUB='https://raw.githubusercontent.com/MPS-TK/dashboard-dist/main/aconex/aconex_var_dashboard.js?_='+Date.now();
+    function run(s){(0,eval)(s);close();if(window.__MPS_ACONEX_VAR)window.__MPS_ACONEX_VAR.boot();}
+    fetch(PUB,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.text();}).then(run)
+      .catch(function(){
+        var u='https://api.github.com/repos/MPS-TK/ITR-Dashboard/contents/aconex/aconex_var_dashboard.js?ref=main';
+        var h={Accept:'application/vnd.github.raw'};
+        var t=(function(){try{return localStorage.getItem('mps_gh_token')||localStorage.getItem('__itr_gh_token__')||'';}catch(e){return '';}})();
+        if(t)h.Authorization='token '+t;
+        fetch(u,{headers:h}).then(function(r){return r.text();}).then(run)
+          .catch(function(e){alert('Could not load the Variations module: '+e);});
+      });
+  }
   function boot(){ensureShell();host.style.display='block';refreshRsrc();if(!S.allRows.length&&!S.loading)fetchData();else renderAll();}
   function close(){if(host)host.style.display='none';}
   window.__MPS_ACONEX={__live:true,boot:boot,close:close,_state:S,_cfg:CFG,buildXlsx:buildXlsx};
