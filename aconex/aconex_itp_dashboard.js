@@ -16,7 +16,7 @@
   if (window.__MPS_ACONEX && window.__MPS_ACONEX.__live) { window.__MPS_ACONEX.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.7', BUILD_DATE='1 Sep 2026';
+  var VERSION='v12.10', BUILD_DATE='4 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -118,7 +118,7 @@
 
   function factoryCfg(){
     var cols={}; FACTORY_ORDER.forEach(function(k){cols[k]={show:!!FACTORY_SHOW[k],w:COLDEF[k].w};});
-    return {order:FACTORY_ORDER.slice(),cols:cols,fontSize:12,rowPad:4,wrap:false,phases:DEFAULT_PHASES.map(function(p){return {id:p.id,label:p.label};}),chartType:'donut',hiddenDonuts:[],selFilters:{},selKnown:{},chartScale:1,colorSchemes:{status:{},lifecycleStatus:{},phase:{},toAction:{},dateRequired:{}},fontFamily:'',baseFont:DEF_BASEPX,darkMode:false,collapsed:{},barExpanded:false,chartDataField:'status',fontScale:100,padScale:100,hpadScale:100,hdrFontSize:null,hdrMaxLines:2,colNames:{},packageSel:null,packageText:{}};
+    return {order:FACTORY_ORDER.slice(),cols:cols,fontSize:12,rowPad:4,wrap:false,phases:DEFAULT_PHASES.map(function(p){return {id:p.id,label:p.label};}),chartType:'donut',hiddenDonuts:[],selFilters:{},selKnown:{},chartScale:1,colorSchemes:{status:{},lifecycleStatus:{},phase:{},toAction:{},dateRequired:{}},fontFamily:'',baseFont:DEF_BASEPX,darkMode:false,collapsed:{},barExpanded:false,chartDataField:'status',fontScale:100,padScale:100,hpadScale:100,hdrFontSize:null,hdrMaxLines:2,colPri:{},colDefW:{},colNames:{},packageSel:null,packageText:{}};
   }
   var LKEY='mps_aconex_cfg_'+CFG.projectId, DKEY='mps_aconex_defcfg_'+CFG.projectId;
   function loadCfg(){
@@ -126,9 +126,9 @@
     try{var d=localStorage.getItem(DKEY);if(d)return mergeCfg(JSON.parse(d));}catch(e){}
     return factoryCfg();
   }
-  function mergeCfg(saved){var f=factoryCfg();var o=(saved.order||f.order).filter(function(k){return COLDEF[k];});FACTORY_ORDER.forEach(function(k){if(o.indexOf(k)<0)o.push(k);});o=o.filter(function(k){return k!=='rowNo';});o.unshift('rowNo');var cols={};o.forEach(function(k){var s=(saved.cols||{})[k]||{};cols[k]={show:s.show!=null?!!s.show:!!FACTORY_SHOW[k],w:s.w||COLDEF[k].w};});if(cols.rowNo&&cols.rowNo.w<80)cols.rowNo.w=80;return {order:o,cols:cols,fontSize:saved.fontSize||12,rowPad:(saved.rowPad!=null?saved.rowPad:4),wrap:!!saved.wrap,phases:(saved.phases&&saved.phases.length?saved.phases:f.phases),chartType:saved.chartType||'donut',hiddenDonuts:saved.hiddenDonuts||[],selFilters:saved.selFilters||{},selKnown:saved.selKnown||{},chartScale:saved.chartScale||1,colorSchemes:normSchemes(saved.colorSchemes),fontFamily:saved.fontFamily||'',baseFont:saved.baseFont||DEF_BASEPX,darkMode:!!saved.darkMode,collapsed:saved.collapsed||{},barExpanded:!!saved.barExpanded,chartDataField:saved.chartDataField||'status',fontScale:saved.fontScale||(saved.baseFont?Math.round(saved.baseFont/DEF_BASEPX*100):100),padScale:saved.padScale||100,hpadScale:saved.hpadScale||100,hdrFontSize:(saved.hdrFontSize!=null?saved.hdrFontSize:null),hdrMaxLines:saved.hdrMaxLines||2,colNames:saved.colNames||{},packageSel:(saved.packageSel!=null?saved.packageSel:null),packageText:saved.packageText||{}};}
+  function mergeCfg(saved){var f=factoryCfg();var o=(saved.order||f.order).filter(function(k){return COLDEF[k];});FACTORY_ORDER.forEach(function(k){if(o.indexOf(k)<0)o.push(k);});o=o.filter(function(k){return k!=='rowNo';});o.unshift('rowNo');var cols={};o.forEach(function(k){var s=(saved.cols||{})[k]||{};cols[k]={show:s.show!=null?!!s.show:!!FACTORY_SHOW[k],w:s.w||COLDEF[k].w};});if(cols.rowNo&&cols.rowNo.w<80)cols.rowNo.w=80;return {order:o,cols:cols,fontSize:saved.fontSize||12,rowPad:(saved.rowPad!=null?saved.rowPad:4),wrap:!!saved.wrap,phases:(saved.phases&&saved.phases.length?saved.phases:f.phases),chartType:saved.chartType||'donut',hiddenDonuts:saved.hiddenDonuts||[],selFilters:saved.selFilters||{},selKnown:saved.selKnown||{},chartScale:saved.chartScale||1,colorSchemes:normSchemes(saved.colorSchemes),fontFamily:saved.fontFamily||'',baseFont:saved.baseFont||DEF_BASEPX,darkMode:!!saved.darkMode,collapsed:saved.collapsed||{},barExpanded:!!saved.barExpanded,chartDataField:saved.chartDataField||'status',fontScale:saved.fontScale||(saved.baseFont?Math.round(saved.baseFont/DEF_BASEPX*100):100),padScale:saved.padScale||100,hpadScale:saved.hpadScale||100,hdrFontSize:(saved.hdrFontSize!=null?saved.hdrFontSize:null),hdrMaxLines:saved.hdrMaxLines||2,colPri:saved.colPri||{},colDefW:saved.colDefW||{},colNames:saved.colNames||{},packageSel:(saved.packageSel!=null?saved.packageSel:null),packageText:saved.packageText||{}};}
   function normSchemes(cs){cs=cs||{};return {status:cs.status||{},lifecycleStatus:cs.lifecycleStatus||{},phase:cs.phase||{},toAction:cs.toAction||{},dateRequired:cs.dateRequired||{}};}
-  function saveCfg(){try{localStorage.setItem(LKEY,JSON.stringify({order:S.order,cols:S.cols,fontSize:S.fontSize,rowPad:S.rowPad,wrap:S.wrap,phases:S.phases,chartType:S.chartType,hiddenDonuts:S.hiddenDonuts,selFilters:S.selFilters,selKnown:S.selKnown,chartScale:S.chartScale,colorSchemes:S.colorSchemes,fontFamily:S.fontFamily,baseFont:S.baseFont,darkMode:S.darkMode,collapsed:S.collapsed,barExpanded:S.barExpanded,chartDataField:S.chartDataField,fontScale:S.fontScale,padScale:S.padScale,hpadScale:S.hpadScale,hdrFontSize:S.hdrFontSize,hdrMaxLines:S.hdrMaxLines,colNames:S.colNames,packageSel:S.packageSel,packageText:S.packageText}));}catch(e){}}
+  function saveCfg(){try{localStorage.setItem(LKEY,JSON.stringify({order:S.order,cols:S.cols,fontSize:S.fontSize,rowPad:S.rowPad,wrap:S.wrap,phases:S.phases,chartType:S.chartType,hiddenDonuts:S.hiddenDonuts,selFilters:S.selFilters,selKnown:S.selKnown,chartScale:S.chartScale,colorSchemes:S.colorSchemes,fontFamily:S.fontFamily,baseFont:S.baseFont,darkMode:S.darkMode,collapsed:S.collapsed,barExpanded:S.barExpanded,chartDataField:S.chartDataField,fontScale:S.fontScale,padScale:S.padScale,hpadScale:S.hpadScale,hdrFontSize:S.hdrFontSize,hdrMaxLines:S.hdrMaxLines,colPri:S.colPri,colDefW:S.colDefW,colNames:S.colNames,packageSel:S.packageSel,packageText:S.packageText}));}catch(e){}}
 
   var C=loadCfg();
   var S={allRows:[],rows:[],filtered:[],loading:false,error:'',deliverableType:CFG.defaultDeliverable,deliverableTypes:[],
@@ -413,7 +413,8 @@
     +'#wrap table tr>th.mps-fill:last-child,#wrap table tr>td.mps-fill:last-child{padding:0!important}'
     +'.btn.mps-open{font-weight:700;color:#0a58c2;border:2px solid #0a84ff;background:#eaf3ff}.btn.mps-open:hover{background:#dcebff;border-color:#0070e0}'
     +'.dark .btn.mps-open{color:#8ec5ff;background:#0e2438;border-color:#2f8bff}'
-    +'.btn[disabled]{opacity:.45;cursor:not-allowed}.btn[disabled]:hover{background:#eaf3ff}.dark .btn[disabled]:hover{background:#0e2438}';}
+    +'.btn[disabled]{opacity:.45;cursor:not-allowed}.btn[disabled]:hover{background:#eaf3ff}.dark .btn[disabled]:hover{background:#0e2438}'
+    +'#colpanel .crow .cpri{flex:0 0 auto;width:38px;text-align:center;font-size:11px;padding:2px 3px;border:1px solid #cfd8e3;border-radius:4px;box-sizing:border-box}'+'#colpanel .crow .cwid{flex:0 0 auto;width:52px;text-align:center;font-size:11px;padding:2px 3px;border:1px solid #cfd8e3;border-radius:4px;box-sizing:border-box}'+'#colpanel .crow .cwid:disabled{opacity:.5}'+'#colpanel .crow.chead{font-size:9px;font-weight:700;letter-spacing:.4px;color:#8a939b;padding-bottom:2px;border-bottom:1px solid #eef1f4;margin-bottom:2px}'+'#colpanel .crow.chead .chl{border:0;background:none;text-align:center}'+'.dark #colpanel .crow .cpri,.dark #colpanel .crow .cwid{background:#0e1621;color:#dfe7f0;border-color:#37485e}';}
 
   function colLabel(k){var n=S.colNames&&S.colNames[k];return (n!=null&&n!=='')?n:((COLDEF[k]&&COLDEF[k].label)||'');}
   function visKeys(){return S.order.filter(function(k){return S.cols[k]&&S.cols[k].show;});}
@@ -1064,36 +1065,116 @@
   var pDrag=null;
   function renderColPanel(){
     var old=root.getElementById('colpanel');var sc=old?(old.querySelector('.clist')||{}).scrollTop:0;if(old)old.remove();
-    var panel=el('div',{id:'colpanel',class:'panel',style:'left:12px;top:100px;max-height:calc(100vh - 128px);overflow:hidden'},[el('h4',{style:'white-space:normal'},['Columns']),el('div',{class:'muted',style:'font-size:11px;margin-bottom:6px;white-space:normal'},['Tick to show/hide. ▲▼ reorder. Type in a box to rename that header (blank = default).'])]);
+    var panel=el('div',{id:'colpanel',class:'panel',style:'left:12px;top:100px;max-height:calc(100vh - 128px);overflow:hidden'},[el('h4',{style:'white-space:normal'},['Columns']),el('div',{class:'muted',style:'font-size:11px;margin-bottom:6px;white-space:normal'},['Tick to show/hide. ▲▼ reorder. Rename a header in its box (blank = default). PRI is the Fit to 1 Page priority — 1 is served first, blanks rank equally. DEF and NOW are the default and current widths in px.']),el('div',{class:'crow chead'},[el('span',{style:'flex:0 0 auto;width:46px'}),el('span',{style:'flex:0 0 auto;width:13px'}),el('span',{class:'cpri chl'},['PRI']),el('span',{style:'flex:1;text-align:center'},['HEADER']),el('span',{class:'cwid chl'},['DEF']),el('span',{class:'cwid chl'},['NOW'])])]);
     var list=el('div',{class:'clist',style:'flex:1 1 auto;overflow:auto;min-height:40px'});var __pb=document.createElement('span');__pb.style.cssText='position:absolute;visibility:hidden;white-space:nowrap;font:'+(S.baseFont||DEF_BASEPX)+'px '+fontStack(S.fontFamily);root.appendChild(__pb);var nameW=60;S.order.forEach(function(k){__pb.textContent=COLDEF[k].label;if(__pb.offsetWidth>nameW)nameW=__pb.offsetWidth;});__pb.remove();nameW=Math.min(230,Math.round(nameW)+24);
     S.order.forEach(function(k,idx){
       var cb=el('input',{type:'checkbox',title:'Show / hide '+COLDEF[k].label});cb.checked=S.cols[k].show;cb.onchange=function(){S.cols[k].show=cb.checked;saveCfg();renderTable();};
       var nm=el('input',{type:'text',title:'Rename the '+COLDEF[k].label+' column header (blank = default: '+COLDEF[k].label+')',value:colLabel(k),style:'flex:0 0 auto;width:'+nameW+'px;margin:0 auto;text-align:center;font-size:12px;padding:2px 5px;border:1px solid #cfd8e3;border-radius:4px;box-sizing:border-box'});nm.onchange=function(){var v=(nm.value||'').trim();if(v&&v!==COLDEF[k].label){S.colNames[k]=v;}else{delete S.colNames[k];nm.value=COLDEF[k].label;}saveCfg();renderTable();};nm.onkeydown=function(e){if(e.key==='Enter')nm.blur();};
       var up=el('button',{class:'mini',title:'Move up',onclick:function(){moveCol(k,-1);}},['▲']);var dn=el('button',{class:'mini',title:'Move down',onclick:function(){moveCol(k,1);}},['▼']);
       if(idx===0)up.disabled=true;if(idx===S.order.length-1)dn.disabled=true;
-      var arrows=el('span',{style:'flex:0 0 auto;display:inline-flex;gap:3px'},[up,dn]);var rowEl=el('div',{class:'crow'},[arrows,cb,nm]);
+      var arrows=el('span',{style:'flex:0 0 auto;display:inline-flex;gap:3px'},[up,dn]);var pri=el('input',{type:'number',min:'1',step:'1',title:'Fit to 1 Page priority for '+colLabel(k)+' — 1 is served first. Leave blank to rank equally with the other blanks.',value:(colPri(k)==null?'':String(colPri(k))),class:'cpri'});pri.onchange=function(){setColPri(k,pri.value);pri.value=(colPri(k)==null?'':String(colPri(k)));};var dw=el('input',{type:'number',min:'8',step:'1',title:'Default width of '+colLabel(k)+' in px — what Reset Col Widths restores it to'+(isDateCol(k)?'. Date columns ignore this and use the measured width of the date control.':'.'),value:String(isDateCol(k)?dateColW():colDefW(k)),class:'cwid'});dw.disabled=isDateCol(k);dw.onchange=function(){setColDefW(k,dw.value);dw.value=String(colDefW(k));};var cw=el('input',{type:'number',min:'8',step:'1',title:'Current width of '+colLabel(k)+' in px',value:String(S.cols[k].w),class:'cwid'});cw.onchange=function(){var v=parseInt(cw.value,10);if(isNaN(v)||v<8){cw.value=String(S.cols[k].w);return;}S.cols[k].w=v;S.cols[k].userW=true;saveCfg();renderTable();};var rowEl=el('div',{class:'crow'},[arrows,cb,pri,nm,dw,cw]);
       rowEl.ondragover=function(e){if(pDrag&&pDrag!==k){e.preventDefault();rowEl.classList.add('drop');}};
       rowEl.ondragleave=function(){rowEl.classList.remove('drop');};
       rowEl.ondrop=function(e){e.preventDefault();rowEl.classList.remove('drop');if(pDrag&&pDrag!==k)reorder(pDrag,k);};
       list.appendChild(rowEl);
     });
     panel.appendChild(list);
-    panel.appendChild(el('div',{style:'margin-top:8px;display:flex;gap:6px;flex:0 0 auto'},[el('button',{class:'btn',title:'Restore default columns',onclick:function(){resetCols();}},['Reset']),el('button',{class:'btn',title:'Close',onclick:function(){var p=root.getElementById('colpanel');if(p)p.remove();}},['Close'])]));
+    panel.appendChild(el('div',{style:'margin-top:8px;display:flex;gap:6px;flex:0 0 auto'},[el('button',{class:'btn',title:'Restore every column setting — order, visibility, names, widths, default widths and Fit priorities',onclick:function(){resetCols();}},['Reset Defaults']),el('button',{class:'btn',title:'Reset ONLY the column widths back to their default widths. Order, visibility, names and Fit priorities are left alone.',onclick:function(){resetColWidths();}},['Reset Col Widths']),el('button',{class:'btn',title:'Close',onclick:function(){var p=root.getElementById('colpanel');if(p)p.remove();}},['Close'])]));
     // width = widest column title + controls + mirrored padding (A1)
     var probe=document.createElement('span');probe.style.cssText='position:absolute;visibility:hidden;white-space:nowrap;font:'+(S.baseFont||DEF_BASEPX)+'px '+fontStack(S.fontFamily);root.appendChild(probe);
     var maxw=54;S.order.forEach(function(k){probe.textContent=COLDEF[k].label;if(probe.offsetWidth>maxw)maxw=probe.offsetWidth;});probe.remove();
-    panel.style.width=Math.min(360,Math.round(maxw)+18+8+48+20+20)+'px';
+    panel.style.width=Math.min(520,Math.round(maxw)+18+8+48+20+20+150)+'px';
     collapsiblePanel(panel);
     root.getElementById('wrap').appendChild(panel);var l=panel.querySelector('.clist');if(l)l.scrollTop=sc;
   }
   function toggleHdrPanel(anchor){var ex=root.getElementById('hdrpanel');if(ex){ex.remove();return;}var wrapEl=root.getElementById('wrap');var panel=el('div',{id:'hdrpanel',class:'panel',style:'min-width:236px'},[el('h4',{style:'cursor:default'},['Header Settings']),el('div',{class:'muted',style:'font-size:11px;margin-bottom:8px;white-space:normal'},['Adjust the column header row. Saved to your default when you press ★ Set As Default.'])]);var szval=el('span',{class:'fpct'},[hdrFont()+'px']);var rng=el('input',{type:'range',min:'8',max:'22',value:String(hdrFont()),class:'rng',title:'Header font size'});function setFs(v){v=Math.max(8,Math.min(22,Math.round(v)));S.hdrFontSize=v;szval.textContent=v+'px';rng.value=String(v);saveCfg();renderTable();equalizeChartHeaders();}rng.oninput=function(){setFs(+rng.value);};var minus=el('button',{class:'btn sq',title:'Smaller header font',onclick:function(){setFs(hdrFont()-1);}},['−']);var plus=el('button',{class:'btn sq',title:'Larger header font',onclick:function(){setFs(hdrFont()+1);}},['+']);panel.appendChild(el('div',{class:'fontrow'},[el('label',{},['Font size']),el('span',{class:'sldgrp'},[minus,rng,plus]),szval]));var linesWrap=el('span',{style:'display:inline-flex;gap:5px'});function refreshLines(){Array.prototype.forEach.call(linesWrap.children,function(b){b.classList.toggle('active',(+b.getAttribute('data-n'))===hdrMaxLines());});}[1,2,3].forEach(function(nn){linesWrap.appendChild(el('button',{class:'chip','data-n':String(nn),title:'Allow headers to use up to '+nn+' line'+(nn>1?'s':''),onclick:function(){S.hdrMaxLines=nn;saveCfg();renderTable();refreshLines();equalizeChartHeaders();}},[String(nn)]));});panel.appendChild(el('div',{class:'fontrow'},[el('label',{title:'Maximum number of text lines a header may wrap to'},['Max lines']),linesWrap]));refreshLines();panel.appendChild(el('div',{style:'margin-top:10px;display:flex;gap:6px'},[el('button',{class:'btn',title:'Restore the default header size and 2 lines',onclick:function(){S.hdrFontSize=null;S.hdrMaxLines=2;saveCfg();renderTable();equalizeChartHeaders();var p=root.getElementById('hdrpanel');if(p)p.remove();toggleHdrPanel(anchor);}},['Reset']),el('button',{class:'btn',title:'Close',onclick:function(){var p=root.getElementById('hdrpanel');if(p)p.remove();}},['Close'])]));wrapEl.appendChild(panel);if(anchor){var ar=anchor.getBoundingClientRect(),wr=wrapEl.getBoundingClientRect();panel.style.left=Math.min(Math.max(4,wr.width-panel.offsetWidth-8),Math.max(4,ar.left-wr.left))+'px';panel.style.top=(ar.bottom-wr.top+4)+'px';}else{panel.style.left='12px';panel.style.top='120px';}}
-  function autofitCol(k){var probe=document.createElement('span');probe.style.cssText='position:absolute;visibility:hidden;white-space:nowrap;font:'+S.fontSize+'px "Segoe UI",Arial';root.appendChild(probe);var w=Math.min(460,Math.max(minHW(k),dataMinW(k,probe)));probe.remove();S.cols[k].w=w;saveCfg();renderTable();}
-  function makeResizable(handle,th,k){handle.onmousedown=function(e){e.preventDefault();e.stopPropagation();var sx=e.clientX,sw=th.offsetWidth;function mv(ev){var w=Math.max(minHW(k),sw+(ev.clientX-sx));S.cols[k].w=w;th.style.width=w+'px';th.style.minWidth=w+'px';}function up(){document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);saveCfg();renderBody();var frow=root.querySelector('tr.f');if(frow){var i=visKeys().indexOf(k);var td=frow.querySelectorAll('td')[i];if(td)td.style.width=S.cols[k].w+'px';}}document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);};handle.ondblclick=function(e){e.preventDefault();e.stopPropagation();autofitCol(k);};handle.title='Drag to resize · double-click to autofit to contents';}
-  function dataMinW(k,probe){var ed=COLDEF[k]&&COLDEF[k].edit;if(ed==='date')return 124;var pad=(ed==='phase'||ed==='priority')?34:14;var mw=0;if(ed==='phase'){S.phases.forEach(function(p){probe.textContent=p.label;if(probe.offsetWidth>mw)mw=probe.offsetWidth;});}else if(ed==='priority'){PRIORITIES.forEach(function(p){probe.textContent=p||'—';if(probe.offsetWidth>mw)mw=probe.offsetWidth;});}S.filtered.slice(0,300).forEach(function(row){probe.textContent=cellVal(row,k);if(probe.offsetWidth>mw)mw=probe.offsetWidth;});return mw+pad;}
-function optimiseWidths(){var probe=document.createElement('span');probe.style.cssText='position:absolute;visibility:hidden;white-space:nowrap;font:'+S.fontSize+'px "Segoe UI",Arial';root.appendChild(probe);visKeys().forEach(function(k){S.cols[k].w=Math.min(460,Math.max(minHW(k),dataMinW(k,probe)));});probe.remove();saveCfg();renderTable();}
-  function fitOnePage(){var tw=root.querySelector('.tablewrap');if(!tw)return;var keys=visKeys();if(!keys.length)return;var PAD_OH=13;var avail=Math.max(240,tw.clientWidth-18-SELW-keys.length*PAD_OH);var probe=document.createElement('span');probe.style.cssText='position:absolute;visibility:hidden;white-space:nowrap;font:'+S.fontSize+'px "Segoe UI",Arial';root.appendChild(probe);var floorMin={},floorData={},desired={},sumMinH=0,sumData=0;keys.forEach(function(k){var fm=Math.ceil(minHW(k));var fd=Math.ceil(Math.max(fm,Math.min(dataMinW(k,probe),160)));floorMin[k]=fm;floorData[k]=fd;desired[k]=Math.max(fd,Math.min(460,dataMinW(k,probe)));sumMinH+=fm;sumData+=fd;});probe.remove();var noClip=(sumData<=avail);var mins=noClip?floorData:floorMin,sumMin=noClip?sumData:sumMinH,sumExtra=0;keys.forEach(function(k){sumExtra+=Math.max(0,desired[k]-mins[k]);});keys.forEach(function(k){S.cols[k].w=mins[k];});var leftover=avail-sumMin;if(leftover>0){if(sumExtra>0){keys.forEach(function(k){var extra=Math.max(0,desired[k]-mins[k]);S.cols[k].w=Math.round(mins[k]+leftover*(extra/sumExtra));});}else{var per=Math.floor(leftover/keys.length);keys.forEach(function(k){S.cols[k].w=mins[k]+per;});}}saveCfg();renderTable();}
-  function resetCols(){var b;try{var d=localStorage.getItem(DKEY);if(d)b=mergeCfg(JSON.parse(d));}catch(e){}if(!b)b=factoryCfg();S.order=b.order;S.cols=b.cols;S.fontSize=b.fontSize;S.rowPad=b.rowPad;S.wrap=b.wrap;S.phases=b.phases;S.chartType=b.chartType;S.hiddenDonuts=b.hiddenDonuts;if(b.selFilters)S.selFilters=b.selFilters;S.chartScale=b.chartScale||1;if(b.colorSchemes)S.colorSchemes=normSchemes(b.colorSchemes);if(b.collapsed)S.collapsed=b.collapsed;S.barExpanded=!!b.barExpanded;S.chartDataField=b.chartDataField||'status';S.fontScale=b.fontScale||100;S.padScale=b.padScale||100;S.hpadScale=b.hpadScale||100;S.hdrFontSize=(b.hdrFontSize!=null?b.hdrFontSize:null);S.hdrMaxLines=b.hdrMaxLines||2;S.colNames=b.colNames||{};S.packageSel=(b.packageSel!=null?b.packageSel:null);S.packageText=b.packageText||{};applyScope();saveCfg();renderAll();}
-  function setAsDefault(){try{localStorage.setItem(DKEY,JSON.stringify({order:S.order,cols:S.cols,fontSize:S.fontSize,rowPad:S.rowPad,wrap:S.wrap,phases:S.phases,chartType:S.chartType,hiddenDonuts:S.hiddenDonuts,selFilters:S.selFilters,selKnown:S.selKnown,chartScale:S.chartScale,colorSchemes:S.colorSchemes,fontFamily:S.fontFamily,baseFont:S.baseFont,darkMode:S.darkMode,collapsed:S.collapsed,barExpanded:S.barExpanded,chartDataField:S.chartDataField,fontScale:S.fontScale,padScale:S.padScale,hpadScale:S.hpadScale,hdrFontSize:S.hdrFontSize,hdrMaxLines:S.hdrMaxLines,colNames:S.colNames,packageSel:S.packageSel,packageText:S.packageText}));}catch(e){}toast('Saved as your default view');}
+  function autofitCol(k){var probe=document.createElement('span');probe.style.cssText='position:absolute;visibility:hidden;white-space:nowrap;font:'+S.fontSize+'px "Segoe UI",Arial';root.appendChild(probe);var w=isDateCol(k)?dateColW():Math.min(460,Math.max(minHW(k),dataMinW(k,probe)));probe.remove();S.cols[k].w=w;if(isDateCol(k))delete S.cols[k].userW;else S.cols[k].userW=true;saveCfg();renderTable();}
+  function makeResizable(handle,th,k){handle.onmousedown=function(e){e.preventDefault();e.stopPropagation();var sx=e.clientX,sw=th.offsetWidth;function mv(ev){var w=Math.max(minHW(k),sw+(ev.clientX-sx));S.cols[k].w=w;th.style.width=w+'px';th.style.minWidth=w+'px';}function up(){document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);S.cols[k].userW=true;saveCfg();renderBody();var frow=root.querySelector('tr.f');if(frow){var i=visKeys().indexOf(k);var td=frow.querySelectorAll('td')[i];if(td)td.style.width=S.cols[k].w+'px';}}document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);};handle.ondblclick=function(e){e.preventDefault();e.stopPropagation();autofitCol(k);};handle.title='Drag to resize · double-click to autofit to contents';}
+
+  /* ---- item b: date columns are measured, never negotiated ----------------
+     A `width` on a td is the CONTENT box, so the cell padding sits outside it.
+     dateColW() measures a real date input at the current font and uses exactly
+     that, so the full date and its picker fit with no slack. */
+  function isDateCol(k){return !!(COLDEF[k]&&COLDEF[k].edit==='date');}
+  function dateColW(){
+    var key=S.fontSize+'|'+(S.fontFamily||'');
+    if(dateColW._k===key&&dateColW._v)return dateColW._v;
+    var w=0;
+    try{
+      var probe=document.createElement('input');probe.type='date';probe.value='2026-12-31';
+      probe.setAttribute('style','position:absolute;left:-9999px;top:0;visibility:hidden;width:auto;box-sizing:border-box;font:'+S.fontSize+'px '+fontStack(S.fontFamily)+';padding:0 3px;border:1px solid #000');
+      root.appendChild(probe);w=Math.ceil(probe.getBoundingClientRect().width);probe.remove();
+    }catch(e){}
+    var v=Math.max(80,w||110);dateColW._k=key;dateColW._v=v;return v;
+  }
+  /* ---- item d: per-column Fit-to-width priority and default width ---- */
+  function colPri(k){var v=(S.colPri||{})[k];v=parseInt(v,10);return isNaN(v)?null:v;}
+  function setColPri(k,v){S.colPri=S.colPri||{};v=parseInt(v,10);if(isNaN(v)||v<1)delete S.colPri[k];else S.colPri[k]=v;saveCfg();}
+  function colDefW(k){var v=(S.colDefW||{})[k];v=parseInt(v,10);return (isNaN(v)||v<8)?(COLDEF[k]?COLDEF[k].w:80):v;}
+  function setColDefW(k,v){S.colDefW=S.colDefW||{};v=parseInt(v,10);if(isNaN(v)||v===(COLDEF[k]?COLDEF[k].w:80))delete S.colDefW[k];else S.colDefW[k]=Math.max(8,v);saveCfg();}
+  function resetColWidths(){visKeys().forEach(function(k){delete S.cols[k].userW;S.cols[k].w=isDateCol(k)?dateColW():colDefW(k);});S.order.forEach(function(k){if(!S.cols[k].show){delete S.cols[k].userW;S.cols[k].w=isDateCol(k)?dateColW():colDefW(k);}});saveCfg();renderTable();if(root.getElementById('colpanel'))renderColPanel();}
+  function dataMinW(k,probe){var ed=COLDEF[k]&&COLDEF[k].edit;if(ed==='date')return dateColW();var pad=(ed==='phase'||ed==='priority')?34:14;var mw=0;if(ed==='phase'){S.phases.forEach(function(p){probe.textContent=p.label;if(probe.offsetWidth>mw)mw=probe.offsetWidth;});}else if(ed==='priority'){PRIORITIES.forEach(function(p){probe.textContent=p||'—';if(probe.offsetWidth>mw)mw=probe.offsetWidth;});}S.filtered.slice(0,300).forEach(function(row){probe.textContent=cellVal(row,k);if(probe.offsetWidth>mw)mw=probe.offsetWidth;});return mw+pad;}
+  /* Date columns hold their measured width; every other column hugs its content. */
+  function optimiseWidths(){
+    var probe=document.createElement('span');probe.style.cssText='position:absolute;visibility:hidden;white-space:nowrap;font:'+S.fontSize+'px "Segoe UI",Arial';root.appendChild(probe);
+    visKeys().forEach(function(k){
+      if(isDateCol(k)){delete S.cols[k].userW;S.cols[k].w=dateColW();return;}
+      S.cols[k].w=Math.min(460,Math.max(minHW(k),dataMinW(k,probe)));
+    });
+    probe.remove();saveCfg();renderTable();
+  }
+  /* Fit to 1 Page. Date columns are pinned at their measured width and take no
+     part in the fit; everything else shares what is left, and a column given a
+     Fit priority in the Columns panel is topped up to its content width first,
+     lowest number first. Blank priorities rank equally, after the numbered ones. */
+  function fitOnePage(){
+    var tw=root.querySelector('.tablewrap');if(!tw)return;
+    var keys=visKeys();if(!keys.length)return;
+    var PAD_OH=13;
+    var avail=Math.max(240,tw.clientWidth-18-(typeof SELW==='number'?SELW:0)-keys.length*PAD_OH);
+    var fixed=keys.filter(isDateCol),flex=keys.filter(function(k){return !isDateCol(k);});
+    fixed.forEach(function(k){delete S.cols[k].userW;S.cols[k].w=dateColW();avail-=dateColW();});
+    if(!flex.length){saveCfg();renderTable();return;}
+    avail=Math.max(120,avail);
+    var probe=document.createElement('span');probe.style.cssText='position:absolute;visibility:hidden;white-space:nowrap;font:'+S.fontSize+'px "Segoe UI",Arial';root.appendChild(probe);
+    var floorMin={},floorData={},desired={},sumMinH=0,sumData=0;
+    flex.forEach(function(k){
+      var fm=Math.ceil(minHW(k)),fd=Math.ceil(Math.max(fm,Math.min(dataMinW(k,probe),160)));
+      floorMin[k]=fm;floorData[k]=fd;desired[k]=Math.max(fd,Math.min(460,dataMinW(k,probe)));
+      sumMinH+=fm;sumData+=fd;
+    });
+    probe.remove();
+    var noClip=(sumData<=avail),mins=noClip?floorData:floorMin,sumMin=noClip?sumData:sumMinH;
+    flex.forEach(function(k){S.cols[k].w=mins[k];});
+    var leftover=avail-sumMin;
+    var pri=flex.filter(function(k){return colPri(k)!=null;}).sort(function(a,b){return colPri(a)-colPri(b);});
+    var rest0=flex.filter(function(k){return colPri(k)==null;});
+    /* When there is nothing spare, a priority still has to mean something: squeeze
+       the unprioritised columns to a tight floor and hand what that frees to the
+       prioritised ones. Their headers clip; that is the point of setting a priority. */
+    if(leftover<=0&&pri.length&&rest0.length){
+      var freed=0;
+      rest0.forEach(function(k){var t=Math.min(mins[k],34);freed+=mins[k]-t;S.cols[k].w=t;});
+      leftover+=freed;
+    }
+    if(leftover<=0){saveCfg();renderTable();return;}
+    pri.forEach(function(k){
+      if(leftover<=0)return;
+      var want=Math.max(0,desired[k]-mins[k]);
+      var give=Math.min(want,leftover);
+      S.cols[k].w=mins[k]+give;leftover-=give;
+    });
+    var rest=rest0;
+    if(leftover>0&&rest.length){
+      var sumExtra=0;rest.forEach(function(k){sumExtra+=Math.max(0,desired[k]-mins[k]);});
+      if(sumExtra>0){rest.forEach(function(k){var extra=Math.max(0,desired[k]-mins[k]);S.cols[k].w=Math.round(mins[k]+leftover*(extra/sumExtra));});}
+      else{var per=Math.floor(leftover/rest.length);rest.forEach(function(k){S.cols[k].w=mins[k]+per;});}
+    }
+    saveCfg();renderTable();
+  }
+
+  function resetCols(){var b;try{var d=localStorage.getItem(DKEY);if(d)b=mergeCfg(JSON.parse(d));}catch(e){}if(!b)b=factoryCfg();S.order=b.order;S.cols=b.cols;S.colPri=b.colPri||{};S.colDefW=b.colDefW||{};S.fontSize=b.fontSize;S.rowPad=b.rowPad;S.wrap=b.wrap;S.phases=b.phases;S.chartType=b.chartType;S.hiddenDonuts=b.hiddenDonuts;if(b.selFilters)S.selFilters=b.selFilters;S.chartScale=b.chartScale||1;if(b.colorSchemes)S.colorSchemes=normSchemes(b.colorSchemes);if(b.collapsed)S.collapsed=b.collapsed;S.barExpanded=!!b.barExpanded;S.chartDataField=b.chartDataField||'status';S.fontScale=b.fontScale||100;S.padScale=b.padScale||100;S.hpadScale=b.hpadScale||100;S.hdrFontSize=(b.hdrFontSize!=null?b.hdrFontSize:null);S.hdrMaxLines=b.hdrMaxLines||2;S.colNames=b.colNames||{};S.packageSel=(b.packageSel!=null?b.packageSel:null);S.packageText=b.packageText||{};applyScope();saveCfg();renderAll();}
+  function setAsDefault(){try{localStorage.setItem(DKEY,JSON.stringify({order:S.order,cols:S.cols,fontSize:S.fontSize,rowPad:S.rowPad,wrap:S.wrap,phases:S.phases,chartType:S.chartType,hiddenDonuts:S.hiddenDonuts,selFilters:S.selFilters,selKnown:S.selKnown,chartScale:S.chartScale,colorSchemes:S.colorSchemes,fontFamily:S.fontFamily,baseFont:S.baseFont,darkMode:S.darkMode,collapsed:S.collapsed,barExpanded:S.barExpanded,chartDataField:S.chartDataField,fontScale:S.fontScale,padScale:S.padScale,hpadScale:S.hpadScale,hdrFontSize:S.hdrFontSize,hdrMaxLines:S.hdrMaxLines,colPri:S.colPri,colDefW:S.colDefW,colNames:S.colNames,packageSel:S.packageSel,packageText:S.packageText}));}catch(e){}toast('Saved as your default view');}
   // Toast: stays 10s, can be dismissed with the x, and pauses while the pointer is over
   // it so a long message can actually be read. Only one at a time — a second message
   // replaces the first instead of stacking on the same spot. If the persistent Open

@@ -21,7 +21,7 @@
   if (window.__MPS_ACONEX_VAR && window.__MPS_ACONEX_VAR.__live) { window.__MPS_ACONEX_VAR.boot(); return; }
 
   var NAVY = '#0B2A4A', NAVY2 = '#123a63', ACCENT = '#F26522', LINE = '#dfe4ea', INK = '#1f2d3d';
-  var VERSION = 'v12.9', BUILD_DATE = '3 Sep 2026';
+  var VERSION = 'v12.10', BUILD_DATE = '4 Sep 2026';
   var UI_FONTS = ['Segoe UI', 'Arial', 'Calibri', 'Helvetica', 'Roboto', 'Verdana', 'Tahoma', 'Trebuchet MS', 'Georgia', 'Times New Roman', 'Courier New', 'system-ui'];
   var DEF_FONT = '"Segoe UI",Arial,sans-serif', DEF_BASEPX = 13;
   function fontStack(f) { return f ? ('"' + f + '","Segoe UI",Arial,sans-serif') : DEF_FONT; }
@@ -93,10 +93,10 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     var icols = {}; IORDER.forEach(function (k) { icols[k] = { show: true, w: ICOLDEF[k].w }; });
     return {
       order: FACTORY_ORDER.slice(), cols: cols, icols: icols, fontSize: 12, rowPad: 4, wrap: true, chartType: 'donut',
-      selFilters: {}, selKnown: {}, chartScale: 1, colorSchemes: { status: {}, type: {} }, fontFamily: '', baseFont: DEF_BASEPX,
+      selFilters: {}, selKnown: {}, colPri: {}, colDefW: {}, chartScale: 1, colorSchemes: { status: {}, type: {} }, fontFamily: '', baseFont: DEF_BASEPX,
       darkMode: false, collapsed: {}, fontScale: 100, padScale: 100, hpadScale: 100, hdrFontSize: null, hdrMaxLines: 2,
       statusSel: '__ALL__', xProjectId: '', xProjectName: '', colNames: {}, statusList: STATUS_WORKFLOW.slice(),
-      activeSheet: '', barStat: 'diff', barScale: 1, activeCharts: ['status'], cvaScale: 1
+      activeSheet: '', barStat: 'diff', barScale: 1, activeCharts: ['status'], cvaScale: 1, chartAutoFit: true
     };
   }
   var LKEY = 'mps_aconex_var_cfg_' + CFG.mpsProjectNo, DKEY = 'mps_aconex_var_defcfg_' + CFG.mpsProjectNo;
@@ -122,16 +122,19 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     out.hdrFontSize = (saved.hdrFontSize != null ? saved.hdrFontSize : null);
     out.selFilters = saved.selFilters || {};
     out.selKnown = saved.selKnown || {};
+    out.colPri = saved.colPri || {};
+    out.colDefW = saved.colDefW || {};
     out.collapsed = saved.collapsed || {};
     out.colNames = saved.colNames || {};
     out.colorSchemes = { status: (saved.colorSchemes || {}).status || {}, type: (saved.colorSchemes || {}).type || {} };
     out.statusList = (saved.statusList && saved.statusList.length ? saved.statusList : STATUS_WORKFLOW.slice());
     out.activeCharts = (saved.activeCharts && saved.activeCharts.length ? saved.activeCharts.slice() : ['status']);
+    out.chartAutoFit = (saved.chartAutoFit !== false);
     return out;
   }
-  var CFGKEYS = ['order', 'cols', 'icols', 'fontSize', 'rowPad', 'wrap', 'chartType', 'selFilters', 'selKnown', 'chartScale', 'colorSchemes',
+  var CFGKEYS = ['order', 'cols', 'icols', 'fontSize', 'rowPad', 'wrap', 'chartType', 'selFilters', 'selKnown', 'colPri', 'colDefW', 'chartScale', 'colorSchemes',
     'fontFamily', 'baseFont', 'darkMode', 'collapsed', 'fontScale', 'padScale', 'hpadScale', 'hdrFontSize', 'hdrMaxLines',
-    'statusSel', 'xProjectId', 'xProjectName', 'colNames', 'statusList', 'activeSheet', 'barStat', 'barScale', 'activeCharts', 'cvaScale'];
+    'statusSel', 'xProjectId', 'xProjectName', 'colNames', 'statusList', 'activeSheet', 'barStat', 'barScale', 'activeCharts', 'cvaScale', 'chartAutoFit'];
   function snapCfg() { var o = {}; CFGKEYS.forEach(function (k) { o[k] = S[k]; }); return o; }
   function saveCfg() { try { localStorage.setItem(LKEY, JSON.stringify(snapCfg())); } catch (e) { } }
   function setAsDefault() { try { localStorage.setItem(DKEY, JSON.stringify(snapCfg())); } catch (e) { } toast('Saved as your default view'); }
@@ -924,7 +927,17 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     +'.dark .shvo.on{background:#16c60c;border-color:#0ea60a;color:#04360a}'
     +'#wrap table th.mps-fill,#wrap table td.mps-fill{width:auto;min-width:0;max-width:none;border-right:0}'
     +'#wrap table tr>th.mps-fill:last-child,#wrap table tr>td.mps-fill:last-child{padding:0!important}'
-    +'tbody tr.vohi td.mps-fill{border-right:2px solid #16c60c}';}
+    +'tbody tr.vohi td.mps-fill{border-right:2px solid #16c60c}'
+    +'#colpanel .crow .cpri{flex:0 0 auto;width:38px;text-align:center;font-size:11px;padding:2px 3px;border:1px solid #cfd8e3;border-radius:4px;box-sizing:border-box}'
+    +'#colpanel .crow .cwid{flex:0 0 auto;width:52px;text-align:center;font-size:11px;padding:2px 3px;border:1px solid #cfd8e3;border-radius:4px;box-sizing:border-box}'
+    +'#colpanel .crow .cwid:disabled{opacity:.5}'
+    +'#colpanel .crow.chead{font-size:9px;font-weight:700;letter-spacing:.4px;color:#8a939b;padding-bottom:2px;border-bottom:1px solid #eef1f4;margin-bottom:2px}'
+    +'#colpanel .crow.chead .chl{border:0;background:none;text-align:center}'
+    +'.dark #colpanel .crow .cpri,.dark #colpanel .crow .cwid{background:#0e1621;color:#dfe7f0;border-color:#37485e}'
+    +'.cgrow>.cpanel.cpt{display:flex;flex-direction:column}'
+    +'.cgrow>.cpanel.cpt>.cpbody{flex:1 1 auto;display:flex;min-height:0}'
+    +'.charts{flex:1 1 auto;display:flex;align-items:center;justify-content:center;padding:10px;box-sizing:border-box;min-height:0}'
+    +'.chartsrow{align-items:center;justify-content:center;align-content:center;width:100%}';}
 
 
   /* ---- collapsible panels ---- */
@@ -1271,9 +1284,10 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
       if (chartOn('status')) {
         var nextLbl = CT_LABEL[S.chartType] || 'Bars';
         ctl.appendChild(btn(nextLbl, 'Switch the Status chart to ' + nextLbl + ' (cycles Donut \u2192 Bars \u2192 Pie)', function () { S.chartType = CT_NEXT[S.chartType] || 'donut'; saveCfg(); renderChart(); }, 'chart'));
+        ctl.appendChild(el('button', { class: 'chip' + (S.chartAutoFit ? ' active' : ''), title: 'Size the Status chart to fill its panel automatically. Moving the size slider turns this off.', onclick: function () { S.chartAutoFit = !S.chartAutoFit; saveCfg(); renderChart(); } }, ['Autofit']));
         ctl.appendChild(el('span', { class: 'muted', style: 'font-size:11px;margin-left:4px' }, ['Status size']));
-        var sz = el('input', { type: 'range', min: '70', max: '240', value: String(Math.round((S.chartScale || 1) * 100)), class: 'rng', style: 'width:96px', title: 'Size of the Status chart' });
-        sz.oninput = function () { S.chartScale = (+sz.value) / 100; saveCfg(); renderChartBody(); };
+        var sz = el('input', { type: 'range', min: '70', max: '240', value: String(Math.round((S.chartScale || 1) * 100)), class: 'rng', style: 'width:96px', title: 'Size of the Status chart — moving this turns Autofit off' });
+        sz.oninput = function () { S.chartScale = (+sz.value) / 100; S.chartAutoFit = false; saveCfg(); renderChartBody(); };
         ctl.appendChild(sz);
       }
       if (chartOn('cva')) {
@@ -1299,6 +1313,32 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     /* the grouped chart needs the full panel width; the donut alone does not */
     var panel = box; while (panel && !(panel.classList && panel.classList.contains('cpanel'))) panel = panel.parentNode;
     if (panel) panel.classList.toggle('wide', chartOn('cva'));
+    autoSizeChart();
+  }
+
+  /* ---- item e: grow the Status chart to fill the panel, leaving 10px of
+     padding, so there is no dead white space under it. Off as soon as the user
+     moves the size slider; the Autofit chip brings it back. ---- */
+  function autoSizeChart() {
+    if (!root || !S.chartAutoFit) return;
+    requestAnimationFrame(function () { requestAnimationFrame(function () {
+      try {
+        var box = root.getElementById('chart'); if (!box) return;
+        var cp = box; while (cp && !(cp.classList && cp.classList.contains('cpanel'))) cp = cp.parentNode;
+        if (!cp || cp.classList.contains('coll')) return;
+        var body = cp.querySelector('.cpbody'); if (!body) return;
+        var st = box.querySelector('.pchart:not(.cva)'); if (!st) return;
+        var svg = st.querySelector('svg'); if (!svg) return;
+        var used = 0;
+        Array.prototype.forEach.call(box.querySelectorAll('.pchart.cva'), function (p) { used += p.offsetHeight; });
+        var title = st.querySelector('.pctitle'), lg = st.querySelector('.plegend');
+        var extra = (title ? title.offsetHeight : 0) + (lg ? lg.offsetHeight : 0) + 12;
+        var avail = body.clientHeight - 20 - used - extra;    /* 10px top + 10px bottom */
+        if (avail < 90) avail = 90;
+        svg.removeAttribute('width'); svg.removeAttribute('height');
+        svg.style.height = Math.floor(avail) + 'px'; svg.style.width = 'auto'; svg.style.maxWidth = '100%';
+      } catch (e) { }
+    }); });
   }
 
   /* ---- MPS Claimed vs BHP Assessed, side by side per VO (item 1) ---- */
@@ -1684,6 +1724,16 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     placePanel(panel, anchor, { w: 240, maxH: 320 });
   }
 
+  /* ---- item d: per-column Fit-to-width priority and default width ---- */
+  function colPri(k) { var v = (S.colPri || {})[k]; v = parseInt(v, 10); return isNaN(v) ? null : v; }
+  function setColPri(k, v) { S.colPri = S.colPri || {}; v = parseInt(v, 10); if (isNaN(v) || v < 1) delete S.colPri[k]; else S.colPri[k] = v; saveCfg(); }
+  function colDefW(k) { var v = (S.colDefW || {})[k]; v = parseInt(v, 10); return (isNaN(v) || v < 8) ? COLDEF[k].w : v; }
+  function setColDefW(k, v) { S.colDefW = S.colDefW || {}; v = parseInt(v, 10); if (isNaN(v) || v === COLDEF[k].w) delete S.colDefW[k]; else S.colDefW[k] = Math.max(8, v); saveCfg(); }
+  function resetColWidths() {
+    S.order.forEach(function (k) { delete S.cols[k].userW; S.cols[k].w = isDateCol(k) ? dateColW() : colDefW(k); });
+    saveCfg(); renderTable(); if (root.getElementById('colpanel')) renderColPanel();
+  }
+
   /* ---- column ops ---- */
   function reorder(from, to) { var o = S.order.slice(), fi = o.indexOf(from), ti = o.indexOf(to); if (fi < 0 || ti < 0) return; o.splice(fi, 1); ti = o.indexOf(to); o.splice(ti, 0, from); S.order = o; saveCfg(); renderTable(); if (root.getElementById('colpanel')) renderColPanel(); }
   function toggleColPanel() { var ex = root.getElementById('colpanel'); if (ex) { ex.remove(); return; } renderColPanel(); }
@@ -1692,7 +1742,12 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     var old = root.getElementById('colpanel'); var sc = old ? (old.querySelector('.clist') || {}).scrollTop : 0; if (old) old.remove();
     var panel = el('div', { id: 'colpanel', class: 'panel', style: 'left:12px;top:100px;max-height:calc(100vh - 128px);overflow:hidden' }, [
       el('h4', { style: 'white-space:normal' }, ['Columns']),
-      el('div', { class: 'muted', style: 'font-size:11px;margin-bottom:6px;white-space:normal' }, ['Tick to show/hide. ▲▼ reorder. Type in a box to rename that header (blank restores the default). Revision, CONCAT Name and Assessment Sheet start hidden. Hidden columns are still written to the Excel export — just hidden there too.'])
+      el('div', { class: 'muted', style: 'font-size:11px;margin-bottom:6px;white-space:normal' }, ['Tick to show/hide. ▲▼ reorder. Rename a header in its box (blank restores the default). PRI is the Fit to 1 Page priority — 1 is served first, blanks rank equally. DEF and NOW are the default and current widths in px. Revision, CONCAT Name and Assessment Sheet start hidden; hidden columns are still written to the Excel export, just hidden there too.']),
+      el('div', { class: 'crow chead' }, [
+        el('span', { style: 'flex:0 0 auto;width:46px' }), el('span', { style: 'flex:0 0 auto;width:13px' }),
+        el('span', { class: 'cpri chl' }, ['PRI']), el('span', { style: 'flex:1;text-align:center' }, ['HEADER']),
+        el('span', { class: 'cwid chl' }, ['DEF']), el('span', { class: 'cwid chl' }, ['NOW'])
+      ])
     ]);
     var list = el('div', { class: 'clist', style: 'flex:1 1 auto;overflow:auto;min-height:40px' });
     var probe = document.createElement('span'); probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;font:' + (S.baseFont || DEF_BASEPX) + 'px ' + fontStack(S.fontFamily); root.appendChild(probe);
@@ -1707,14 +1762,22 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
       var inp = el('input', { type: 'text', title: 'Rename the ' + COLDEF[k].label + ' column header (blank = default)', value: colLabel(k), style: 'flex:0 0 auto;width:' + nameW + 'px;margin:0 auto;text-align:center;font-size:12px;padding:2px 5px;border:1px solid #cfd8e3;border-radius:4px;box-sizing:border-box' });
       inp.onchange = function () { var v = (inp.value || '').trim(); if (v && v !== COLDEF[k].label) S.colNames[k] = v; else { delete S.colNames[k]; inp.value = COLDEF[k].label; } saveCfg(); renderTable(); };
       inp.onkeydown = function (e) { if (e.key === 'Enter') inp.blur(); };
-      list.appendChild(el('div', { class: 'crow' }, [el('span', { style: 'flex:0 0 auto;display:inline-flex;gap:3px' }, [up, dn]), cb, inp]));
+      var pri = el('input', { type: 'number', min: '1', step: '1', class: 'cpri', title: 'Fit to 1 Page priority for ' + colLabel(k) + ' — 1 is served first. Leave blank to rank equally with the other blanks.', value: (colPri(k) == null ? '' : String(colPri(k))) });
+      pri.onchange = function () { setColPri(k, pri.value); pri.value = (colPri(k) == null ? '' : String(colPri(k))); };
+      var dw = el('input', { type: 'number', min: '8', step: '1', class: 'cwid', title: 'Default width of ' + colLabel(k) + ' in px — what Reset Col Widths restores it to' + (isDateCol(k) ? '. Date columns ignore this and use the measured width of the date control.' : '.'), value: String(isDateCol(k) ? dateColW() : colDefW(k)) });
+      dw.disabled = isDateCol(k);
+      dw.onchange = function () { setColDefW(k, dw.value); dw.value = String(colDefW(k)); };
+      var cw = el('input', { type: 'number', min: '8', step: '1', class: 'cwid', title: 'Current width of ' + colLabel(k) + ' in px', value: String(S.cols[k].w) });
+      cw.onchange = function () { var v = parseInt(cw.value, 10); if (isNaN(v) || v < 8) { cw.value = String(S.cols[k].w); return; } S.cols[k].w = v; S.cols[k].userW = true; saveCfg(); renderTable(); };
+      list.appendChild(el('div', { class: 'crow' }, [el('span', { style: 'flex:0 0 auto;display:inline-flex;gap:3px' }, [up, dn]), cb, pri, inp, dw, cw]));
     });
     panel.appendChild(list);
     panel.appendChild(el('div', { style: 'margin-top:8px;display:flex;gap:6px;flex:0 0 auto' }, [
-      el('button', { class: 'btn', title: 'Restore default columns & names', onclick: function () { resetCols(); } }, ['Reset']),
+      el('button', { class: 'btn', title: 'Restore every column setting — order, visibility, names, widths, default widths and Fit priorities', onclick: function () { resetCols(); } }, ['Reset Defaults']),
+      el('button', { class: 'btn', title: 'Reset ONLY the column widths back to their default widths. Order, visibility, names and Fit priorities are left alone.', onclick: function () { resetColWidths(); } }, ['Reset Col Widths']),
       el('button', { class: 'btn', title: 'Close', onclick: function () { var p = root.getElementById('colpanel'); if (p) p.remove(); } }, ['Close'])
     ]));
-    panel.style.width = Math.min(430, nameW + 118) + 'px';
+    panel.style.width = Math.min(560, nameW + 260) + 'px';
     collapsiblePanel(panel);
     root.getElementById('wrap').appendChild(panel);
     var l = panel.querySelector('.clist'); if (l) l.scrollTop = sc;
@@ -1773,13 +1836,32 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
       sumMinH += fm; sumData += fd;
     });
     probe.remove();
-    var noClip = (sumData <= avail), mins = noClip ? floorData : floorMin, sumMin = noClip ? sumData : sumMinH, sumExtra = 0;
-    flex.forEach(function (k) { sumExtra += Math.max(0, desired[k] - mins[k]); });
+    var noClip = (sumData <= avail), mins = noClip ? floorData : floorMin, sumMin = noClip ? sumData : sumMinH;
     flex.forEach(function (k) { S.cols[k].w = mins[k]; });
     var leftover = avail - sumMin;
+    /* a column given a Fit priority is topped up to its content width first,
+       lowest number first; blanks rank equally and share what is left */
+    var pri = flex.filter(function (k) { return colPri(k) != null; }).sort(function (a, b) { return colPri(a) - colPri(b); });
+    var rest = flex.filter(function (k) { return colPri(k) == null; });
+    /* When there is nothing spare, a priority still has to mean something: squeeze
+       the unprioritised columns to a tight floor and hand what that frees to the
+       prioritised ones. Their headers clip; that is the point of setting a priority. */
+    if (leftover <= 0 && pri.length && rest.length) {
+      var freed = 0;
+      rest.forEach(function (k) { var t = Math.max(hardMinW(), Math.min(mins[k], 34)); freed += mins[k] - t; S.cols[k].w = t; });
+      leftover += freed;
+    }
     if (leftover > 0) {
-      if (sumExtra > 0) flex.forEach(function (k) { var extra = Math.max(0, desired[k] - mins[k]); S.cols[k].w = Math.round(mins[k] + leftover * (extra / sumExtra)); });
-      else { var per = Math.floor(leftover / flex.length); flex.forEach(function (k) { S.cols[k].w = mins[k] + per; }); }
+      pri.forEach(function (k) {
+        if (leftover <= 0) return;
+        var give = Math.min(Math.max(0, desired[k] - mins[k]), leftover);
+        S.cols[k].w = mins[k] + give; leftover -= give;
+      });
+      if (leftover > 0 && rest.length) {
+        var sumExtra = 0; rest.forEach(function (k) { sumExtra += Math.max(0, desired[k] - mins[k]); });
+        if (sumExtra > 0) rest.forEach(function (k) { var extra = Math.max(0, desired[k] - mins[k]); S.cols[k].w = Math.round(mins[k] + leftover * (extra / sumExtra)); });
+        else { var per = Math.floor(leftover / rest.length); rest.forEach(function (k) { S.cols[k].w = mins[k] + per; }); }
+      }
     }
     saveCfg(); renderTable();
   }

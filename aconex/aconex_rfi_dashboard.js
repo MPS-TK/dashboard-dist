@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.7', BUILD_DATE='1 Sep 2026';
+  var VERSION='v12.10', BUILD_DATE='4 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -76,7 +76,7 @@
 
   function factoryCfg(){
     var cols={}; FACTORY_ORDER.forEach(function(k){cols[k]={show:!!FACTORY_SHOW[k],w:COLDEF[k].w};});
-    return {order:FACTORY_ORDER.slice(),cols:cols,fontSize:12,rowPad:4,wrap:false,chartType:'donut',selFilters:{},chartScale:1,colorSchemes:{closed:{},sender:{},eot:{},costVar:{}},fontFamily:'',baseFont:DEF_BASEPX,darkMode:false,collapsed:{},fontScale:100,padScale:100,hpadScale:100,hdrFontSize:null,hdrMaxLines:2,statusSel:'__ALL__',typeSel:null,xProjectId:'',xProjectName:'',colNames:{},statusList:STATUS_WORKFLOW.slice(),doScale:1,doStat:'daysOpen',doHideClosed:false,chartAutoFit:true};
+    return {order:FACTORY_ORDER.slice(),cols:cols,fontSize:12,rowPad:4,wrap:false,chartType:'donut',selFilters:{},chartScale:1,colorSchemes:{closed:{},sender:{},eot:{},costVar:{}},fontFamily:'',baseFont:DEF_BASEPX,darkMode:false,collapsed:{},fontScale:100,padScale:100,hpadScale:100,hdrFontSize:null,hdrMaxLines:2,statusSel:'__ALL__',typeSel:null,xProjectId:'',xProjectName:'',colPri:{},colDefW:{},colNames:{},statusList:STATUS_WORKFLOW.slice(),doScale:1,doStat:'daysOpen',doHideClosed:false,chartAutoFit:true};
   }
   var LKEY='mps_aconex_rfi_cfg_'+CFG.mpsProjectNo, DKEY='mps_aconex_rfi_defcfg_'+CFG.mpsProjectNo;
   function loadCfg(){
@@ -84,9 +84,9 @@
     try{var d=localStorage.getItem(DKEY);if(d)return mergeCfg(JSON.parse(d));}catch(e){}
     return factoryCfg();
   }
-  function mergeCfg(saved){var f=factoryCfg();var o=(saved.order||f.order).filter(function(k){return COLDEF[k];});FACTORY_ORDER.forEach(function(k){if(o.indexOf(k)<0){var fi=FACTORY_ORDER.indexOf(k),pv=fi>0?FACTORY_ORDER[fi-1]:null,pi=pv?o.indexOf(pv):-1;if(pi>=0)o.splice(pi+1,0,k);else o.push(k);}});var cols={};o.forEach(function(k){var s=(saved.cols||{})[k]||{};cols[k]={show:s.show!=null?!!s.show:!!FACTORY_SHOW[k],w:s.w||COLDEF[k].w};});return {order:o,cols:cols,fontSize:saved.fontSize||12,rowPad:(saved.rowPad!=null?saved.rowPad:4),wrap:!!saved.wrap,chartType:saved.chartType||'donut',selFilters:saved.selFilters||{},chartScale:saved.chartScale||1,colorSchemes:normSchemes(saved.colorSchemes),fontFamily:saved.fontFamily||'',baseFont:saved.baseFont||DEF_BASEPX,darkMode:!!saved.darkMode,collapsed:saved.collapsed||{},fontScale:saved.fontScale||100,padScale:saved.padScale||100,hpadScale:saved.hpadScale||100,hdrFontSize:(saved.hdrFontSize!=null?saved.hdrFontSize:null),hdrMaxLines:saved.hdrMaxLines||2,statusSel:saved.statusSel||'__ALL__',typeSel:(saved.typeSel!=null?saved.typeSel:null),xProjectId:saved.xProjectId||'',xProjectName:saved.xProjectName||'',colNames:saved.colNames||{},statusList:(saved.statusList&&saved.statusList.length?saved.statusList:STATUS_WORKFLOW.slice()),doScale:saved.doScale||1,doStat:saved.doStat||'daysOpen',doHideClosed:!!saved.doHideClosed,chartAutoFit:saved.chartAutoFit!==false};}
+  function mergeCfg(saved){var f=factoryCfg();var o=(saved.order||f.order).filter(function(k){return COLDEF[k];});FACTORY_ORDER.forEach(function(k){if(o.indexOf(k)<0){var fi=FACTORY_ORDER.indexOf(k),pv=fi>0?FACTORY_ORDER[fi-1]:null,pi=pv?o.indexOf(pv):-1;if(pi>=0)o.splice(pi+1,0,k);else o.push(k);}});var cols={};o.forEach(function(k){var s=(saved.cols||{})[k]||{};cols[k]={show:s.show!=null?!!s.show:!!FACTORY_SHOW[k],w:s.w||COLDEF[k].w};});return {order:o,cols:cols,fontSize:saved.fontSize||12,rowPad:(saved.rowPad!=null?saved.rowPad:4),wrap:!!saved.wrap,chartType:saved.chartType||'donut',selFilters:saved.selFilters||{},chartScale:saved.chartScale||1,colorSchemes:normSchemes(saved.colorSchemes),fontFamily:saved.fontFamily||'',baseFont:saved.baseFont||DEF_BASEPX,darkMode:!!saved.darkMode,collapsed:saved.collapsed||{},fontScale:saved.fontScale||100,padScale:saved.padScale||100,hpadScale:saved.hpadScale||100,hdrFontSize:(saved.hdrFontSize!=null?saved.hdrFontSize:null),hdrMaxLines:saved.hdrMaxLines||2,statusSel:saved.statusSel||'__ALL__',typeSel:(saved.typeSel!=null?saved.typeSel:null),xProjectId:saved.xProjectId||'',xProjectName:saved.xProjectName||'',colPri:saved.colPri||{},colDefW:saved.colDefW||{},colNames:saved.colNames||{},statusList:(saved.statusList&&saved.statusList.length?saved.statusList:STATUS_WORKFLOW.slice()),doScale:saved.doScale||1,doStat:saved.doStat||'daysOpen',doHideClosed:!!saved.doHideClosed,chartAutoFit:saved.chartAutoFit!==false};}
   function normSchemes(cs){cs=cs||{};return {closed:cs.closed||{},sender:cs.sender||{},eot:cs.eot||{},costVar:cs.costVar||{}};}
-  function saveCfg(){try{localStorage.setItem(LKEY,JSON.stringify({order:S.order,cols:S.cols,fontSize:S.fontSize,rowPad:S.rowPad,wrap:S.wrap,chartType:S.chartType,selFilters:S.selFilters,chartScale:S.chartScale,colorSchemes:S.colorSchemes,fontFamily:S.fontFamily,baseFont:S.baseFont,darkMode:S.darkMode,collapsed:S.collapsed,fontScale:S.fontScale,padScale:S.padScale,hpadScale:S.hpadScale,hdrFontSize:S.hdrFontSize,hdrMaxLines:S.hdrMaxLines,statusSel:S.statusSel,typeSel:S.typeSel,xProjectId:S.xProjectId,xProjectName:S.xProjectName,colNames:S.colNames,statusList:S.statusList,doScale:S.doScale,doStat:S.doStat,doHideClosed:S.doHideClosed,chartAutoFit:S.chartAutoFit}));}catch(e){}}
+  function saveCfg(){try{localStorage.setItem(LKEY,JSON.stringify({order:S.order,cols:S.cols,fontSize:S.fontSize,rowPad:S.rowPad,wrap:S.wrap,chartType:S.chartType,selFilters:S.selFilters,chartScale:S.chartScale,colorSchemes:S.colorSchemes,fontFamily:S.fontFamily,baseFont:S.baseFont,darkMode:S.darkMode,collapsed:S.collapsed,fontScale:S.fontScale,padScale:S.padScale,hpadScale:S.hpadScale,hdrFontSize:S.hdrFontSize,hdrMaxLines:S.hdrMaxLines,statusSel:S.statusSel,typeSel:S.typeSel,xProjectId:S.xProjectId,xProjectName:S.xProjectName,colPri:S.colPri,colDefW:S.colDefW,colNames:S.colNames,statusList:S.statusList,doScale:S.doScale,doStat:S.doStat,doHideClosed:S.doHideClosed,chartAutoFit:S.chartAutoFit}));}catch(e){}}
 
   var C=loadCfg();
   var S={allRows:[],rows:[],filtered:[],loading:false,error:'',
@@ -424,7 +424,8 @@
     +'#wrap table tr>th.mps-fill:last-child,#wrap table tr>td.mps-fill:last-child{padding:0!important}'
     +'.btn.mps-open{font-weight:700;color:#0a58c2;border:2px solid #0a84ff;background:#eaf3ff}.btn.mps-open:hover{background:#dcebff;border-color:#0070e0}'
     +'.dark .btn.mps-open{color:#8ec5ff;background:#0e2438;border-color:#2f8bff}'
-    +'.btn[disabled]{opacity:.45;cursor:not-allowed}.btn[disabled]:hover{background:#eaf3ff}.dark .btn[disabled]:hover{background:#0e2438}';}
+    +'.btn[disabled]{opacity:.45;cursor:not-allowed}.btn[disabled]:hover{background:#eaf3ff}.dark .btn[disabled]:hover{background:#0e2438}'
+    +'#colpanel .crow .cpri{flex:0 0 auto;width:38px;text-align:center;font-size:11px;padding:2px 3px;border:1px solid #cfd8e3;border-radius:4px;box-sizing:border-box}'+'#colpanel .crow .cwid{flex:0 0 auto;width:52px;text-align:center;font-size:11px;padding:2px 3px;border:1px solid #cfd8e3;border-radius:4px;box-sizing:border-box}'+'#colpanel .crow .cwid:disabled{opacity:.5}'+'#colpanel .crow.chead{font-size:9px;font-weight:700;letter-spacing:.4px;color:#8a939b;padding-bottom:2px;border-bottom:1px solid #eef1f4;margin-bottom:2px}'+'#colpanel .crow.chead .chl{border:0;background:none;text-align:center}'+'.dark #colpanel .crow .cpri,.dark #colpanel .crow .cwid{background:#0e1621;color:#dfe7f0;border-color:#37485e}';}
 
   // ---- collapsible panels ----
   function makeCPanel(id,titleText,ctlEl,bodyEl,tip,shortTitle){
@@ -629,9 +630,9 @@
     rows.forEach(function(r,i){
       var d=def.val(r);var h=Math.round((d/top)*plotH);var x=x0+i*(bw+gap),cx=x+bw/2;var cl=isClosed(r);
       var rect=svgEl('rect',{x:x,y:baseY-h,width:bw,height:h,rx:2,fill:cl?closedBar:(closedColor(r.closed)||openBar)});rect.style.cursor='default';
-      var tt=svgEl('title',{});tt.textContent=((String(r.sender||'').toUpperCase().indexOf('BHP')>=0)?'BHP ':'')+'('+r.rfiNo+') '+(r.type||'RFI')+' — '+d+' '+def.unit+(d===1?'':'s')+(cl?' (closed)':'')+(r.description?' · '+r.description:'');rect.appendChild(tt);svg.appendChild(rect);
+      var tt=svgEl('title',{});tt.textContent=((String(r.sender||'').toUpperCase().indexOf('BHP')>=0)?'BHP ':'')+(r.type||'RFI')+' ('+r.rfiNo+')'+' — '+d+' '+def.unit+(d===1?'':'s')+(cl?' (closed)':'')+(r.description?' · '+r.description:'');rect.appendChild(tt);svg.appendChild(rect);
       if(h>10&&bw>=12){var vl=svgEl('text',{x:cx,y:baseY-h-3,'text-anchor':'middle','font-size':Math.max(6,Math.min(10,bw)-1)+'','font-weight':'700',fill:ink});vl.textContent=String(d);svg.appendChild(vl);}
-      var isB=(String(r.sender||'').toUpperCase().indexOf('BHP')>=0)||/^BHP/i.test(r.aconexRef||'');var lab=(isB?'BHP ':'')+'('+r.rfiNo+') '+(r.type||'');var fs=Math.max(7,Math.min(10,bw+2));var xl=svgEl('text',{x:cx,y:baseY+11,'text-anchor':'end','font-size':fs.toFixed(1),fill:cl?closedLab:openLab,transform:'rotate(-55 '+cx+' '+(baseY+11)+')'});if(isB){var t1b=svgEl('tspan',{fill:ACCENT,'font-weight':'700'});t1b.textContent='BHP ';xl.appendChild(t1b);var t2b=svgEl('tspan',{});t2b.textContent=lab.trim().slice(4);xl.appendChild(t2b);}else{xl.textContent=lab.trim();}if(cl)xl.setAttribute('font-weight','600');svg.appendChild(xl);
+      var isB=(String(r.sender||'').toUpperCase().indexOf('BHP')>=0)||/^BHP/i.test(r.aconexRef||'');var lab=(isB?'BHP ':'')+(r.type||'RFI')+' ('+r.rfiNo+')';var fs=Math.max(7,Math.min(10,bw+2));var xl=svgEl('text',{x:cx,y:baseY+11,'text-anchor':'end','font-size':fs.toFixed(1),fill:cl?closedLab:openLab,transform:'rotate(-55 '+cx+' '+(baseY+11)+')'});if(isB){var t1b=svgEl('tspan',{fill:ACCENT,'font-weight':'700'});t1b.textContent='BHP ';xl.appendChild(t1b);var t2b=svgEl('tspan',{});t2b.textContent=lab.trim().slice(4);xl.appendChild(t2b);}else{xl.textContent=lab.trim();}if(cl)xl.setAttribute('font-weight','600');svg.appendChild(xl);
     });
     svg.appendChild(svgEl('line',{x1:mL,x2:W-mR,y1:baseY,y2:baseY,stroke:axis}));
     scroll.appendChild(svg);
@@ -1102,7 +1103,7 @@ async function fullScan(){
   var pDrag=null;
   function renderColPanel(){
     var old=root.getElementById('colpanel');var sc=old?(old.querySelector('.clist')||{}).scrollTop:0;if(old)old.remove();
-    var panel=el('div',{id:'colpanel',class:'panel',style:'left:12px;top:100px;max-height:calc(100vh - 128px);overflow:hidden'},[el('h4',{style:'white-space:normal'},['Columns']),el('div',{class:'muted',style:'font-size:11px;margin-bottom:6px;white-space:normal'},['Tick to show/hide. ▲▼ reorder. Type in a box to rename that column header (blank restores the default).'])]);
+    var panel=el('div',{id:'colpanel',class:'panel',style:'left:12px;top:100px;max-height:calc(100vh - 128px);overflow:hidden'},[el('h4',{style:'white-space:normal'},['Columns']),el('div',{class:'muted',style:'font-size:11px;margin-bottom:6px;white-space:normal'},['Tick to show/hide. ▲▼ reorder. Rename a header in its box (blank restores the default). PRI is the Fit to 1 Page priority — 1 is served first, blanks rank equally. DEF and NOW are the default and current widths in px.']),el('div',{class:'crow chead'},[el('span',{style:'flex:0 0 auto;width:46px'}),el('span',{style:'flex:0 0 auto;width:13px'}),el('span',{class:'cpri chl'},['PRI']),el('span',{style:'flex:1;text-align:center'},['HEADER']),el('span',{class:'cwid chl'},['DEF']),el('span',{class:'cwid chl'},['NOW'])])]);
     var list=el('div',{class:'clist',style:'flex:1 1 auto;overflow:auto;min-height:40px'});
     // width of the longest DEFAULT column name (all rename boxes take this width)
     var probe=document.createElement('span');probe.style.cssText='position:absolute;visibility:hidden;white-space:nowrap;font:'+(S.baseFont||DEF_BASEPX)+'px '+fontStack(S.fontFamily);root.appendChild(probe);
@@ -1116,11 +1117,19 @@ async function fullScan(){
       var inp=el('input',{type:'text',title:'Rename the '+COLDEF[k].label+' column header (blank = default: '+COLDEF[k].label+')',value:colLabel(k),style:'flex:0 0 auto;width:'+nameW+'px;margin:0 auto;text-align:center;font-size:12px;padding:2px 5px;border:1px solid #cfd8e3;border-radius:4px;box-sizing:border-box'});
       inp.onchange=function(){var v=(inp.value||'').trim();if(v&&v!==COLDEF[k].label){S.colNames[k]=v;}else{delete S.colNames[k];inp.value=COLDEF[k].label;}saveCfg();renderTable();};
       inp.onkeydown=function(e){if(e.key==='Enter')inp.blur();};
-      list.appendChild(el('div',{class:'crow'},[arrows,cb,inp]));
+      /* item d: Fit priority (1 = first), default width and current width */
+      var pri=el('input',{type:'number',min:'1',step:'1',title:'Fit to 1 Page priority for '+colLabel(k)+' — 1 is served first. Leave blank to rank equally with the other blanks.',value:(colPri(k)==null?'':String(colPri(k))),class:'cpri'});
+      pri.onchange=function(){setColPri(k,pri.value);pri.value=(colPri(k)==null?'':String(colPri(k)));};
+      var dw=el('input',{type:'number',min:'8',step:'1',title:'Default width of '+colLabel(k)+' in px — what Reset Col Widths restores it to'+(isDateCol(k)?'. Date columns ignore this and use the measured width of the date control.':'.'),value:String(isDateCol(k)?dateColW():colDefW(k)),class:'cwid'});
+      dw.disabled=isDateCol(k);
+      dw.onchange=function(){setColDefW(k,dw.value);dw.value=String(colDefW(k));};
+      var cw=el('input',{type:'number',min:'8',step:'1',title:'Current width of '+colLabel(k)+' in px',value:String(S.cols[k].w),class:'cwid'});
+      cw.onchange=function(){var v=parseInt(cw.value,10);if(isNaN(v)||v<8){cw.value=String(S.cols[k].w);return;}S.cols[k].w=v;S.cols[k].userW=true;saveCfg();renderTable();};
+      list.appendChild(el('div',{class:'crow'},[arrows,cb,pri,inp,dw,cw]));
     });
     panel.appendChild(list);
-    panel.appendChild(el('div',{style:'margin-top:8px;display:flex;gap:6px;flex:0 0 auto'},[el('button',{class:'btn',title:'Restore default columns & names',onclick:function(){resetCols();}},['Reset']),el('button',{class:'btn',title:'Close',onclick:function(){var p=root.getElementById('colpanel');if(p)p.remove();}},['Close'])]));
-    panel.style.width=Math.min(420,nameW+118)+'px';
+    panel.appendChild(el('div',{style:'margin-top:8px;display:flex;gap:6px;flex:0 0 auto'},[el('button',{class:'btn',title:'Restore every column setting — order, visibility, names, widths, default widths and Fit priorities',onclick:function(){resetCols();}},['Reset Defaults']),el('button',{class:'btn',title:'Reset ONLY the column widths back to their default widths. Order, visibility, names and Fit priorities are left alone.',onclick:function(){resetColWidths();}},['Reset Col Widths']),el('button',{class:'btn',title:'Close',onclick:function(){var p=root.getElementById('colpanel');if(p)p.remove();}},['Close'])]));
+    panel.style.width=Math.min(520,nameW+260)+'px';
     collapsiblePanel(panel);
     root.getElementById('wrap').appendChild(panel);var l=panel.querySelector('.clist');if(l)l.scrollTop=sc;
   }
@@ -1149,13 +1158,36 @@ async function fullScan(){
     if(anchor){var ar=anchor.getBoundingClientRect(),wr=wrapEl.getBoundingClientRect();panel.style.left=Math.min(Math.max(4,wr.width-panel.offsetWidth-8),Math.max(4,ar.left-wr.left))+'px';panel.style.top=(ar.bottom-wr.top+4)+'px';}else{panel.style.left='12px';panel.style.top='120px';}
   }
   // Excel-style: double-click the divider on a header's right edge to autofit the column to its left to its content.
-  function autofitCol(k){var probe=document.createElement('span');probe.style.cssText='position:absolute;visibility:hidden;white-space:nowrap;font:'+S.fontSize+'px "Segoe UI",Arial';root.appendChild(probe);var w=Math.min(460,Math.max(minHW(k),dataMinW(k,probe)));probe.remove();S.cols[k].w=w;saveCfg();renderTable();}
-  function makeResizable(handle,th,k){handle.onmousedown=function(e){e.preventDefault();e.stopPropagation();var sx=e.clientX,sw=th.offsetWidth;function mv(ev){var w=Math.max(minHW(k),sw+(ev.clientX-sx));S.cols[k].w=w;th.style.width=w+'px';th.style.minWidth=w+'px';}function up(){document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);saveCfg();renderBody();var frow=root.querySelector('tr.f');if(frow){var i=visKeys().indexOf(k);var td=frow.querySelectorAll('td')[i];if(td)td.style.width=S.cols[k].w+'px';}}document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);};handle.ondblclick=function(e){e.preventDefault();e.stopPropagation();autofitCol(k);};handle.title='Drag to resize · double-click to autofit to contents';}
+  function autofitCol(k){var probe=document.createElement('span');probe.style.cssText='position:absolute;visibility:hidden;white-space:nowrap;font:'+S.fontSize+'px "Segoe UI",Arial';root.appendChild(probe);var w=isDateCol(k)?dateColW():Math.min(460,Math.max(minHW(k),dataMinW(k,probe)));probe.remove();S.cols[k].w=w;if(isDateCol(k))delete S.cols[k].userW;else S.cols[k].userW=true;saveCfg();renderTable();}
+  function makeResizable(handle,th,k){handle.onmousedown=function(e){e.preventDefault();e.stopPropagation();var sx=e.clientX,sw=th.offsetWidth;function mv(ev){var w=Math.max(minHW(k),sw+(ev.clientX-sx));S.cols[k].w=w;th.style.width=w+'px';th.style.minWidth=w+'px';}function up(){document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);S.cols[k].userW=true;saveCfg();renderBody();var frow=root.querySelector('tr.f');if(frow){var i=visKeys().indexOf(k);var td=frow.querySelectorAll('td')[i];if(td)td.style.width=S.cols[k].w+'px';}}document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);};handle.ondblclick=function(e){e.preventDefault();e.stopPropagation();autofitCol(k);};handle.title='Drag to resize · double-click to autofit to contents';}
   // Width the DATA cell needs (widget-aware): editable date pickers and selects need room for their control,
   // read-only/text cells only need their measured text. Header minimum is handled separately by minHW.
+
+  /* ---- item b: date columns are measured, never negotiated ----------------
+     A `width` on a td is the CONTENT box, so the cell padding sits outside it.
+     dateColW() measures a real date input at the current font and uses exactly
+     that, so the full date and its picker fit with no slack. */
+  function isDateCol(k){return !!(COLDEF[k]&&COLDEF[k].edit==='date');}
+  function dateColW(){
+    var key=S.fontSize+'|'+(S.fontFamily||'');
+    if(dateColW._k===key&&dateColW._v)return dateColW._v;
+    var w=0;
+    try{
+      var probe=document.createElement('input');probe.type='date';probe.value='2026-12-31';
+      probe.setAttribute('style','position:absolute;left:-9999px;top:0;visibility:hidden;width:auto;box-sizing:border-box;font:'+S.fontSize+'px '+fontStack(S.fontFamily)+';padding:0 3px;border:1px solid #000');
+      root.appendChild(probe);w=Math.ceil(probe.getBoundingClientRect().width);probe.remove();
+    }catch(e){}
+    var v=Math.max(80,w||110);dateColW._k=key;dateColW._v=v;return v;
+  }
+  /* ---- item d: per-column Fit-to-width priority and default width ---- */
+  function colPri(k){var v=(S.colPri||{})[k];v=parseInt(v,10);return isNaN(v)?null:v;}
+  function setColPri(k,v){S.colPri=S.colPri||{};v=parseInt(v,10);if(isNaN(v)||v<1)delete S.colPri[k];else S.colPri[k]=v;saveCfg();}
+  function colDefW(k){var v=(S.colDefW||{})[k];v=parseInt(v,10);return (isNaN(v)||v<8)?(COLDEF[k]?COLDEF[k].w:80):v;}
+  function setColDefW(k,v){S.colDefW=S.colDefW||{};v=parseInt(v,10);if(isNaN(v)||v===(COLDEF[k]?COLDEF[k].w:80))delete S.colDefW[k];else S.colDefW[k]=Math.max(8,v);saveCfg();}
+  function resetColWidths(){visKeys().forEach(function(k){delete S.cols[k].userW;S.cols[k].w=isDateCol(k)?dateColW():colDefW(k);});S.order.forEach(function(k){if(!S.cols[k].show){delete S.cols[k].userW;S.cols[k].w=isDateCol(k)?dateColW():colDefW(k);}});saveCfg();renderTable();if(root.getElementById('colpanel'))renderColPanel();}
   function dataMinW(k,probe){
     var ed=COLDEF[k]&&COLDEF[k].edit;
-    if(ed==='date')return 124;                               // native date-picker widget
+    if(ed==='date')return dateColW();                               // native date-picker widget
     var pad=(ed==='yesno'||ed==='status')?34:14;             // select arrow allowance vs plain text
     var mw=0;
     if(ed==='status'){statusOptions().forEach(function(o){probe.textContent=o;if(probe.offsetWidth>mw)mw=probe.offsetWidth;});}
@@ -1164,38 +1196,69 @@ async function fullScan(){
     return mw+pad;
   }
   // Optimise = each column hugs the greater of its 2-line header minimum and its (widget-aware) content width.
-  function optimiseWidths(){var probe=document.createElement('span');probe.style.cssText='position:absolute;visibility:hidden;white-space:nowrap;font:'+S.fontSize+'px "Segoe UI",Arial';root.appendChild(probe);visKeys().forEach(function(k){S.cols[k].w=Math.min(460,Math.max(minHW(k),dataMinW(k,probe)));});probe.remove();saveCfg();renderTable();}
-  function contentW(k,probe){return dataMinW(k,probe);}
-  function fitOnePage(){
-    var tw=root.querySelector('.tablewrap');if(!tw)return;var keys=visKeys();if(!keys.length)return;
-    // Each column's rendered width = its width value + ~PAD_OH of padding/border, so budget for that overhead
-    // to actually land inside the viewport instead of overshooting into a horizontal scroll.
-    var PAD_OH=13;
-    var avail=Math.max(240,tw.clientWidth-18-SELW-keys.length*PAD_OH);
+  /* Date columns hold their measured width; every other column hugs its content. */
+  function optimiseWidths(){
     var probe=document.createElement('span');probe.style.cssText='position:absolute;visibility:hidden;white-space:nowrap;font:'+S.fontSize+'px "Segoe UI",Arial';root.appendChild(probe);
-    // Two-tier floors: prefer the no-clip floor (shows short fixed data: dates, numbers, pills; long text capped 160).
-    // If those don't all fit the page, fall back to the tightest 2-line-header minimum so we shrink as far as possible.
+    visKeys().forEach(function(k){
+      if(isDateCol(k)){delete S.cols[k].userW;S.cols[k].w=dateColW();return;}
+      S.cols[k].w=Math.min(460,Math.max(minHW(k),dataMinW(k,probe)));
+    });
+    probe.remove();saveCfg();renderTable();
+  }
+
+  function contentW(k,probe){return dataMinW(k,probe);}
+  /* Fit to 1 Page. Date columns are pinned at their measured width and take no
+     part in the fit; everything else shares what is left, and a column given a
+     Fit priority in the Columns panel is topped up to its content width first,
+     lowest number first. Blank priorities rank equally, after the numbered ones. */
+  function fitOnePage(){
+    var tw=root.querySelector('.tablewrap');if(!tw)return;
+    var keys=visKeys();if(!keys.length)return;
+    var PAD_OH=13;
+    var avail=Math.max(240,tw.clientWidth-18-(typeof SELW==='number'?SELW:0)-keys.length*PAD_OH);
+    var fixed=keys.filter(isDateCol),flex=keys.filter(function(k){return !isDateCol(k);});
+    fixed.forEach(function(k){delete S.cols[k].userW;S.cols[k].w=dateColW();avail-=dateColW();});
+    if(!flex.length){saveCfg();renderTable();return;}
+    avail=Math.max(120,avail);
+    var probe=document.createElement('span');probe.style.cssText='position:absolute;visibility:hidden;white-space:nowrap;font:'+S.fontSize+'px "Segoe UI",Arial';root.appendChild(probe);
     var floorMin={},floorData={},desired={},sumMinH=0,sumData=0;
-    keys.forEach(function(k){
-      var fm=Math.ceil(minHW(k));
-      var fd=Math.ceil(Math.max(fm,Math.min(dataMinW(k,probe),160)));
+    flex.forEach(function(k){
+      var fm=Math.ceil(minHW(k)),fd=Math.ceil(Math.max(fm,Math.min(dataMinW(k,probe),160)));
       floorMin[k]=fm;floorData[k]=fd;desired[k]=Math.max(fd,Math.min(460,dataMinW(k,probe)));
       sumMinH+=fm;sumData+=fd;
     });
     probe.remove();
-    var noClip=(sumData<=avail);
-    var mins=noClip?floorData:floorMin,sumMin=noClip?sumData:sumMinH,sumExtra=0;
-    keys.forEach(function(k){sumExtra+=Math.max(0,desired[k]-mins[k]);});
-    keys.forEach(function(k){S.cols[k].w=mins[k];});
+    var noClip=(sumData<=avail),mins=noClip?floorData:floorMin,sumMin=noClip?sumData:sumMinH;
+    flex.forEach(function(k){S.cols[k].w=mins[k];});
     var leftover=avail-sumMin;
-    if(leftover>0){
-      if(sumExtra>0){keys.forEach(function(k){var extra=Math.max(0,desired[k]-mins[k]);S.cols[k].w=Math.round(mins[k]+leftover*(extra/sumExtra));});}
-      else{var per=Math.floor(leftover/keys.length);keys.forEach(function(k){S.cols[k].w=mins[k]+per;});}
+    var pri=flex.filter(function(k){return colPri(k)!=null;}).sort(function(a,b){return colPri(a)-colPri(b);});
+    var rest0=flex.filter(function(k){return colPri(k)==null;});
+    /* When there is nothing spare, a priority still has to mean something: squeeze
+       the unprioritised columns to a tight floor and hand what that frees to the
+       prioritised ones. Their headers clip; that is the point of setting a priority. */
+    if(leftover<=0&&pri.length&&rest0.length){
+      var freed=0;
+      rest0.forEach(function(k){var t=Math.min(mins[k],34);freed+=mins[k]-t;S.cols[k].w=t;});
+      leftover+=freed;
+    }
+    if(leftover<=0){saveCfg();renderTable();return;}
+    pri.forEach(function(k){
+      if(leftover<=0)return;
+      var want=Math.max(0,desired[k]-mins[k]);
+      var give=Math.min(want,leftover);
+      S.cols[k].w=mins[k]+give;leftover-=give;
+    });
+    var rest=rest0;
+    if(leftover>0&&rest.length){
+      var sumExtra=0;rest.forEach(function(k){sumExtra+=Math.max(0,desired[k]-mins[k]);});
+      if(sumExtra>0){rest.forEach(function(k){var extra=Math.max(0,desired[k]-mins[k]);S.cols[k].w=Math.round(mins[k]+leftover*(extra/sumExtra));});}
+      else{var per=Math.floor(leftover/rest.length);rest.forEach(function(k){S.cols[k].w=mins[k]+per;});}
     }
     saveCfg();renderTable();
   }
-  function resetCols(){var b;try{var d=localStorage.getItem(DKEY);if(d)b=mergeCfg(JSON.parse(d));}catch(e){}if(!b)b=factoryCfg();S.order=b.order;S.cols=b.cols;S.fontSize=b.fontSize;S.rowPad=b.rowPad;S.wrap=b.wrap;S.chartType=b.chartType;if(b.selFilters)S.selFilters=b.selFilters;S.chartScale=b.chartScale||1;if(b.colorSchemes)S.colorSchemes=normSchemes(b.colorSchemes);if(b.collapsed)S.collapsed=b.collapsed;S.fontScale=b.fontScale||100;S.padScale=b.padScale||100;S.statusSel=b.statusSel||'__ALL__';S.typeSel=(b.typeSel!=null?b.typeSel:null);S.colNames=b.colNames||{};S.statusList=(b.statusList&&b.statusList.length?b.statusList:STATUS_WORKFLOW.slice());S.doScale=b.doScale||1;S.doHideClosed=!!b.doHideClosed;S.chartAutoFit=b.chartAutoFit!==false;applyScope();saveCfg();renderAll();}
-  function setAsDefault(){try{localStorage.setItem(DKEY,JSON.stringify({order:S.order,cols:S.cols,fontSize:S.fontSize,rowPad:S.rowPad,wrap:S.wrap,chartType:S.chartType,selFilters:S.selFilters,chartScale:S.chartScale,colorSchemes:S.colorSchemes,fontFamily:S.fontFamily,baseFont:S.baseFont,darkMode:S.darkMode,collapsed:S.collapsed,fontScale:S.fontScale,padScale:S.padScale,hpadScale:S.hpadScale,hdrFontSize:S.hdrFontSize,hdrMaxLines:S.hdrMaxLines,statusSel:S.statusSel,typeSel:S.typeSel,colNames:S.colNames,statusList:S.statusList,doScale:S.doScale,doStat:S.doStat,doHideClosed:S.doHideClosed,chartAutoFit:S.chartAutoFit}));}catch(e){}toast('Saved as your default view');}
+
+  function resetCols(){var b;try{var d=localStorage.getItem(DKEY);if(d)b=mergeCfg(JSON.parse(d));}catch(e){}if(!b)b=factoryCfg();S.order=b.order;S.cols=b.cols;S.colPri=b.colPri||{};S.colDefW=b.colDefW||{};S.fontSize=b.fontSize;S.rowPad=b.rowPad;S.wrap=b.wrap;S.chartType=b.chartType;if(b.selFilters)S.selFilters=b.selFilters;S.chartScale=b.chartScale||1;if(b.colorSchemes)S.colorSchemes=normSchemes(b.colorSchemes);if(b.collapsed)S.collapsed=b.collapsed;S.fontScale=b.fontScale||100;S.padScale=b.padScale||100;S.statusSel=b.statusSel||'__ALL__';S.typeSel=(b.typeSel!=null?b.typeSel:null);S.colNames=b.colNames||{};S.statusList=(b.statusList&&b.statusList.length?b.statusList:STATUS_WORKFLOW.slice());S.doScale=b.doScale||1;S.doHideClosed=!!b.doHideClosed;S.chartAutoFit=b.chartAutoFit!==false;applyScope();saveCfg();renderAll();}
+  function setAsDefault(){try{localStorage.setItem(DKEY,JSON.stringify({order:S.order,cols:S.cols,fontSize:S.fontSize,rowPad:S.rowPad,wrap:S.wrap,chartType:S.chartType,selFilters:S.selFilters,chartScale:S.chartScale,colorSchemes:S.colorSchemes,fontFamily:S.fontFamily,baseFont:S.baseFont,darkMode:S.darkMode,collapsed:S.collapsed,fontScale:S.fontScale,padScale:S.padScale,hpadScale:S.hpadScale,hdrFontSize:S.hdrFontSize,hdrMaxLines:S.hdrMaxLines,statusSel:S.statusSel,typeSel:S.typeSel,colPri:S.colPri,colDefW:S.colDefW,colNames:S.colNames,statusList:S.statusList,doScale:S.doScale,doStat:S.doStat,doHideClosed:S.doHideClosed,chartAutoFit:S.chartAutoFit}));}catch(e){}toast('Saved as your default view');}
   // Toast: stays 10s, can be dismissed with the x, and pauses while the pointer is over
   // it so a long message can actually be read. Only one at a time — a second message
   // replaces the first instead of stacking on the same spot. If the persistent Open
