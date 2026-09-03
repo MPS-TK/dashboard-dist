@@ -33,13 +33,14 @@
     // Force-replace any modules already on the page (kills stale versions).
     try { delete window.__MPS_ACONEX; } catch (e) {}
     try { delete window.__MPS_ACONEX_RFI; } catch (e) {}
-    ['mps-aconex-host', 'mps-aconex-rfi-host'].forEach(function (id) {
+    try { delete window.__MPS_ACONEX_VAR; } catch (e) {}
+    ['mps-aconex-host', 'mps-aconex-rfi-host', 'mps-aconex-var-host'].forEach(function (id) {
       var el = document.getElementById(id); if (el && el.parentNode) el.parentNode.removeChild(el);
     });
 
-    // Redirect the ONE remaining in-module CODE fetch (the RFI module, pulled
-    // on tab-click) away from the private repo to this public repo, so opening
-    // the RFIs/TQs tab needs no token either. DATA fetches (.json overrides /
+    // Redirect the in-module CODE fetches (the RFI and Variations modules, each
+    // pulled on tab-click) away from the private repo to this public repo, so
+    // opening the RFIs/TQs or Variations tab needs no token either. DATA fetches (.json overrides /
     // xdata) are left completely untouched — they still use the token.
     if (!window.__mpsFetchShim) {
       window.__mpsFetchShim = true;
@@ -47,8 +48,9 @@
       window.fetch = function (u, o) {
         try {
           var url = (typeof u === 'string') ? u : (u && u.url) || '';
-          if (/ITR-Dashboard\/contents\/[^?]*aconex_rfi_dashboard\.js/.test(url)) {
-            return _f(DIST + 'aconex/aconex_rfi_dashboard.js?_=' + Date.now(), { cache: 'no-store' });
+          var m = /ITR-Dashboard\/contents\/[^?]*(aconex_rfi_dashboard|aconex_var_dashboard)\.js/.exec(url);
+          if (m) {
+            return _f(DIST + 'aconex/' + m[1] + '.js?_=' + Date.now(), { cache: 'no-store' });
           }
         } catch (e) {}
         return _f(u, o);
