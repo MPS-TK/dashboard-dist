@@ -2,7 +2,7 @@
 (function () {
   /* Single dashboard version — the Aconex Dashboard is ONE updatable element.
      Both tabs (Doc. Registers + RFIs/TQs) display this exact string; bump it here in one place. */
-  var AC_VER = 'v12.6 \u00B7 1 Sep 2026';
+  var AC_VER = 'v12.7 \u00B7 1 Sep 2026';
 
   var MODS = [
     { host: 'mps-aconex-host',     g: '__MPS_ACONEX' },
