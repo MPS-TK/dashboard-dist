@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.6', BUILD_DATE='1 Sep 2026';
+  var VERSION='v12.7', BUILD_DATE='1 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -1180,7 +1180,26 @@ async function fullScan(){
   }
   function resetCols(){var b;try{var d=localStorage.getItem(DKEY);if(d)b=mergeCfg(JSON.parse(d));}catch(e){}if(!b)b=factoryCfg();S.order=b.order;S.cols=b.cols;S.fontSize=b.fontSize;S.rowPad=b.rowPad;S.wrap=b.wrap;S.chartType=b.chartType;if(b.selFilters)S.selFilters=b.selFilters;S.chartScale=b.chartScale||1;if(b.colorSchemes)S.colorSchemes=normSchemes(b.colorSchemes);if(b.collapsed)S.collapsed=b.collapsed;S.fontScale=b.fontScale||100;S.padScale=b.padScale||100;S.statusSel=b.statusSel||'__ALL__';S.typeSel=(b.typeSel!=null?b.typeSel:null);S.colNames=b.colNames||{};S.statusList=(b.statusList&&b.statusList.length?b.statusList:STATUS_WORKFLOW.slice());S.doScale=b.doScale||1;S.doHideClosed=!!b.doHideClosed;S.chartAutoFit=b.chartAutoFit!==false;applyScope();saveCfg();renderAll();}
   function setAsDefault(){try{localStorage.setItem(DKEY,JSON.stringify({order:S.order,cols:S.cols,fontSize:S.fontSize,rowPad:S.rowPad,wrap:S.wrap,chartType:S.chartType,selFilters:S.selFilters,chartScale:S.chartScale,colorSchemes:S.colorSchemes,fontFamily:S.fontFamily,baseFont:S.baseFont,darkMode:S.darkMode,collapsed:S.collapsed,fontScale:S.fontScale,padScale:S.padScale,hpadScale:S.hpadScale,hdrFontSize:S.hdrFontSize,hdrMaxLines:S.hdrMaxLines,statusSel:S.statusSel,typeSel:S.typeSel,colNames:S.colNames,statusList:S.statusList,doScale:S.doScale,doStat:S.doStat,doHideClosed:S.doHideClosed,chartAutoFit:S.chartAutoFit}));}catch(e){}toast('Saved as your default view');}
-  function toast(msg){var t=el('div',{style:'position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:'+NAVY+';color:#fff;padding:8px 16px;border-radius:6px;font-size:12px;z-index:20;box-shadow:0 4px 16px rgba(0,0,0,.25)'},[msg]);root.getElementById('wrap').appendChild(t);setTimeout(function(){t.remove();},2200);}
+  // Toast: stays 10s, can be dismissed with the x, and pauses while the pointer is over
+  // it so a long message can actually be read. Only one at a time — a second message
+  // replaces the first instead of stacking on the same spot. If the persistent Open
+  // Selected notice is on screen the toast sits above it rather than over it.
+  function toast(msg){
+    var w=root.getElementById('wrap'); if(!w)return;
+    var old=root.getElementById('mps-toast'); if(old){clearTimeout(old.__tm);old.remove();}
+    var hp=root.getElementById('mps-popuphelp');
+    var bottom=hp?(Math.round(hp.getBoundingClientRect().height)+26):16;
+    var t=el('div',{id:'mps-toast',style:'position:absolute;bottom:'+bottom+'px;left:50%;transform:translateX(-50%);background:'+NAVY+';color:#fff;padding:8px 34px 8px 16px;border-radius:6px;font-size:12px;line-height:1.45;max-width:72%;z-index:21;box-shadow:0 4px 16px rgba(0,0,0,.25)'},[msg]);
+    var x=el('a',{title:'Dismiss this message',style:'position:absolute;top:3px;right:8px;cursor:pointer;font-weight:700;color:#9fb6d0;text-decoration:none;font-size:13px'},['✕']);
+    x.onmouseenter=function(){x.style.color='#fff';};
+    x.onmouseleave=function(){x.style.color='#9fb6d0';};
+    x.onclick=function(){clearTimeout(t.__tm);t.remove();};
+    t.appendChild(x);
+    function arm(ms){clearTimeout(t.__tm);t.__tm=setTimeout(function(){t.remove();},ms);}
+    t.onmouseenter=function(){clearTimeout(t.__tm);};
+    t.onmouseleave=function(){arm(2500);};
+    w.appendChild(t); arm(10000);
+  }
 
   // ---- XLSX export (self-contained) ----
   var CRC=(function(){var c,t=[];for(var n=0;n<256;n++){c=n;for(var k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
