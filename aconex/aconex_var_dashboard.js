@@ -21,7 +21,7 @@
   if (window.__MPS_ACONEX_VAR && window.__MPS_ACONEX_VAR.__live) { window.__MPS_ACONEX_VAR.boot(); return; }
 
   var NAVY = '#0B2A4A', NAVY2 = '#123a63', ACCENT = '#F26522', LINE = '#dfe4ea', INK = '#1f2d3d';
-  var VERSION = 'v12.11', BUILD_DATE = '4 Sep 2026';
+  var VERSION = 'v12.12', BUILD_DATE = '4 Sep 2026';
   var UI_FONTS = ['Segoe UI', 'Arial', 'Calibri', 'Helvetica', 'Roboto', 'Verdana', 'Tahoma', 'Trebuchet MS', 'Georgia', 'Times New Roman', 'Courier New', 'system-ui'];
   var DEF_FONT = '"Segoe UI",Arial,sans-serif', DEF_BASEPX = 13;
   function fontStack(f) { return f ? ('"' + f + '","Segoe UI",Arial,sans-serif') : DEF_FONT; }
@@ -96,7 +96,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
       selFilters: {}, selKnown: {}, colPri: {}, colDefW: {}, chartScale: 1, colorSchemes: { status: {}, type: {} }, fontFamily: '', baseFont: DEF_BASEPX,
       darkMode: false, collapsed: {}, fontScale: 100, padScale: 100, hpadScale: 100, hdrFontSize: null, hdrMaxLines: 2,
       statusSel: '__ALL__', xProjectId: '', xProjectName: '', colNames: {}, statusList: STATUS_WORKFLOW.slice(),
-      activeSheet: '', barStat: 'diff', barScale: 1, activeCharts: ['status'], cvaScale: 1, chartAutoFit: true
+      activeSheet: '', barStat: 'diff', barScale: 1, chartAutoFit: true
     };
   }
   var LKEY = 'mps_aconex_var_cfg_' + CFG.mpsProjectNo, DKEY = 'mps_aconex_var_defcfg_' + CFG.mpsProjectNo;
@@ -114,7 +114,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     var out = f;
     out.order = o; out.cols = cols; out.icols = icols;
     ['fontSize', 'rowPad', 'chartType', 'chartScale', 'fontFamily', 'baseFont', 'fontScale', 'padScale', 'hpadScale',
-      'hdrMaxLines', 'statusSel', 'xProjectId', 'xProjectName', 'activeSheet', 'barStat', 'barScale', 'cvaScale'].forEach(function (k) {
+      'hdrMaxLines', 'statusSel', 'xProjectId', 'xProjectName', 'activeSheet', 'barStat', 'barScale'].forEach(function (k) {
         if (saved[k] != null) out[k] = saved[k];
       });
     out.wrap = (saved.wrap != null ? !!saved.wrap : true);
@@ -128,13 +128,15 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     out.colNames = saved.colNames || {};
     out.colorSchemes = { status: (saved.colorSchemes || {}).status || {}, type: (saved.colorSchemes || {}).type || {} };
     out.statusList = (saved.statusList && saved.statusList.length ? saved.statusList : STATUS_WORKFLOW.slice());
-    out.activeCharts = (saved.activeCharts && saved.activeCharts.length ? saved.activeCharts.slice() : ['status']);
     out.chartAutoFit = (saved.chartAutoFit !== false);
+    /* v12.12: Claimed vs Assessed moved out of the CHART panel and into the STATS
+       bar chart. Anyone who had it ticked there lands on it in its new home. */
+    if (saved.activeCharts && saved.activeCharts.indexOf('cva') >= 0 && saved.activeCharts.indexOf('status') < 0) out.barStat = 'cva';
     return out;
   }
   var CFGKEYS = ['order', 'cols', 'icols', 'fontSize', 'rowPad', 'wrap', 'chartType', 'selFilters', 'selKnown', 'colPri', 'colDefW', 'chartScale', 'colorSchemes',
     'fontFamily', 'baseFont', 'darkMode', 'collapsed', 'fontScale', 'padScale', 'hpadScale', 'hdrFontSize', 'hdrMaxLines',
-    'statusSel', 'xProjectId', 'xProjectName', 'colNames', 'statusList', 'activeSheet', 'barStat', 'barScale', 'activeCharts', 'cvaScale', 'chartAutoFit'];
+    'statusSel', 'xProjectId', 'xProjectName', 'colNames', 'statusList', 'activeSheet', 'barStat', 'barScale', 'chartAutoFit'];
   function snapCfg() { var o = {}; CFGKEYS.forEach(function (k) { o[k] = S[k]; }); return o; }
   function saveCfg() { try { localStorage.setItem(LKEY, JSON.stringify(snapCfg())); } catch (e) { } }
   function setAsDefault() { try { localStorage.setItem(DKEY, JSON.stringify(snapCfg())); } catch (e) { } toast('Saved as your default view'); }
@@ -910,9 +912,6 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     +'.prevtbl td{padding:2px 7px;white-space:nowrap;border-bottom:1px solid #eef1f4;max-width:220px;overflow:hidden;text-overflow:ellipsis}'
     +'.prevtbl tr.bad td{background:#fff3f2}.prevtbl td.errcell{color:#c0392b;font-size:10.5px;white-space:normal;max-width:280px}'
     +'.dark .prevtbl th{background:#16202e;color:#9fb0c4;border-bottom-color:#2f4359}.dark .prevtbl td{border-bottom-color:#22303f}.dark .prevtbl tr.bad td{background:#2a1618}'
-    +'.cgrow>.cpanel.cpt.wide{max-width:none;flex:1 1 560px}'
-    +'.pchart.cva{flex:1 1 100%;max-width:none;min-width:0}'
-    +'.cvascroll{overflow-x:auto;overflow-y:hidden;width:100%;max-width:100%}'
     +'.chartsrow{flex-wrap:wrap}'
     +'th.narrow{overflow:hidden}'
     +'th.narrow .lbl{display:inline-block;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}'
@@ -937,7 +936,8 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     +'.cgrow>.cpanel.cpt{display:flex;flex-direction:column}'
     +'.cgrow>.cpanel.cpt>.cpbody{flex:1 1 auto;display:flex;min-height:0}'
     +'.charts{flex:1 1 auto;display:flex;align-items:center;justify-content:center;padding:10px;box-sizing:border-box;min-height:0}'
-    +'.chartsrow{align-items:center;justify-content:center;align-content:center;width:100%}';}
+    +'.chartsrow{align-items:center;justify-content:center;align-content:center;width:100%}'
+    +'#barlegend{margin-top:2px}';}
 
 
   /* ---- collapsible panels ---- */
@@ -1196,10 +1196,16 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
   }
 
   /* ---- per-VO bar chart ---- */
+  var CLAIM_COL = '#1565c0', ASSESS_COL = ACCENT;
   var BAR_DEFS = [
     { key: 'diff', label: 'Difference per VO', val: function (r) { return r._diff || 0; } },
     { key: 'claim', label: 'MPS Claimed per VO', val: function (r) { return r._claim || 0; } },
-    { key: 'assessed', label: 'BHP Assessed per VO', val: function (r) { return r._assessed || 0; } }
+    { key: 'assessed', label: 'BHP Assessed per VO', val: function (r) { return r._assessed || 0; } },
+    /* two bars per VO, side by side — same axis and controls as the single-series modes */
+    { key: 'cva', label: 'Claimed vs Assessed', grouped: true,
+      series: [{ label: 'MPS Claimed', col: CLAIM_COL, val: function (r) { return r._claim || 0; } },
+               { label: 'BHP Assessed', col: ASSESS_COL, val: function (r) { return r._assessed || 0; } }],
+      val: function (r) { return r._claim || 0; } }
   ];
   function barDef() { for (var i = 0; i < BAR_DEFS.length; i++) if (BAR_DEFS[i].key === S.barStat) return BAR_DEFS[i]; return BAR_DEFS[0]; }
   function renderVarBar() {
@@ -1214,13 +1220,30 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     box.appendChild(el('div', { class: 'dohd' }, [el('span', { class: 'dotitle' }, [def.label]), el('span', { class: 'muted', style: 'font-size:11px' }, [rows.length + ' VO' + (rows.length === 1 ? '' : 's')]), btns,
       el('span', { style: 'margin-left:auto;display:inline-flex;align-items:center;gap:6px' }, [af, el('span', { class: 'muted', style: 'font-size:11px' }, ['Bar Size']), sz])]));
     var scroll = el('div', { class: 'doscroll', id: 'doscroll' }); box.appendChild(scroll);
+    box.appendChild(el('div', { class: 'plegend', id: 'barlegend', style: 'justify-content:flex-start;margin-left:62px' }));
     box.__rows = rows; drawVarBar();
   }
+  function barGeom(def, sc) {
+    var bw = Math.max(def.grouped ? 3 : 4, Math.round((def.grouped ? 10 : 16) * sc));
+    var inner = def.grouped ? Math.max(1, Math.round(2 * sc)) : 0;
+    var grpW = def.grouped ? (bw * 2 + inner) : bw;
+    var gap = Math.max(3, Math.round((def.grouped ? 14 : 10) * sc));
+    return { bw: bw, inner: inner, grpW: grpW, gap: gap, mL: 62, mR: 8 };
+  }
+  function barWidthAt(def, sc, n) { var g = barGeom(def, sc); return g.mL + n * (g.grpW + g.gap) + g.gap + g.mR; }
   function autofitBars() {
     var box = root.getElementById('varbar'), scroll = box && box.querySelector('#doscroll');
     var avail = Math.max(200, (scroll ? scroll.clientWidth : 640) - 6);
     var n = Math.max(1, (box && box.__rows ? box.__rows.length : S.filtered.length));
-    var sc = (avail - 46) / (10 + 26 * n); sc = Math.max(0.2, Math.min(2.4, sc));
+    /* Solve the drawing's own width formula for the scale, then walk the scale
+       down until the ROUNDED geometry really fits. The continuous solve alone
+       overshoots, because every bar and gap is rounded up independently — with
+       20 grouped VOs that was 15px of overflow. */
+    var def = barDef();
+    var per = def.grouped ? 36 : 26, tail = def.grouped ? 14 : 10;
+    var sc = (avail - 70) / (tail + per * n); sc = Math.max(0.2, Math.min(2.4, sc));
+    for (var i = 0; i < 240 && sc > 0.2 && barWidthAt(def, sc, n) > avail; i++) sc = Math.round((sc - 0.01) * 100) / 100;
+    sc = Math.max(0.2, sc);
     S.barScale = sc; saveCfg();
     var rng = root.querySelector('.dohd input[type=range]'); if (rng) rng.value = String(Math.round(sc * 100));
     drawVarBar();
@@ -1230,11 +1253,17 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     var scroll = box.querySelector('#doscroll'); if (!scroll) return; scroll.innerHTML = '';
     var rows = box.__rows || [], dark = !!S.darkMode, sc = S.barScale || 1, def = barDef();
     if (!rows.length) { scroll.appendChild(el('div', { class: 'muted', style: 'font-size:11px;padding:6px' }, ['No VOs in the current view.'])); return; }
-    var bw = Math.max(4, Math.round(16 * sc)), gap = Math.max(3, Math.round(10 * sc)), mL = 62, mR = 8, topPad = 16;
+    var series = def.grouped ? def.series : null;
+    var gm = barGeom(def, sc);
+    var bw = gm.bw, inner = gm.inner, grpW = gm.grpW, gap = gm.gap, mL = gm.mL, mR = gm.mR, topPad = 16;
     var plotH = Math.round(150 * Math.max(0.6, Math.min(1.4, sc))), botPad = 64;
-    var n = rows.length, W = mL + n * (bw + gap) + gap + mR, H = topPad + plotH + botPad, x0 = mL + gap;
+    var n = rows.length, W = mL + n * (grpW + gap) + gap + mR, H = topPad + plotH + botPad, x0 = mL + gap;
     var maxv = 1, minv = 0;
-    rows.forEach(function (r) { var d = def.val(r); if (d > maxv) maxv = d; if (d < minv) minv = d; });
+    rows.forEach(function (r) {
+      (series ? series.map(function (sr) { return sr.val(r); }) : [def.val(r)]).forEach(function (d) {
+        if (d > maxv) maxv = d; if (d < minv) minv = d;
+      });
+    });
     var span = maxv - minv || 1, zeroY = topPad + plotH * (maxv / span);
     var ink = dark ? '#dfe7f0' : NAVY, grid = dark ? '#22303f' : '#e6ebf0', axis = dark ? '#3a4d64' : '#cfd8e3', ylab = dark ? '#8fa0b4' : '#8a939b';
     var svg = svgEl('svg', { width: W, height: H, viewBox: '0 0 ' + W + ' ' + H, style: 'display:block' });
@@ -1245,57 +1274,53 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     }
     svg.appendChild(svgEl('line', { x1: mL, x2: mL, y1: topPad, y2: topPad + plotH, stroke: axis }));
     rows.forEach(function (r, i) {
-      var d = def.val(r), h = Math.abs(d) / span * plotH, x = x0 + i * (bw + gap), cx = x + bw / 2;
-      var y = d >= 0 ? (zeroY - h) : zeroY;
-      var col = (def.key === 'diff') ? (d > 0 ? ACCENT : (d < 0 ? '#1e7e34' : '#c2c9d2')) : statusColor(r.status);
-      if (col === '#ffffff') col = '#c2c9d2';
-      var rect = svgEl('rect', { x: x, y: y, width: bw, height: Math.max(1, h), rx: 2, fill: col });
-      var tt = svgEl('title', {}); tt.textContent = voLabel(r) + ' — ' + money(d) + (r.desc ? ' · ' + r.desc : ''); rect.appendChild(tt); svg.appendChild(rect);
-      var fs = Math.max(7, Math.min(10, bw + 2));
+      var gx = x0 + i * (grpW + gap), cx = gx + grpW / 2;
+      var bars = series
+        ? series.map(function (sr, j) { return { d: sr.val(r), col: sr.col, x: gx + j * (bw + inner), name: sr.label }; })
+        : [(function () {
+            var d = def.val(r);
+            var col = (def.key === 'diff') ? (d > 0 ? ACCENT : (d < 0 ? '#1e7e34' : '#c2c9d2')) : statusColor(r.status);
+            if (col === '#ffffff') col = '#c2c9d2';
+            return { d: d, col: col, x: gx, name: '' };
+          })()];
+      bars.forEach(function (bp) {
+        var h = Math.abs(bp.d) / span * plotH, y = bp.d >= 0 ? (zeroY - h) : zeroY;
+        var rect = svgEl('rect', { x: bp.x, y: y, width: bw, height: Math.max(1, h), rx: def.grouped ? 1.5 : 2, fill: bp.col });
+        var tt = svgEl('title', {});
+        tt.textContent = voLabel(r) + ' — ' + (bp.name ? bp.name + ' ' : '') + money(bp.d) + (r.desc ? ' · ' + r.desc : '');
+        rect.appendChild(tt); svg.appendChild(rect);
+      });
+      var fs = Math.max(7, Math.min(10, (def.grouped ? grpW / 2 : bw) + 2));
       var xl = svgEl('text', { x: cx, y: topPad + plotH + 11, 'text-anchor': 'end', 'font-size': fs.toFixed(1), fill: dark ? '#9aa8bb' : '#5b6b7b', transform: 'rotate(-55 ' + cx + ' ' + (topPad + plotH + 11) + ')' });
       xl.textContent = voLabel(r); svg.appendChild(xl);
     });
     svg.appendChild(svgEl('line', { x1: mL, x2: W - mR, y1: zeroY, y2: zeroY, stroke: axis }));
     scroll.appendChild(svg);
+    var lg = root.getElementById('barlegend');
+    if (lg) {
+      lg.innerHTML = '';
+      if (series) series.forEach(function (sr) {
+        var d = el('div', { style: 'cursor:default' }); var sw = el('i'); sw.style.background = sr.col;
+        d.appendChild(sw); d.appendChild(document.createTextNode(sr.label)); lg.appendChild(d);
+      });
+    }
   }
   function shortMoney(v) { var a = Math.abs(v); var s = a >= 1000000 ? (a / 1000000).toFixed(1) + 'm' : a >= 1000 ? Math.round(a / 1000) + 'k' : Math.round(a); return (v < 0 ? '-$' : '$') + s; }
 
   /* ---- status chart ---- */
   var CT_NEXT = { donut: 'bar', bar: 'pie', pie: 'donut' }, CT_LABEL = { donut: 'Bars', bar: 'Pie Chart', pie: 'Donut' };
-  /* Charts available in the CHART panel. Any number may be active at once. (item 1) */
-  var CHARTS = [
-    { key: 'status', label: 'Status', tip: 'Status breakdown of the current view' },
-    { key: 'cva', label: 'Claimed vs Assessed', tip: 'MPS Claimed (blue) beside BHP Assessed (orange) for every VO in the current view' }
-  ];
-  function chartOn(k) { return (S.activeCharts || []).indexOf(k) >= 0; }
-  function toggleChart(k) {
-    var a = (S.activeCharts || []).slice(), i = a.indexOf(k);
-    if (i >= 0) a.splice(i, 1); else a.push(k);
-    S.activeCharts = a; saveCfg(); renderChart(); equalizePanelHeaders();
-  }
   function renderChart() {
     var ctl = root.getElementById('chartctl');
     if (ctl) {
       ctl.innerHTML = '';
       ctl.appendChild(el('span', { class: 'ccount', title: 'VOs in the current view' }, [String(S.rows.length) + ' · VOs']));
-      CHARTS.forEach(function (c) {
-        ctl.appendChild(el('button', { class: 'chip' + (chartOn(c.key) ? ' active' : ''), title: c.tip + ' — tick as many as you want to see at once', onclick: function () { toggleChart(c.key); } }, [(chartOn(c.key) ? '\u2611 ' : '\u2610 ') + c.label]));
-      });
-      if (chartOn('status')) {
-        var nextLbl = CT_LABEL[S.chartType] || 'Bars';
-        ctl.appendChild(btn(nextLbl, 'Switch the Status chart to ' + nextLbl + ' (cycles Donut \u2192 Bars \u2192 Pie)', function () { S.chartType = CT_NEXT[S.chartType] || 'donut'; saveCfg(); renderChart(); }, 'chart'));
-        ctl.appendChild(el('button', { class: 'chip' + (S.chartAutoFit ? ' active' : ''), title: 'Size the Status chart to fill its panel automatically. Moving the size slider turns this off.', onclick: function () { S.chartAutoFit = !S.chartAutoFit; saveCfg(); renderChart(); } }, ['Autofit']));
-        ctl.appendChild(el('span', { class: 'muted', style: 'font-size:11px;margin-left:4px' }, ['Status size']));
-        var sz = el('input', { type: 'range', min: '70', max: '240', value: String(Math.round((S.chartScale || 1) * 100)), class: 'rng', style: 'width:96px', title: 'Size of the Status chart — moving this turns Autofit off' });
-        sz.oninput = function () { S.chartScale = (+sz.value) / 100; S.chartAutoFit = false; saveCfg(); renderChartBody(); };
-        ctl.appendChild(sz);
-      }
-      if (chartOn('cva')) {
-        ctl.appendChild(el('span', { class: 'muted', style: 'font-size:11px;margin-left:4px' }, ['Bar size']));
-        var bz = el('input', { type: 'range', min: '40', max: '240', value: String(Math.round((S.cvaScale || 1) * 100)), class: 'rng', style: 'width:96px', title: 'Bar size of the Claimed vs Assessed chart' });
-        bz.oninput = function () { S.cvaScale = (+bz.value) / 100; saveCfg(); renderChartBody(); };
-        ctl.appendChild(bz);
-      }
+      var nextLbl = CT_LABEL[S.chartType] || 'Bars';
+      ctl.appendChild(btn(nextLbl, 'Switch the chart to ' + nextLbl + ' (cycles Donut → Bars → Pie)', function () { S.chartType = CT_NEXT[S.chartType] || 'donut'; saveCfg(); renderChart(); }, 'chart'));
+      ctl.appendChild(el('button', { class: 'chip' + (S.chartAutoFit ? ' active' : ''), title: 'Size the chart to fill its panel automatically. Moving the size slider turns this off.', onclick: function () { S.chartAutoFit = !S.chartAutoFit; saveCfg(); renderChart(); } }, ['Autofit']));
+      ctl.appendChild(el('span', { class: 'muted', style: 'font-size:11px;margin-left:4px' }, ['Size']));
+      var sz = el('input', { type: 'range', min: '70', max: '240', value: String(Math.round((S.chartScale || 1) * 100)), class: 'rng', style: 'width:96px', title: 'Chart size — moving this turns Autofit off' });
+      sz.oninput = function () { S.chartScale = (+sz.value) / 100; S.chartAutoFit = false; saveCfg(); renderChartBody(); };
+      ctl.appendChild(sz);
     }
     renderChartBody();
   }
@@ -1305,20 +1330,13 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
   function toggleStatusFilter(v) { var cur = S.selFilters.status; if (cur && cur.length === 1 && cur[0] === v) S.selFilters.status = null; else S.selFilters.status = [v]; applyFilters(); renderChart(); renderStats(); renderVarBar(); renderBody(); saveCfg(); }
   function renderChartBody() {
     var box = root.getElementById('chart'); if (!box) return; box.innerHTML = '';
-    var kids = [];
-    if (chartOn('status')) kids.push(ocChart());
-    if (chartOn('cva')) kids.push(cvaChart());
-    if (!kids.length) kids.push(el('div', { class: 'muted', style: 'font-size:11.5px;padding:14px;white-space:normal' }, ['No chart selected \u2014 tick one above. More than one can be shown at the same time.']));
-    box.appendChild(el('div', { class: 'chartsrow' }, kids));
-    /* the grouped chart needs the full panel width; the donut alone does not */
-    var panel = box; while (panel && !(panel.classList && panel.classList.contains('cpanel'))) panel = panel.parentNode;
-    if (panel) panel.classList.toggle('wide', chartOn('cva'));
+    box.appendChild(el('div', { class: 'chartsrow' }, [ocChart()]));
     autoSizeChart();
   }
 
-  /* ---- item e: grow the Status chart to fill the panel, leaving 10px of
-     padding, so there is no dead white space under it. Off as soon as the user
-     moves the size slider; the Autofit chip brings it back. ---- */
+  /* ---- grow the Status chart to fill the panel, leaving 10px of padding, so
+     there is no dead white space under it. Off as soon as the user moves the
+     size slider; the Autofit chip brings it back. ---- */
   function autoSizeChart() {
     if (!root || !S.chartAutoFit) return;
     requestAnimationFrame(function () { requestAnimationFrame(function () {
@@ -1327,13 +1345,11 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
         var cp = box; while (cp && !(cp.classList && cp.classList.contains('cpanel'))) cp = cp.parentNode;
         if (!cp || cp.classList.contains('coll')) return;
         var body = cp.querySelector('.cpbody'); if (!body) return;
-        var st = box.querySelector('.pchart:not(.cva)'); if (!st) return;
+        var st = box.querySelector('.pchart'); if (!st) return;
         var svg = st.querySelector('svg'); if (!svg) return;
-        var used = 0;
-        Array.prototype.forEach.call(box.querySelectorAll('.pchart.cva'), function (p) { used += p.offsetHeight; });
         var title = st.querySelector('.pctitle'), lg = st.querySelector('.plegend');
         var extra = (title ? title.offsetHeight : 0) + (lg ? lg.offsetHeight : 0) + 12;
-        var avail = body.clientHeight - 20 - used - extra;    /* 10px top + 10px bottom */
+        var avail = body.clientHeight - 20 - extra;    /* 10px top + 10px bottom */
         if (avail < 90) avail = 90;
         svg.removeAttribute('width'); svg.removeAttribute('height');
         svg.style.height = Math.floor(avail) + 'px'; svg.style.width = 'auto'; svg.style.maxWidth = '100%';
@@ -1341,50 +1357,6 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     }); });
   }
 
-  /* ---- MPS Claimed vs BHP Assessed, side by side per VO (item 1) ---- */
-  var CLAIM_COL = '#1565c0', ASSESS_COL = ACCENT;
-  function cvaChart() {
-    var rows = S.filtered.slice().sort(byVoNo), dark = !!S.darkMode, sc = S.cvaScale || 1;
-    var box = el('div', { class: 'pchart cva' });
-    box.appendChild(el('div', { class: 'pctitle', style: 'color:' + (dark ? '#dfe7f0' : NAVY) }, ['MPS Claimed vs BHP Assessed per VO (' + rows.length + ')']));
-    if (!rows.length) { box.appendChild(el('div', { class: 'muted', style: 'font-size:11px;padding:10px' }, ['No VOs in the current view.'])); return box; }
-    var bw = Math.max(3, Math.round(10 * sc)), inner = Math.max(1, Math.round(2 * sc)), gap = Math.max(7, Math.round(16 * sc));
-    var mL = 64, mR = 12, topPad = 14, plotH = Math.round(170 * Math.max(0.6, Math.min(1.5, sc))), botPad = 78;
-    var grpW = bw * 2 + inner, W = mL + rows.length * (grpW + gap) + gap + mR, H = topPad + plotH + botPad;
-    var maxv = 0, minv = 0;
-    rows.forEach(function (r) { [r._claim || 0, r._assessed || 0].forEach(function (v) { if (v > maxv) maxv = v; if (v < minv) minv = v; }); });
-    if (maxv === 0 && minv === 0) maxv = 1;
-    var span = (maxv - minv) || 1, zeroY = topPad + plotH * (maxv / span);
-    var grid = dark ? '#22303f' : '#e6ebf0', axis = dark ? '#3a4d64' : '#cfd8e3', ylab = dark ? '#8fa0b4' : '#8a939b', xlab = dark ? '#9aa8bb' : '#5b6b7b';
-    var svg = svgEl('svg', { width: W, height: H, viewBox: '0 0 ' + W + ' ' + H, style: 'display:block' });
-    for (var t = 0; t <= 4; t++) {
-      var v = minv + (span * t / 4), y = topPad + plotH - (plotH * t / 4);
-      svg.appendChild(svgEl('line', { x1: mL, x2: W - mR, y1: y, y2: y, stroke: grid }));
-      var tl = svgEl('text', { x: mL - 5, y: y + 3, 'text-anchor': 'end', 'font-size': '9', fill: ylab }); tl.textContent = shortMoney(v); svg.appendChild(tl);
-    }
-    svg.appendChild(svgEl('line', { x1: mL, x2: mL, y1: topPad, y2: topPad + plotH, stroke: axis }));
-    rows.forEach(function (r, i) {
-      var x0 = mL + gap + i * (grpW + gap);
-      [[r._claim || 0, CLAIM_COL, 'MPS Claimed'], [r._assessed || 0, ASSESS_COL, 'BHP Assessed']].forEach(function (p, j) {
-        var d = p[0], h = Math.abs(d) / span * plotH, x = x0 + j * (bw + inner);
-        var rect = svgEl('rect', { x: x, y: (d >= 0 ? zeroY - h : zeroY), width: bw, height: Math.max(1, h), rx: 1.5, fill: p[1] });
-        var tt = svgEl('title', {}); tt.textContent = voLabel(r) + ' \u2014 ' + p[2] + ' ' + money(d) + (r.desc ? ' \u00b7 ' + r.desc : '');
-        rect.appendChild(tt); svg.appendChild(rect);
-      });
-      var cx = x0 + grpW / 2, fs = Math.max(7, Math.min(10, bw + 1));
-      var xl = svgEl('text', { x: cx, y: topPad + plotH + 11, 'text-anchor': 'end', 'font-size': fs.toFixed(1), fill: xlab, transform: 'rotate(-55 ' + cx + ' ' + (topPad + plotH + 11) + ')' });
-      xl.textContent = voLabel(r); svg.appendChild(xl);
-    });
-    svg.appendChild(svgEl('line', { x1: mL, x2: W - mR, y1: zeroY, y2: zeroY, stroke: axis }));
-    box.appendChild(el('div', { class: 'cvascroll' }, [svg]));
-    var lg = el('div', { class: 'plegend' });
-    [[CLAIM_COL, 'MPS Claimed'], [ASSESS_COL, 'BHP Assessed']].forEach(function (p) {
-      var d = el('div', { style: 'cursor:default' }); var i2 = el('i'); i2.style.background = p[0];
-      d.appendChild(i2); d.appendChild(document.createTextNode(p[1])); lg.appendChild(d);
-    });
-    box.appendChild(lg);
-    return box;
-  }
   function ocChart() {
     var counts = scCounts(), keys = scKeys(counts), total = 0; keys.forEach(function (k) { total += counts[k]; });
     var wrapEl = el('div', { class: 'pchart', title: 'Status breakdown — ' + total + ' VO' + (total === 1 ? '' : 's') });
