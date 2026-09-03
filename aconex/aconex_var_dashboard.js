@@ -21,7 +21,7 @@
   if (window.__MPS_ACONEX_VAR && window.__MPS_ACONEX_VAR.__live) { window.__MPS_ACONEX_VAR.boot(); return; }
 
   var NAVY = '#0B2A4A', NAVY2 = '#123a63', ACCENT = '#F26522', LINE = '#dfe4ea', INK = '#1f2d3d';
-  var VERSION = 'v12.12', BUILD_DATE = '4 Sep 2026';
+  var VERSION = 'v12.13', BUILD_DATE = '4 Sep 2026';
   var UI_FONTS = ['Segoe UI', 'Arial', 'Calibri', 'Helvetica', 'Roboto', 'Verdana', 'Tahoma', 'Trebuchet MS', 'Georgia', 'Times New Roman', 'Courier New', 'system-ui'];
   var DEF_FONT = '"Segoe UI",Arial,sans-serif', DEF_BASEPX = 13;
   function fontStack(f) { return f ? ('"' + f + '","Segoe UI",Arial,sans-serif') : DEF_FONT; }
@@ -927,8 +927,8 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     +'#wrap table th.mps-fill,#wrap table td.mps-fill{width:auto;min-width:0;max-width:none;border-right:0}'
     +'#wrap table tr>th.mps-fill:last-child,#wrap table tr>td.mps-fill:last-child{padding:0!important}'
     +'tbody tr.vohi td.mps-fill{border-right:2px solid #16c60c}'
-    +'#colpanel .crow .cpri{flex:0 0 auto;width:38px;text-align:center;font-size:11px;padding:2px 3px;border:1px solid #cfd8e3;border-radius:4px;box-sizing:border-box}'
-    +'#colpanel .crow .cwid{flex:0 0 auto;width:52px;text-align:center;font-size:11px;padding:2px 3px;border:1px solid #cfd8e3;border-radius:4px;box-sizing:border-box}'
+    +'#colpanel .crow .cpri{flex:0 0 auto;width:62px;text-align:center;font-size:11px;padding:2px 3px;border:1px solid #cfd8e3;border-radius:4px;box-sizing:border-box}'
+    +'#colpanel .crow .cwid{flex:0 0 auto;width:62px;text-align:center;font-size:11px;padding:2px 3px;border:1px solid #cfd8e3;border-radius:4px;box-sizing:border-box}'
     +'#colpanel .crow .cwid:disabled{opacity:.5}'
     +'#colpanel .crow.chead{font-size:9px;font-weight:700;letter-spacing:.4px;color:#8a939b;padding-bottom:2px;border-bottom:1px solid #eef1f4;margin-bottom:2px}'
     +'#colpanel .crow.chead .chl{border:0;background:none;text-align:center}'
@@ -1714,11 +1714,11 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     var old = root.getElementById('colpanel'); var sc = old ? (old.querySelector('.clist') || {}).scrollTop : 0; if (old) old.remove();
     var panel = el('div', { id: 'colpanel', class: 'panel', style: 'left:12px;top:100px;max-height:calc(100vh - 128px);overflow:hidden' }, [
       el('h4', { style: 'white-space:normal' }, ['Columns']),
-      el('div', { class: 'muted', style: 'font-size:11px;margin-bottom:6px;white-space:normal' }, ['Tick to show/hide. ▲▼ reorder. Rename a header in its box (blank restores the default). PRI is the Fit to 1 Page priority — 1 is served first, blanks rank equally. DEF and NOW are the default and current widths in px. Revision, CONCAT Name and Assessment Sheet start hidden; hidden columns are still written to the Excel export, just hidden there too.']),
+      el('div',{class:'muted',style:'font-size:11px;margin-bottom:6px'},[el('div',{style:'white-space:nowrap'},['• Tick to show/hide. ▲▼ reorder.']),el('div',{style:'white-space:nowrap'},['• Rename a header in its box (blank restores the default).']),el('div',{style:'white-space:nowrap'},['• PRIORITY is the Fit to 1 Page priority — 1 is served first, blanks rank equally.']),el('div',{style:'white-space:nowrap'},['• DEFAULT and CURRENT are the default and current widths in px.']),el('div',{style:'white-space:nowrap'},['• Revision, CONCAT Name and Assessment Sheet start hidden;']),el('div',{style:'white-space:nowrap;padding-left:9px'},['Hidden columns are still written to the Excel export, just hidden there too.'])]),
       el('div', { class: 'crow chead' }, [
         el('span', { style: 'flex:0 0 auto;width:46px' }), el('span', { style: 'flex:0 0 auto;width:13px' }),
-        el('span', { class: 'cpri chl' }, ['PRI']), el('span', { style: 'flex:1;text-align:center' }, ['HEADER']),
-        el('span', { class: 'cwid chl' }, ['DEF']), el('span', { class: 'cwid chl' }, ['NOW'])
+        el('span', { class: 'cpri chl' }, ['PRIORITY']), el('span', { style: 'flex:1;text-align:center' }, ['HEADER']),
+        el('span', { class: 'cwid chl' }, ['DEFAULT']), el('span', { class: 'cwid chl' }, ['CURRENT'])
       ])
     ]);
     var list = el('div', { class: 'clist', style: 'flex:1 1 auto;overflow:auto;min-height:40px' });
