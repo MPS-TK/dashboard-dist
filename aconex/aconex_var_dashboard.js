@@ -21,7 +21,7 @@
   if (window.__MPS_ACONEX_VAR && window.__MPS_ACONEX_VAR.__live) { window.__MPS_ACONEX_VAR.boot(); return; }
 
   var NAVY = '#0B2A4A', NAVY2 = '#123a63', ACCENT = '#F26522', LINE = '#dfe4ea', INK = '#1f2d3d';
-  var VERSION = 'v12.8', BUILD_DATE = '3 Sep 2026';
+  var VERSION = 'v12.9', BUILD_DATE = '3 Sep 2026';
   var UI_FONTS = ['Segoe UI', 'Arial', 'Calibri', 'Helvetica', 'Roboto', 'Verdana', 'Tahoma', 'Trebuchet MS', 'Georgia', 'Times New Roman', 'Courier New', 'system-ui'];
   var DEF_FONT = '"Segoe UI",Arial,sans-serif', DEF_BASEPX = 13;
   function fontStack(f) { return f ? ('"' + f + '","Segoe UI",Arial,sans-serif') : DEF_FONT; }
@@ -96,7 +96,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
       selFilters: {}, selKnown: {}, chartScale: 1, colorSchemes: { status: {}, type: {} }, fontFamily: '', baseFont: DEF_BASEPX,
       darkMode: false, collapsed: {}, fontScale: 100, padScale: 100, hpadScale: 100, hdrFontSize: null, hdrMaxLines: 2,
       statusSel: '__ALL__', xProjectId: '', xProjectName: '', colNames: {}, statusList: STATUS_WORKFLOW.slice(),
-      activeSheet: '', barStat: 'diff', barScale: 1
+      activeSheet: '', barStat: 'diff', barScale: 1, activeCharts: ['status'], cvaScale: 1
     };
   }
   var LKEY = 'mps_aconex_var_cfg_' + CFG.mpsProjectNo, DKEY = 'mps_aconex_var_defcfg_' + CFG.mpsProjectNo;
@@ -114,7 +114,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     var out = f;
     out.order = o; out.cols = cols; out.icols = icols;
     ['fontSize', 'rowPad', 'chartType', 'chartScale', 'fontFamily', 'baseFont', 'fontScale', 'padScale', 'hpadScale',
-      'hdrMaxLines', 'statusSel', 'xProjectId', 'xProjectName', 'activeSheet', 'barStat', 'barScale'].forEach(function (k) {
+      'hdrMaxLines', 'statusSel', 'xProjectId', 'xProjectName', 'activeSheet', 'barStat', 'barScale', 'cvaScale'].forEach(function (k) {
         if (saved[k] != null) out[k] = saved[k];
       });
     out.wrap = (saved.wrap != null ? !!saved.wrap : true);
@@ -126,11 +126,12 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     out.colNames = saved.colNames || {};
     out.colorSchemes = { status: (saved.colorSchemes || {}).status || {}, type: (saved.colorSchemes || {}).type || {} };
     out.statusList = (saved.statusList && saved.statusList.length ? saved.statusList : STATUS_WORKFLOW.slice());
+    out.activeCharts = (saved.activeCharts && saved.activeCharts.length ? saved.activeCharts.slice() : ['status']);
     return out;
   }
   var CFGKEYS = ['order', 'cols', 'icols', 'fontSize', 'rowPad', 'wrap', 'chartType', 'selFilters', 'selKnown', 'chartScale', 'colorSchemes',
     'fontFamily', 'baseFont', 'darkMode', 'collapsed', 'fontScale', 'padScale', 'hpadScale', 'hdrFontSize', 'hdrMaxLines',
-    'statusSel', 'xProjectId', 'xProjectName', 'colNames', 'statusList', 'activeSheet', 'barStat', 'barScale'];
+    'statusSel', 'xProjectId', 'xProjectName', 'colNames', 'statusList', 'activeSheet', 'barStat', 'barScale', 'activeCharts', 'cvaScale'];
   function snapCfg() { var o = {}; CFGKEYS.forEach(function (k) { o[k] = S[k]; }); return o; }
   function saveCfg() { try { localStorage.setItem(LKEY, JSON.stringify(snapCfg())); } catch (e) { } }
   function setAsDefault() { try { localStorage.setItem(DKEY, JSON.stringify(snapCfg())); } catch (e) { } toast('Saved as your default view'); }
@@ -593,9 +594,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     panel.appendChild(el('div', { class: 'mfrow', style: 'border-top:1px solid #e3e9f0;margin-top:4px;padding-top:5px;gap:5px' },
       [manual, el('a', { style: 'font-weight:700;color:' + NAVY, title: 'Add this reference', onclick: function (ev) { ev.preventDefault(); addManual(); } }, ['+ Add'])]));
     wrapEl.appendChild(panel);
-    var ar = anchor.getBoundingClientRect(), wr = wrapEl.getBoundingClientRect();
-    panel.style.left = Math.max(4, Math.min(ar.left - wr.left, wr.width - 470)) + 'px';
-    panel.style.top = (ar.bottom - wr.top + 2) + 'px';
+    placePanel(panel, anchor, { w: 460, maxH: 340 });
   }
 
   /* ---- dom helpers ---- */
@@ -634,6 +633,97 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     return best + 5;
   }
   function visKeys() { return S.order.filter(function (k) { return S.cols[k] && S.cols[k].show; }); }
+
+  /* Narrowest a column may be dragged to: two characters of body text plus the
+     cell padding. Deliberately independent of the header — the header clips
+     instead of holding the column open. (item 4) */
+  /* `width` on a td is the CONTENT box — the 6+6 cell padding sits outside it —
+     so this is the text width of two of the widest characters and nothing more. */
+  function hardMinW() { return Math.max(12, Math.ceil(txtWidth('MM', S.fontSize))); }
+  function isDateCol(k) { return !!(COLDEF[k] && COLDEF[k].edit === 'date'); }
+  /* Natural width of a date column: the rendered date input (full date + picker)
+     at the current font, plus the cell padding and nothing more. Measured, not
+     guessed, because the control's width moves with font and platform. (item 5) */
+  function dateColW() {
+    var key = S.fontSize + '|' + (S.fontFamily || '');
+    if (dateColW._k === key && dateColW._v) return dateColW._v;
+    var w = 0;
+    try {
+      var probe = document.createElement('input');
+      probe.type = 'date'; probe.value = '2026-12-31';
+      probe.setAttribute('style', 'position:absolute;left:-9999px;top:0;visibility:hidden;width:auto;'
+        + 'box-sizing:border-box;font:' + S.fontSize + 'px ' + fontStack(S.fontFamily) + ';padding:0 3px;border:1px solid #000');
+      root.appendChild(probe);
+      w = Math.ceil(probe.getBoundingClientRect().width);
+      probe.remove();
+    } catch (e) { }
+    var v = Math.max(80, w || 110);              /* content box only — the cell padding is added around it */
+    dateColW._k = key; dateColW._v = v;
+    return v;
+  }
+
+  /* Chart / axis label for a VO: VO7 (VD4). (item 2) */
+  function voLabel(r) {
+    var vd = String(r.bhpVd == null ? '' : r.bhpVd).trim();
+    if (/^(n\/?a|none|-|\u2014)$/i.test(vd)) vd = '';     /* "N/A" is not a direction number */
+    var no = (r.voNo === '' || r.voNo == null) ? '?' : r.voNo;
+    return 'VO' + no + (vd ? ' (VD' + vd + ')' : '');
+  }
+  function byVoNo(a, b) { var x = num(a.voNo), y = num(b.voNo); if (x != null && y != null) return x - y; return String(a.voNo) < String(b.voNo) ? -1 : 1; }
+
+  /* ---- popup placement (item 3) ---------------------------------------
+     Anchor a panel to a cell. Prefer below; if it would run past the bottom of
+     the dashboard, flip above; if neither side can hold it, take the roomier
+     side and cap the panel's height so the rest scrolls inside it. The panel
+     also follows its cell while the register or the page scrolls, so a dropdown
+     opened on the last row stays attached and fully reachable. */
+  function panelScrollers() {
+    var out = [];
+    ['.content', '#regwrap', '#shwrap'].forEach(function (sel) {
+      var e = (sel[0] === '.') ? root.querySelector(sel) : root.getElementById(sel.slice(1));
+      if (e) out.push(e);
+    });
+    return out;
+  }
+  function placePanel(panel, anchor, opts) {
+    opts = opts || {};
+    var wrapEl = root.getElementById('wrap');
+    if (panel.parentNode !== wrapEl) wrapEl.appendChild(panel);
+    var MAXH = opts.maxH || 340, gap = (opts.gap == null ? 2 : opts.gap);
+    var scrollers = panelScrollers();
+    function put() {
+      if (!panel.isConnected || !anchor.isConnected) {
+        scrollers.forEach(function (sc) { sc.removeEventListener('scroll', put); });
+        return;
+      }
+      var wr = wrapEl.getBoundingClientRect(), ar = anchor.getBoundingClientRect();
+      panel.style.maxHeight = 'none';
+      var natural = panel.scrollHeight + 2;
+      panel.style.maxHeight = MAXH + 'px';
+      var roomBelow = (wr.bottom - ar.bottom) - gap - 8;
+      var roomAbove = (ar.top - wr.top) - gap - 8;
+      var wantH = Math.min(natural, MAXH);
+      var below = (wantH <= roomBelow) || (roomBelow >= roomAbove);
+      var room = below ? roomBelow : roomAbove;
+      var h = Math.min(wantH, Math.max(72, room));
+      panel.style.maxHeight = h + 'px';
+      var pw = panel.offsetWidth || opts.w || 200;
+      var top = below ? (ar.bottom - wr.top + gap) : (ar.top - wr.top - h - gap);
+      /* never let the panel sit off the dashboard, whatever the cell is doing */
+      panel.style.top = Math.max(4, Math.min(top, wr.height - h - 6)) + 'px';
+      panel.style.left = Math.max(4, Math.min(ar.left - wr.left, wr.width - pw - 6)) + 'px';
+    }
+    /* if the cell is off the visible area, bring it into view first — that is the
+       scroll the user would otherwise have to do by hand to reach the dropdown */
+    try {
+      var w0 = wrapEl.getBoundingClientRect(), a0 = anchor.getBoundingClientRect();
+      if (a0.bottom > w0.bottom - 40 || a0.top < w0.top + 40) anchor.scrollIntoView({ block: 'center' });
+    } catch (e) { }
+    put();
+    scrollers.forEach(function (sc) { sc.addEventListener('scroll', put, { passive: true }); });
+    panel.__reposition = put;
+    return panel;
+  }
   function iVisKeys() { return IORDER.filter(function (k) { return S.icols[k] && S.icols[k].show; }); }
 
   function ensureShell() {
@@ -816,7 +906,25 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     +'.prevtbl th{position:sticky;top:0;background:#eef2f7;color:#55637a;font-weight:700;padding:3px 7px;text-align:left;white-space:nowrap;border-bottom:1px solid #cfd8e3}'
     +'.prevtbl td{padding:2px 7px;white-space:nowrap;border-bottom:1px solid #eef1f4;max-width:220px;overflow:hidden;text-overflow:ellipsis}'
     +'.prevtbl tr.bad td{background:#fff3f2}.prevtbl td.errcell{color:#c0392b;font-size:10.5px;white-space:normal;max-width:280px}'
-    +'.dark .prevtbl th{background:#16202e;color:#9fb0c4;border-bottom-color:#2f4359}.dark .prevtbl td{border-bottom-color:#22303f}.dark .prevtbl tr.bad td{background:#2a1618}';}
+    +'.dark .prevtbl th{background:#16202e;color:#9fb0c4;border-bottom-color:#2f4359}.dark .prevtbl td{border-bottom-color:#22303f}.dark .prevtbl tr.bad td{background:#2a1618}'
+    +'.cgrow>.cpanel.cpt.wide{max-width:none;flex:1 1 560px}'
+    +'.pchart.cva{flex:1 1 100%;max-width:none;min-width:0}'
+    +'.cvascroll{overflow-x:auto;overflow-y:hidden;width:100%;max-width:100%}'
+    +'.chartsrow{flex-wrap:wrap}'
+    +'th.narrow{overflow:hidden}'
+    +'th.narrow .lbl{display:inline-block;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}'
+    +'th.narrow .pal{display:none}'
+    +'tbody tr.vohi td{background:#e9fbee!important;border-top:2px solid #16c60c;border-bottom:2px solid #16c60c}'
+    +'tbody tr.vohi td:first-child{border-left:2px solid #16c60c}'
+    +'tbody tr.vohi td:last-child{border-right:2px solid #16c60c}'
+    +'.dark tbody tr.vohi td{background:#123020!important;border-top-color:#16c60c;border-bottom-color:#16c60c}'
+    +'.btn.hiclear{background:#16c60c;border-color:#0ea60a;color:#04360a;font-weight:700;white-space:nowrap}'
+    +'.btn.hiclear:hover{background:#12ab0a}'
+    +'.shvo.on{background:#16c60c;border-color:#0ea60a;color:#04360a}'
+    +'.dark .shvo.on{background:#16c60c;border-color:#0ea60a;color:#04360a}'
+    +'#wrap table th.mps-fill,#wrap table td.mps-fill{width:auto;min-width:0;max-width:none;border-right:0}'
+    +'#wrap table tr>th.mps-fill:last-child,#wrap table tr>td.mps-fill:last-child{padding:0!important}'
+    +'tbody tr.vohi td.mps-fill{border-right:2px solid #16c60c}';}
 
 
   /* ---- collapsible panels ---- */
@@ -1000,7 +1108,10 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     content.appendChild(el('div', { class: 'cgrow' }, [statsPanel, chartsPanel]));
 
     /* REGISTER */
-    var regCount = el('span', { class: 'ccount', id: 'countlbl', style: 'margin-left:auto', title: 'Rows shown of the total' }, [S.filtered.length + ' of ' + S.rows.length]);
+    var regCount = el('span', { style: 'margin-left:auto;display:inline-flex;align-items:center;gap:7px' }, [
+      el('span', { id: 'hichip' }),
+      el('span', { class: 'ccount', id: 'countlbl', title: 'Rows shown of the total' }, [S.filtered.length + ' of ' + S.rows.length])
+    ]);
     var regBody = el('div', { class: 'regbody' }, [regToolbar(), el('div', { class: 'tablewrap', id: 'regwrap' }, [])]);
     content.appendChild(makeCPanel('register', 'REGISTER · VARIATIONS', regCount, regBody, 'The variation register: column controls, filters and the data grid.'));
 
@@ -1014,7 +1125,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     content.appendChild(makeCPanel('sheets', 'ASSESSMENT SHEETS', shCount, shBody, 'The workbook’s numbered assessment sheets. Pick a sheet from the tabs along the bottom; each one exports as its own Excel sheet and feeds its VO’s Claim / Assessed amounts.'));
 
     wrap.appendChild(content);
-    applyTheme(); renderStats(); renderVarBar(); renderChart(); renderTable(); renderSheetPanel(); fitRegisterHeight(); equalizePanelHeaders();
+    applyTheme(); renderStats(); renderVarBar(); renderChart(); renderTable(); renderSheetPanel(); renderHiChip(); fitRegisterHeight(); equalizePanelHeaders();
   }
 
   function regToolbar() {
@@ -1080,7 +1191,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
   function barDef() { for (var i = 0; i < BAR_DEFS.length; i++) if (BAR_DEFS[i].key === S.barStat) return BAR_DEFS[i]; return BAR_DEFS[0]; }
   function renderVarBar() {
     var box = root.getElementById('varbar'); if (!box) return; box.innerHTML = '';
-    var rows = S.filtered.slice().sort(function (a, b) { var x = num(a.voNo), y = num(b.voNo); if (x != null && y != null) return x - y; return String(a.voNo) < String(b.voNo) ? -1 : 1; });
+    var rows = S.filtered.slice().sort(byVoNo);
     var def = barDef();
     var btns = el('span', { style: 'display:inline-flex;gap:5px;flex-wrap:wrap' });
     BAR_DEFS.forEach(function (sd) { btns.appendChild(el('button', { class: 'chip' + (S.barStat === sd.key ? ' active' : ''), title: 'Show ' + sd.label, onclick: function () { S.barStat = sd.key; saveCfg(); renderVarBar(); } }, [sd.label])); });
@@ -1126,10 +1237,10 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
       var col = (def.key === 'diff') ? (d > 0 ? ACCENT : (d < 0 ? '#1e7e34' : '#c2c9d2')) : statusColor(r.status);
       if (col === '#ffffff') col = '#c2c9d2';
       var rect = svgEl('rect', { x: x, y: y, width: bw, height: Math.max(1, h), rx: 2, fill: col });
-      var tt = svgEl('title', {}); tt.textContent = 'VO ' + r.voNo + ' — ' + money(d) + (r.desc ? ' · ' + r.desc : ''); rect.appendChild(tt); svg.appendChild(rect);
+      var tt = svgEl('title', {}); tt.textContent = voLabel(r) + ' — ' + money(d) + (r.desc ? ' · ' + r.desc : ''); rect.appendChild(tt); svg.appendChild(rect);
       var fs = Math.max(7, Math.min(10, bw + 2));
       var xl = svgEl('text', { x: cx, y: topPad + plotH + 11, 'text-anchor': 'end', 'font-size': fs.toFixed(1), fill: dark ? '#9aa8bb' : '#5b6b7b', transform: 'rotate(-55 ' + cx + ' ' + (topPad + plotH + 11) + ')' });
-      xl.textContent = 'VO ' + r.voNo + (r._sheet ? ' (s' + r._sheet + ')' : ''); svg.appendChild(xl);
+      xl.textContent = voLabel(r); svg.appendChild(xl);
     });
     svg.appendChild(svgEl('line', { x1: mL, x2: W - mR, y1: zeroY, y2: zeroY, stroke: axis }));
     scroll.appendChild(svg);
@@ -1138,17 +1249,39 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
 
   /* ---- status chart ---- */
   var CT_NEXT = { donut: 'bar', bar: 'pie', pie: 'donut' }, CT_LABEL = { donut: 'Bars', bar: 'Pie Chart', pie: 'Donut' };
+  /* Charts available in the CHART panel. Any number may be active at once. (item 1) */
+  var CHARTS = [
+    { key: 'status', label: 'Status', tip: 'Status breakdown of the current view' },
+    { key: 'cva', label: 'Claimed vs Assessed', tip: 'MPS Claimed (blue) beside BHP Assessed (orange) for every VO in the current view' }
+  ];
+  function chartOn(k) { return (S.activeCharts || []).indexOf(k) >= 0; }
+  function toggleChart(k) {
+    var a = (S.activeCharts || []).slice(), i = a.indexOf(k);
+    if (i >= 0) a.splice(i, 1); else a.push(k);
+    S.activeCharts = a; saveCfg(); renderChart(); equalizePanelHeaders();
+  }
   function renderChart() {
     var ctl = root.getElementById('chartctl');
     if (ctl) {
       ctl.innerHTML = '';
       ctl.appendChild(el('span', { class: 'ccount', title: 'VOs in the current view' }, [String(S.rows.length) + ' · VOs']));
-      var nextLbl = CT_LABEL[S.chartType] || 'Bars';
-      ctl.appendChild(btn(nextLbl, 'Switch the chart to ' + nextLbl + ' (cycles Donut → Bars → Pie)', function () { S.chartType = CT_NEXT[S.chartType] || 'donut'; saveCfg(); renderChart(); }, 'chart'));
-      ctl.appendChild(el('span', { class: 'muted', style: 'font-size:11px;margin-left:4px' }, ['Size']));
-      var sz = el('input', { type: 'range', min: '70', max: '240', value: String(Math.round((S.chartScale || 1) * 100)), class: 'rng', title: 'Chart size' });
-      sz.oninput = function () { S.chartScale = (+sz.value) / 100; saveCfg(); renderChartBody(); };
-      ctl.appendChild(sz);
+      CHARTS.forEach(function (c) {
+        ctl.appendChild(el('button', { class: 'chip' + (chartOn(c.key) ? ' active' : ''), title: c.tip + ' — tick as many as you want to see at once', onclick: function () { toggleChart(c.key); } }, [(chartOn(c.key) ? '\u2611 ' : '\u2610 ') + c.label]));
+      });
+      if (chartOn('status')) {
+        var nextLbl = CT_LABEL[S.chartType] || 'Bars';
+        ctl.appendChild(btn(nextLbl, 'Switch the Status chart to ' + nextLbl + ' (cycles Donut \u2192 Bars \u2192 Pie)', function () { S.chartType = CT_NEXT[S.chartType] || 'donut'; saveCfg(); renderChart(); }, 'chart'));
+        ctl.appendChild(el('span', { class: 'muted', style: 'font-size:11px;margin-left:4px' }, ['Status size']));
+        var sz = el('input', { type: 'range', min: '70', max: '240', value: String(Math.round((S.chartScale || 1) * 100)), class: 'rng', style: 'width:96px', title: 'Size of the Status chart' });
+        sz.oninput = function () { S.chartScale = (+sz.value) / 100; saveCfg(); renderChartBody(); };
+        ctl.appendChild(sz);
+      }
+      if (chartOn('cva')) {
+        ctl.appendChild(el('span', { class: 'muted', style: 'font-size:11px;margin-left:4px' }, ['Bar size']));
+        var bz = el('input', { type: 'range', min: '40', max: '240', value: String(Math.round((S.cvaScale || 1) * 100)), class: 'rng', style: 'width:96px', title: 'Bar size of the Claimed vs Assessed chart' });
+        bz.oninput = function () { S.cvaScale = (+bz.value) / 100; saveCfg(); renderChartBody(); };
+        ctl.appendChild(bz);
+      }
     }
     renderChartBody();
   }
@@ -1158,7 +1291,59 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
   function toggleStatusFilter(v) { var cur = S.selFilters.status; if (cur && cur.length === 1 && cur[0] === v) S.selFilters.status = null; else S.selFilters.status = [v]; applyFilters(); renderChart(); renderStats(); renderVarBar(); renderBody(); saveCfg(); }
   function renderChartBody() {
     var box = root.getElementById('chart'); if (!box) return; box.innerHTML = '';
-    box.appendChild(el('div', { class: 'chartsrow' }, [ocChart()]));
+    var kids = [];
+    if (chartOn('status')) kids.push(ocChart());
+    if (chartOn('cva')) kids.push(cvaChart());
+    if (!kids.length) kids.push(el('div', { class: 'muted', style: 'font-size:11.5px;padding:14px;white-space:normal' }, ['No chart selected \u2014 tick one above. More than one can be shown at the same time.']));
+    box.appendChild(el('div', { class: 'chartsrow' }, kids));
+    /* the grouped chart needs the full panel width; the donut alone does not */
+    var panel = box; while (panel && !(panel.classList && panel.classList.contains('cpanel'))) panel = panel.parentNode;
+    if (panel) panel.classList.toggle('wide', chartOn('cva'));
+  }
+
+  /* ---- MPS Claimed vs BHP Assessed, side by side per VO (item 1) ---- */
+  var CLAIM_COL = '#1565c0', ASSESS_COL = ACCENT;
+  function cvaChart() {
+    var rows = S.filtered.slice().sort(byVoNo), dark = !!S.darkMode, sc = S.cvaScale || 1;
+    var box = el('div', { class: 'pchart cva' });
+    box.appendChild(el('div', { class: 'pctitle', style: 'color:' + (dark ? '#dfe7f0' : NAVY) }, ['MPS Claimed vs BHP Assessed per VO (' + rows.length + ')']));
+    if (!rows.length) { box.appendChild(el('div', { class: 'muted', style: 'font-size:11px;padding:10px' }, ['No VOs in the current view.'])); return box; }
+    var bw = Math.max(3, Math.round(10 * sc)), inner = Math.max(1, Math.round(2 * sc)), gap = Math.max(7, Math.round(16 * sc));
+    var mL = 64, mR = 12, topPad = 14, plotH = Math.round(170 * Math.max(0.6, Math.min(1.5, sc))), botPad = 78;
+    var grpW = bw * 2 + inner, W = mL + rows.length * (grpW + gap) + gap + mR, H = topPad + plotH + botPad;
+    var maxv = 0, minv = 0;
+    rows.forEach(function (r) { [r._claim || 0, r._assessed || 0].forEach(function (v) { if (v > maxv) maxv = v; if (v < minv) minv = v; }); });
+    if (maxv === 0 && minv === 0) maxv = 1;
+    var span = (maxv - minv) || 1, zeroY = topPad + plotH * (maxv / span);
+    var grid = dark ? '#22303f' : '#e6ebf0', axis = dark ? '#3a4d64' : '#cfd8e3', ylab = dark ? '#8fa0b4' : '#8a939b', xlab = dark ? '#9aa8bb' : '#5b6b7b';
+    var svg = svgEl('svg', { width: W, height: H, viewBox: '0 0 ' + W + ' ' + H, style: 'display:block' });
+    for (var t = 0; t <= 4; t++) {
+      var v = minv + (span * t / 4), y = topPad + plotH - (plotH * t / 4);
+      svg.appendChild(svgEl('line', { x1: mL, x2: W - mR, y1: y, y2: y, stroke: grid }));
+      var tl = svgEl('text', { x: mL - 5, y: y + 3, 'text-anchor': 'end', 'font-size': '9', fill: ylab }); tl.textContent = shortMoney(v); svg.appendChild(tl);
+    }
+    svg.appendChild(svgEl('line', { x1: mL, x2: mL, y1: topPad, y2: topPad + plotH, stroke: axis }));
+    rows.forEach(function (r, i) {
+      var x0 = mL + gap + i * (grpW + gap);
+      [[r._claim || 0, CLAIM_COL, 'MPS Claimed'], [r._assessed || 0, ASSESS_COL, 'BHP Assessed']].forEach(function (p, j) {
+        var d = p[0], h = Math.abs(d) / span * plotH, x = x0 + j * (bw + inner);
+        var rect = svgEl('rect', { x: x, y: (d >= 0 ? zeroY - h : zeroY), width: bw, height: Math.max(1, h), rx: 1.5, fill: p[1] });
+        var tt = svgEl('title', {}); tt.textContent = voLabel(r) + ' \u2014 ' + p[2] + ' ' + money(d) + (r.desc ? ' \u00b7 ' + r.desc : '');
+        rect.appendChild(tt); svg.appendChild(rect);
+      });
+      var cx = x0 + grpW / 2, fs = Math.max(7, Math.min(10, bw + 1));
+      var xl = svgEl('text', { x: cx, y: topPad + plotH + 11, 'text-anchor': 'end', 'font-size': fs.toFixed(1), fill: xlab, transform: 'rotate(-55 ' + cx + ' ' + (topPad + plotH + 11) + ')' });
+      xl.textContent = voLabel(r); svg.appendChild(xl);
+    });
+    svg.appendChild(svgEl('line', { x1: mL, x2: W - mR, y1: zeroY, y2: zeroY, stroke: axis }));
+    box.appendChild(el('div', { class: 'cvascroll' }, [svg]));
+    var lg = el('div', { class: 'plegend' });
+    [[CLAIM_COL, 'MPS Claimed'], [ASSESS_COL, 'BHP Assessed']].forEach(function (p) {
+      var d = el('div', { style: 'cursor:default' }); var i2 = el('i'); i2.style.background = p[0];
+      d.appendChild(i2); d.appendChild(document.createTextNode(p[1])); lg.appendChild(d);
+    });
+    box.appendChild(lg);
+    return box;
   }
   function ocChart() {
     var counts = scCounts(), keys = scKeys(counts), total = 0; keys.forEach(function (k) { total += counts[k]; });
@@ -1237,8 +1422,10 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     letr.appendChild(el('th', { class: 'colc rowact', title: 'Row actions' }, ['']));
     htr.appendChild(el('th', { class: 'rowact', style: 'padding:1px 2px', title: 'Delete a VO row' }, ['']));
     visKeys().forEach(function (k, vi) {
-      var cd = COLDEF[k], w = S.cols[k].w, lab = colLabel(k);
-      letr.appendChild(el('th', { class: 'colc', style: 'width:' + w + 'px;min-width:' + w + 'px', title: 'Column ' + colAlpha(vi) + ' · ' + lab }, [colAlpha(vi)]));
+      var cd = COLDEF[k];
+      if (isDateCol(k) && !S.cols[k].userW) S.cols[k].w = dateColW();
+      var w = S.cols[k].w, lab = colLabel(k);
+      letr.appendChild(el('th', { class: 'colc', style: 'width:' + w + 'px;min-width:' + w + 'px;max-width:' + w + 'px;overflow:hidden', title: 'Column ' + colAlpha(vi) + ' · ' + lab }, [colAlpha(vi)]));
       var lbl = el('span', { class: 'lbl', draggable: 'true', title: cd.tip }, [lab + (cd.auto ? ' ƒ' : '')]);
       lbl.ondragstart = function (e) { dragKey = k; try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', k); } catch (_) { } };
       lbl.ondragend = function () { dragKey = null; };
@@ -1246,22 +1433,30 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
       if (!cd.nosort) { var srt = el('span', { class: 'srt', title: 'Sort by ' + lab }, [S.sortKey === k ? (S.sortDir > 0 ? '▲' : '▼') : '↕']); srt.onclick = function (ev) { ev.stopPropagation(); if (S.sortKey === k) S.sortDir *= -1; else { S.sortKey = k; S.sortDir = 1; } applyFilters(); renderTable(); }; hicons.push(srt); }
       if (hdrHasPal(k)) { var pal = el('span', { class: 'pal', title: 'Change the ' + lab + ' colour scheme' }, ['🎨']); pal.onclick = function (ev) { ev.stopPropagation(); colorSchemePanel('status', pal); }; hicons.push(pal); }
       if (hicons.length) thKids.push(el('span', { class: 'hicons' }, hicons));
-      var th = el('th', { style: 'width:' + w + 'px;min-width:' + Math.max(w, minHW(k)) + 'px;padding:1px 2px;font-size:' + hdrFont() + 'px;line-height:1.15', class: (cd.edit ? 'mps-h' : ''), title: cd.tip }, thKids);
+      /* width is pinned on all three sides so a hand-narrowed column actually stays
+         narrow — auto table layout otherwise grows it back to the header's
+         min-content width, and the trailing filler column absorbs the surplus. */
+      var narrow = (w < minHW(k));
+      var th = el('th', { style: 'width:' + w + 'px;min-width:' + w + 'px;max-width:' + w + 'px;padding:1px 2px;font-size:' + hdrFont() + 'px;line-height:1.15',
+        class: (cd.edit ? 'mps-h' : '') + (narrow ? ' narrow' : ''), title: cd.tip + (narrow ? ' \u2014 column narrowed by hand; the header is clipped, hover for the full name' : '') }, thKids);
       th.ondragover = function (e) { if (dragKey && dragKey !== k) { e.preventDefault(); th.classList.add('drop'); } };
       th.ondragleave = function () { th.classList.remove('drop'); };
       th.ondrop = function (e) { e.preventDefault(); th.classList.remove('drop'); if (dragKey && dragKey !== k) reorder(dragKey, k); };
       var rez = el('div', { class: 'rez', title: 'Drag to resize · double-click to autofit' }); makeResizable(rez, th, k); th.appendChild(rez);
       htr.appendChild(th);
     });
+    letr.appendChild(el('th', { class: 'colc mps-fill' }, ['']));
+    htr.appendChild(el('th', { class: 'mps-fill' }, ['']));
     thead.appendChild(letr); thead.appendChild(htr);
     var ftr = el('tr', { class: 'f' });
     ftr.appendChild(el('td', { class: 'rowact' }, ['']));
     visKeys().forEach(function (k) {
       var cell;
-      if (COLDEF[k].dfilter) cell = el('td', { style: 'width:' + S.cols[k].w + 'px' }, [multiFilterBtn(k)]);
-      else { var inp = el('input', { type: 'text', title: 'Filter ' + colLabel(k), placeholder: '⌕', value: S.colFilters[k] || '' }); inp.oninput = function () { S.colFilters[k] = inp.value; applyFilters(); renderBody(); renderStats(); renderVarBar(); renderChart(); }; cell = el('td', { style: 'width:' + S.cols[k].w + 'px' }, [inp]); }
+      if (COLDEF[k].dfilter) cell = el('td', { style: 'width:' + S.cols[k].w + 'px;max-width:' + S.cols[k].w + 'px;overflow:hidden' }, [multiFilterBtn(k)]);
+      else { var inp = el('input', { type: 'text', title: 'Filter ' + colLabel(k), placeholder: '⌕', value: S.colFilters[k] || '' }); inp.oninput = function () { S.colFilters[k] = inp.value; applyFilters(); renderBody(); renderStats(); renderVarBar(); renderChart(); }; cell = el('td', { style: 'width:' + S.cols[k].w + 'px;max-width:' + S.cols[k].w + 'px;overflow:hidden' }, [inp]); }
       ftr.appendChild(cell);
     });
+    ftr.appendChild(el('td', { class: 'mps-fill' }, ['']));
     thead.appendChild(ftr);
     table.appendChild(thead); table.appendChild(el('tbody', { id: 'tbody' })); tw.appendChild(table);
     renderBody();
@@ -1276,7 +1471,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     var cl = root.getElementById('countlbl'); if (cl) cl.textContent = S.filtered.length + ' of ' + S.rows.length;
     var pad = Math.max(0, Math.round(S.rowPad * (S.padScale || 100) / 100)), ws = S.wrap ? 'normal' : 'nowrap', ov = S.wrap ? 'visible' : 'hidden';
     S.filtered.forEach(function (row) {
-      var tr = el('tr');
+      var tr = el('tr', (S.hiVo && row.id === S.hiVo) ? { class: 'vohi' } : {});
       var del = el('span', { class: 'rowdel', title: 'Delete VO ' + (row.voNo || '') + ' from the register', onclick: function (e) { e.stopPropagation(); deleteVO(row); } }, ['✕']);
       tr.appendChild(el('td', { class: 'rowact', style: 'padding:' + pad + 'px 2px' }, [del]));
       visKeys().forEach(function (k) {
@@ -1306,11 +1501,39 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
         else td = editCell(row, k, base);
         tr.appendChild(td);
       });
+      tr.appendChild(el('td', { class: 'mps-fill' }, ['']));
       tb.appendChild(tr);
     });
     if (!S.filtered.length) {
-      var tr0 = el('tr'); tr0.appendChild(el('td', { colspan: String(visKeys().length + 1), style: 'padding:18px;text-align:center;color:#8a939b' }, ['No VOs match the current filters.'])); tb.appendChild(tr0);
+      var tr0 = el('tr'); tr0.appendChild(el('td', { colspan: String(visKeys().length + 2), style: 'padding:18px;text-align:center;color:#8a939b' }, ['No VOs match the current filters.'])); tb.appendChild(tr0);
     }
+  }
+
+  /* ---- highlighted VO (item 6) ------------------------------------------
+     The assessment-sheet pill used to filter the register, which hid every other
+     VO and left no visible way back. It now outlines the row in green and leaves
+     the register intact; the pill and this chip both clear it. */
+  function setHiVo(id) {
+    S.hiVo = id || null;
+    renderBody(); renderHiChip(); renderSheetToolbar();
+    if (!S.hiVo) return;
+    var i = S.filtered.map(function (r) { return r.id; }).indexOf(S.hiVo);
+    if (i < 0) { toast('That VO is hidden by the current filters — clear them to see the highlighted row.'); return; }
+    var tb = root.getElementById('tbody');
+    var tr = tb && tb.querySelectorAll('tr')[i];
+    if (tr && tr.scrollIntoView) tr.scrollIntoView({ block: 'nearest' });
+  }
+  function renderHiChip() {
+    var slot = root && root.getElementById('hichip'); if (!slot) return;
+    slot.innerHTML = '';
+    if (!S.hiVo) return;
+    var row = S.allRows.filter(function (r) { return r.id === S.hiVo; })[0];
+    if (!row) { S.hiVo = null; return; }
+    slot.appendChild(el('button', {
+      class: 'btn hiclear',
+      title: 'Remove the green highlight from VO ' + row.voNo + '. Nothing was hidden — the highlight is only a marker.',
+      onclick: function () { setHiVo(null); }
+    }, ['\u2715 Clear highlight \u00b7 VO ' + row.voNo]));
   }
 
   function editCell(row, k, base) {
@@ -1393,9 +1616,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
         panel.appendChild(el('div', { class: 'mfrow', style: 'border-top:1px solid #e3e9f0;margin-top:4px;padding-top:5px' }, [nv, addB]));
       }
       panel.__rebuild = rebuild; rebuild(); wrapEl.appendChild(panel);
-      var ar = trig.getBoundingClientRect(), wr = wrapEl.getBoundingClientRect();
-      panel.style.left = Math.max(4, Math.min(ar.left - wr.left, wr.width - 175)) + 'px';
-      panel.style.top = (ar.bottom - wr.top + 2) + 'px';
+      placePanel(panel, trig, { w: 175, maxH: 320 });
     }
   }
 
@@ -1426,8 +1647,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
       el('a', { title: 'Close', style: 'margin-left:auto', onclick: function () { panel.remove(); } }, ['✕'])
     ]));
     rebuild(); panel.appendChild(listWrap); wrapEl.appendChild(panel);
-    var ar = anchor.getBoundingClientRect(), wr = wrapEl.getBoundingClientRect();
-    panel.style.left = Math.max(4, ar.left - wr.left) + 'px'; panel.style.top = (ar.bottom - wr.top + 2) + 'px';
+    placePanel(panel, anchor, { w: 200, maxH: 320 });
   }
 
   /* ---- colour scheme editor ---- */
@@ -1461,9 +1681,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
       el('a', { title: 'Close', onclick: function () { panel.remove(); } }, ['✕'])
     ]));
     build(); panel.appendChild(bodyEl); wrapEl.appendChild(panel);
-    var ar = anchor.getBoundingClientRect(), wr = wrapEl.getBoundingClientRect();
-    panel.style.left = Math.min(Math.max(4, wr.width - 240), Math.max(4, ar.left - wr.left)) + 'px';
-    panel.style.top = (ar.bottom - wr.top + 2) + 'px';
+    placePanel(panel, anchor, { w: 240, maxH: 320 });
   }
 
   /* ---- column ops ---- */
@@ -1505,15 +1723,15 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     handle.onmousedown = function (e) {
       e.preventDefault(); e.stopPropagation();
       var sx = e.clientX, sw = th.offsetWidth;
-      function mv(ev) { var w = Math.max(minHW(k), sw + (ev.clientX - sx)); S.cols[k].w = w; th.style.width = w + 'px'; th.style.minWidth = w + 'px'; }
-      function up() { document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); saveCfg(); renderTable(); }
+      function mv(ev) { var w = Math.max(hardMinW(), sw + (ev.clientX - sx)); S.cols[k].w = w; th.style.width = w + 'px'; th.style.minWidth = w + 'px'; }
+      function up() { document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); S.cols[k].userW = true; saveCfg(); renderTable(); }
       document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up);
     };
     handle.ondblclick = function (e) { e.preventDefault(); e.stopPropagation(); autofitCol(k); };
   }
   function dataMinW(k, probe) {
     var ed = COLDEF[k].edit;
-    if (ed === 'date') return 124;
+    if (ed === 'date') return dateColW();
     var pad = (ed === 'status' || ed === 'corr') ? 40 : 16, mw = 0;
     if (ed === 'status') statusOptions().forEach(function (o) { probe.textContent = o; if (probe.offsetWidth > mw) mw = probe.offsetWidth; });
     S.filtered.slice(0, 300).forEach(function (row) {
@@ -1522,28 +1740,46 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     });
     return mw + pad;
   }
-  function autofitCol(k) { var probe = mkProbe(); var w = Math.min(460, Math.max(minHW(k), dataMinW(k, probe))); probe.remove(); S.cols[k].w = w; saveCfg(); renderTable(); }
+  function autofitCol(k) {
+    if (isDateCol(k)) { delete S.cols[k].userW; S.cols[k].w = dateColW(); saveCfg(); renderTable(); return; }
+    var probe = mkProbe(); var w = Math.min(460, Math.max(minHW(k), dataMinW(k, probe))); probe.remove();
+    S.cols[k].w = w; S.cols[k].userW = true; saveCfg(); renderTable();
+  }
   function mkProbe() { var probe = document.createElement('span'); probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;font:' + S.fontSize + 'px ' + fontStack(S.fontFamily); root.appendChild(probe); return probe; }
-  function optimiseWidths() { var probe = mkProbe(); visKeys().forEach(function (k) { S.cols[k].w = Math.min(460, Math.max(minHW(k), dataMinW(k, probe))); }); probe.remove(); saveCfg(); renderTable(); }
+  /* Date columns keep their measured width — Optimise and Fit never squeeze or
+     stretch them, so the full date and its picker always fit exactly. (item 5) */
+  function optimiseWidths() {
+    var probe = mkProbe();
+    visKeys().forEach(function (k) {
+      if (isDateCol(k)) { delete S.cols[k].userW; S.cols[k].w = dateColW(); return; }
+      S.cols[k].w = Math.min(460, Math.max(minHW(k), dataMinW(k, probe)));
+    });
+    probe.remove(); saveCfg(); renderTable();
+  }
   function fitOnePage() {
     var tw = root.getElementById('regwrap'); if (!tw) return;
     var keys = visKeys(); if (!keys.length) return;
     var PAD_OH = 13, avail = Math.max(240, tw.clientWidth - 40 - keys.length * PAD_OH);
+    /* date columns are fixed at their measured width and take no part in the fit */
+    var fixed = keys.filter(isDateCol), flex = keys.filter(function (k) { return !isDateCol(k); });
+    fixed.forEach(function (k) { delete S.cols[k].userW; S.cols[k].w = dateColW(); avail -= dateColW(); });
+    if (!flex.length) { saveCfg(); renderTable(); return; }
+    avail = Math.max(120, avail);
     var probe = mkProbe();
     var floorMin = {}, floorData = {}, desired = {}, sumMinH = 0, sumData = 0;
-    keys.forEach(function (k) {
+    flex.forEach(function (k) {
       var fm = Math.ceil(minHW(k)), fd = Math.ceil(Math.max(fm, Math.min(dataMinW(k, probe), 160)));
       floorMin[k] = fm; floorData[k] = fd; desired[k] = Math.max(fd, Math.min(460, dataMinW(k, probe)));
       sumMinH += fm; sumData += fd;
     });
     probe.remove();
     var noClip = (sumData <= avail), mins = noClip ? floorData : floorMin, sumMin = noClip ? sumData : sumMinH, sumExtra = 0;
-    keys.forEach(function (k) { sumExtra += Math.max(0, desired[k] - mins[k]); });
-    keys.forEach(function (k) { S.cols[k].w = mins[k]; });
+    flex.forEach(function (k) { sumExtra += Math.max(0, desired[k] - mins[k]); });
+    flex.forEach(function (k) { S.cols[k].w = mins[k]; });
     var leftover = avail - sumMin;
     if (leftover > 0) {
-      if (sumExtra > 0) keys.forEach(function (k) { var extra = Math.max(0, desired[k] - mins[k]); S.cols[k].w = Math.round(mins[k] + leftover * (extra / sumExtra)); });
-      else { var per = Math.floor(leftover / keys.length); keys.forEach(function (k) { S.cols[k].w = mins[k] + per; }); }
+      if (sumExtra > 0) flex.forEach(function (k) { var extra = Math.max(0, desired[k] - mins[k]); S.cols[k].w = Math.round(mins[k] + leftover * (extra / sumExtra)); });
+      else { var per = Math.floor(leftover / flex.length); flex.forEach(function (k) { S.cols[k].w = mins[k] + per; }); }
     }
     saveCfg(); renderTable();
   }
@@ -1596,9 +1832,17 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     ttl.onchange = function () { sh.title = ttl.value; ghPush(); renderSheetTabs(); };
     box.appendChild(el('span', { class: 'dtlbl' }, ['SHEET ' + sn]));
     box.appendChild(ttl);
-    box.appendChild(vo
-      ? el('span', { class: 'shvo', title: 'This sheet feeds VO ' + vo.voNo + '’s Claim and Assessed amounts. Click to highlight that row.', onclick: function () { S.globalSearch = String(vo.desc || vo.voNo); applyFilters(); renderTable(); toast('Filtered the register to VO ' + vo.voNo); } }, ['→ VO ' + vo.voNo])
-      : el('span', { class: 'shvo warn', title: 'No VO in the register points at this sheet. Show the Assessment Sheet column (⚙ Columns) and type ' + sn + ' on the VO this sheet belongs to.' }, ['⚠ not linked to a VO']));
+    if (vo) {
+      var lit = (S.hiVo === vo.id);
+      box.appendChild(el('span', {
+        class: 'shvo' + (lit ? ' on' : ''),
+        title: lit ? ('VO ' + vo.voNo + ' is highlighted in the register. Click again to clear the highlight (or use the ✕ Clear highlight button above the register).')
+                   : ('This sheet feeds VO ' + vo.voNo + '’s Claim and Assessed amounts. Click to highlight that row in the register — nothing is hidden.'),
+        onclick: function () { setHiVo(lit ? null : vo.id); }
+      }, [(lit ? '✓ VO ' + vo.voNo + ' highlighted ✕' : '→ VO ' + vo.voNo)]));
+    } else {
+      box.appendChild(el('span', { class: 'shvo warn', title: 'No VO in the register points at this sheet. Show the Assessment Sheet column (⚙ Columns) and type ' + sn + ' on the VO this sheet belongs to.' }, ['⚠ not linked to a VO']));
+    }
     box.appendChild(el('div', { class: 'spacer' }));
     box.appendChild(btn('＋ Add line', 'Add an empty line item to this sheet', function () { addLine(sn); }, 'primary'));
     box.appendChild(btn('⌂ Rate library', 'Insert a line from the rates already used across the assessment sheets', function (ev) { openRatePanel(sn, ev && ev.currentTarget); }, 'pnltrig'));
@@ -1727,9 +1971,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
       nv.onkeydown = function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); var v = (nv.value || '').trim(); if (v) { setItem(sn, idx, k, v); paint(); panel.remove(); renderSheetGrid(); } } };
       panel.appendChild(el('div', { class: 'mfrow', style: 'border-top:1px solid #e3e9f0;margin-top:4px;padding-top:5px' }, [nv]));
       wrapEl.appendChild(panel);
-      var ar = trig.getBoundingClientRect(), wr = wrapEl.getBoundingClientRect();
-      panel.style.left = Math.max(4, Math.min(ar.left - wr.left, wr.width - 165)) + 'px';
-      panel.style.top = (ar.bottom - wr.top + 2) + 'px';
+      placePanel(panel, trig, { w: 165, maxH: 300 });
     };
     td.appendChild(trig);
   }
@@ -1826,9 +2068,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     build(); panel.appendChild(listWrap);
     panel.appendChild(el('div', { class: 'muted', style: 'font-size:10.5px;padding:4px 6px;white-space:normal' }, ['Rates come from every assessment sheet in this register — the most-used first. The BHP Assessed Rate is pre-filled to match; change it when BHP assesses differently.']));
     wrapEl.appendChild(panel);
-    var ar = anchor.getBoundingClientRect(), wr = wrapEl.getBoundingClientRect();
-    panel.style.left = Math.max(4, Math.min(ar.left - wr.left, wr.width - 530)) + 'px';
-    panel.style.top = (ar.bottom - wr.top + 4) + 'px';
+    placePanel(panel, anchor, { w: 520, maxH: 330, gap: 4 });
   }
 
   /* ---------------------------------------------------------------------
