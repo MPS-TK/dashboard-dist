@@ -2,7 +2,7 @@
 (function () {
   /* Single dashboard version — the Aconex Dashboard is ONE updatable element.
      All tabs (Doc. Registers + RFIs/TQs + Variations) display this exact string; bump it here in one place. */
-  var AC_VER = 'v12.10 \u00B7 4 Sep 2026';
+  var AC_VER = 'v12.11 \u00B7 4 Sep 2026';
 
   var MODS = [
     { host: 'mps-aconex-host',     g: '__MPS_ACONEX' },
@@ -34,10 +34,8 @@
         + '#wrap td.edit input[type=date]{padding:0 1px !important;min-height:0 !important}'
         + '#wrap td.edit .enumval{padding:0 5px !important;line-height:1.15 !important}'
         + '#wrap .corrbox{min-height:0 !important}'
-        + '#wrap .mps-pm{display:inline-flex;gap:2px;margin-right:3px;vertical-align:middle}'
-        + '#wrap .mps-pm button{background:#fff;color:#0B2A4A;border:1px solid #cfd8e3;border-radius:4px;font-size:11px;font-weight:700;line-height:1;padding:2px 5px;cursor:pointer}'
-        + '#wrap .mps-pm button:hover{background:#eef3f8}'
-        + '#wrap.dark .mps-pm button{background:#1e2a3a;color:#cfe0f2;border-color:#37485e}#wrap.dark .mps-pm button:hover{background:#28394f}'
+        + '#wrap .mps-pm{display:inline-flex;align-items:center;gap:3px;margin-right:4px;vertical-align:middle}'
+        + '#wrap #fontlbl{margin-left:2px}'
         /* item e: RFIs/TQs and Variations only — the chart fills its panel and sits
            centred, with 10px clear to every edge. Doc. Registers is left as it is. */
         + (m.g === '__MPS_ACONEX' ? '' :
@@ -64,12 +62,21 @@
         var grp = document.createElement('span'); grp.className = 'mps-pm';
         [['\u2212', tipDown, -1], ['+', tipUp, 1]].forEach(function (p) {
           var b = document.createElement('button');
+          /* the module's own classes, so these are the same size and colour as the
+             font-size steppers already in the toolbar, dark mode included */
+          b.className = 'btn sq';
           b.textContent = p[0]; b.title = p[1]; b.type = 'button';
           b.onclick = function (e) { e.preventDefault(); e.stopPropagation(); bump(p[2]); };
           grp.appendChild(b);
         });
         if (slider.parentNode) slider.parentNode.insertBefore(grp, slider);
       }
+      /* Move the font-size readout to the LEFT of its own \u2212/+ pair. It used to sit
+         immediately before the words "Row Density", which read as "12px Row Density".
+         Re-checked every tick because the toolbar is rebuilt on most renders. */
+      var fl = root.getElementById('fontlbl');
+      if (fl && fl.parentNode && fl.parentNode.firstChild !== fl) fl.parentNode.insertBefore(fl, fl.parentNode.firstChild);
+
       Array.prototype.forEach.call(root.querySelectorAll('#chartctl input[type=range], .dohd input[type=range]'), function (sl) {
         pmGroup(sl, 10, 'One size smaller', 'One size larger');
       });
