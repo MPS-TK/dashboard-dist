@@ -21,7 +21,7 @@
   if (window.__MPS_ACONEX_VAR && window.__MPS_ACONEX_VAR.__live) { window.__MPS_ACONEX_VAR.boot(); return; }
 
   var NAVY = '#0B2A4A', NAVY2 = '#123a63', ACCENT = '#F26522', LINE = '#dfe4ea', INK = '#1f2d3d';
-  var VERSION = 'v12.17', BUILD_DATE = '4 Sep 2026';
+  var VERSION = 'v12.18', BUILD_DATE = '4 Sep 2026';
   var UI_FONTS = ['Segoe UI', 'Arial', 'Calibri', 'Helvetica', 'Roboto', 'Verdana', 'Tahoma', 'Trebuchet MS', 'Georgia', 'Times New Roman', 'Courier New', 'system-ui'];
   var DEF_FONT = '"Segoe UI",Arial,sans-serif', DEF_BASEPX = 13;
   function fontStack(f) { return f ? ('"' + f + '","Segoe UI",Arial,sans-serif') : DEF_FONT; }
@@ -451,7 +451,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     var ar = anchor.getBoundingClientRect(), wr = wrapEl.getBoundingClientRect();
     panel.style.left = Math.max(4, Math.min(ar.left - wr.left, wr.width - panel.offsetWidth - 6)) + 'px'; panel.style.top = (ar.bottom - wr.top + 2) + 'px';
   }
-  function rowsBtn() { var b = el('button', { class: 'btn alt pnltrig', id: 'rowsbtn', title: 'Hide individual rows from the whole dashboard — hidden rows leave the table, the STATS tiles, the charts and the Excel export. Persists between sessions.', onclick: function () { toggleRowsPanel(b); } }, [rowsHidden() ? ('⚑ Rows (' + S.hiddenRows.length + ')') : '⚑ Rows']); if (rowsHidden()) paintActive(b, true, 'btn'); return b; }
+  function rowsBtn() { var b = el('button', { class: 'btn alt pnltrig', id: 'rowsbtn', title: 'Hide individual rows from your view — hidden rows leave the table, the charts and the Excel export, and the VO/status counts. They are STILL counted in the $ totals, because hiding is a view convenience, not a deletion. Persists between sessions.', onclick: function () { toggleRowsPanel(b); } }, [rowsHidden() ? ('⚑ Rows (' + S.hiddenRows.length + ')') : '⚑ Rows']); if (rowsHidden()) paintActive(b, true, 'btn'); return b; }
   function toggleRowsPanel(anchor) { var ex = root.getElementById('rowspanel'); if (ex) { ex.remove(); return; } renderRowsPanel(anchor); }
   function renderRowsPanel(anchor) {
     var wrapEl = root.getElementById('wrap');
@@ -489,24 +489,31 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
   }
   function applyScope() {
     reconcileSelKnown();
-    S.rows = S.allRows.filter(function (r) {
+    function inScope(r, keepHidden) {
       if (S.statusSel === '__OPEN__' && isClosedish(r)) return false;
       if (S.statusSel === '__CLOSED__' && !isClosedish(r)) return false;
-      if (isRowHidden(r)) return false;          // feature (b)
+      if (!keepHidden && isRowHidden(r)) return false;   // feature (b)
       if (!passDateFilter(r)) return false;      // feature (a) — Date Submitted range
       if (!passRefFilter(r)) return false;       // feature (c) — VO Description text
       return true;
-    });
+    }
+    S.rows = S.allRows.filter(function (r) { return inScope(r, false); });
+    // Hiding a row is a per-person view convenience, so it must not move the money.
+    // S.rowsTot is the same scope with hidden rows still counted, and the $ tiles read
+    // from it. Deleting a VO takes it out of S.allRows, so a delete DOES move the totals.
+    S.rowsTot = S.allRows.filter(function (r) { return inScope(r, true); });
     applyFilters();
   }
   function applyFilters() {
     var g = S.globalSearch.toLowerCase();
-    S.filtered = S.rows.filter(function (row) {
+    function passFilters(row) {
       if (g) { if (FACTORY_ORDER.map(function (k) { return cellVal(row, k); }).join(' ').toLowerCase().indexOf(g) < 0) return false; }
       for (var k in S.colFilters) { var f = (S.colFilters[k] || '').toLowerCase(); if (!f) continue; if (cellVal(row, k).toLowerCase().indexOf(f) < 0) return false; }
       for (var sk in S.selFilters) { var arr = S.selFilters[sk]; if (!arr) continue; if (arr.indexOf(cellVal(row, sk)) < 0) return false; }
       return true;
-    });
+    }
+    S.filtered = S.rows.filter(passFilters);
+    S.filteredTot = (S.rowsTot || S.rows).filter(passFilters);   // same view, hidden rows still counted
     if (S.sortKey) {
       var numeric = { voNo: 1, rev: 1, claim: 1, assessed: 1, diff: 1 }[S.sortKey];
       S.filtered.sort(function (a, b) {
@@ -966,10 +973,16 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     +'.btn.mps-open{font-weight:700;color:#0a58c2;border:2px solid #0a84ff;background:#eaf3ff}.btn.mps-open:hover{background:#dcebff;border-color:#0070e0}'
     +'.dark .btn.mps-open{color:#8ec5ff;background:#0e2438;border-color:#2f8bff}'
     +'.btn[disabled]{opacity:.45;cursor:not-allowed}.btn[disabled]:hover{background:#eaf3ff}.dark .btn[disabled]:hover{background:#0e2438}'
-    +'th.rowact,td.rowact{width:22px;min-width:22px;max-width:22px;text-align:center;padding:0 2px!important;background:#f7f9fb}'
-    +'#wrap table tr>th.rowact:first-child,#wrap table tr>td.rowact:first-child{padding-left:2px!important}'
+    +'th.rowact,td.rowact{width:11px;min-width:11px;max-width:11px;text-align:center;padding:0!important;background:#f7f9fb}'
+    +'#wrap table tr>th.rowact:first-child,#wrap table tr>td.rowact:first-child{padding-left:0!important;padding-right:0!important}'
     +'.dark th.rowact,.dark td.rowact{background:#101a26}'
     +'.rowdel{cursor:pointer;color:#c9d2dc;font-size:11px;font-weight:700;line-height:1;user-select:none}.rowdel:hover{color:#c0392b}'
+    + '.mps-modal{position:absolute;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:rgba(11,42,74,.45)}'
+    + '.mps-mbox{background:#fff;color:' + INK + ';max-width:440px;width:calc(100% - 40px);border-radius:8px;box-shadow:0 12px 40px rgba(0,0,0,.35);padding:16px 18px;font:12.5px/1.5 inherit}'
+    + '.mps-mbox h4{margin:0 0 10px;font-size:14px;color:#b3400f}.mps-mbox p{margin:0 0 9px}.mps-mbox b.vo{color:' + NAVY + '}'
+    + '.mps-mbox .mrow{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}'
+    + '.btn.mps-danger{background:#c0392b;border-color:#a5311f;color:#fff;font-weight:700}.btn.mps-danger:hover{background:#a5311f;border-color:#8d2a1a}'
+    + '.dark .mps-mbox{background:#132234;color:#e7eef7}.dark .mps-mbox h4{color:#ffb37a}.dark .mps-mbox b.vo{color:#8ec5ff}'
     +'.fx{color:#9bb4d0;font-size:9px;font-weight:700;margin-right:3px;font-style:italic}'
     +'.tile.wide{min-width:120px}'
     +'td.edit input.moneyin,td.edit input.numin{text-align:right}'
@@ -1290,9 +1303,14 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
   function renderStats() {
     var box = root.getElementById('stats'); if (!box) return; box.innerHTML = '';
     var rows = S.filtered, total = rows.length;
+    // Counts describe what you are looking at; the money describes the register, so the
+    // $ tiles read the set that still counts hidden rows.
+    var mrows = S.filteredTot || rows;
+    var nHid = Math.max(0, mrows.length - rows.length);
+    var hidNote = nHid ? (' Includes ' + nHid + ' hidden VO' + (nHid === 1 ? '' : 's') + ' — hiding a row never changes the $ totals.') : '';
     function cnt(fn) { var c = 0; rows.forEach(function (r) { if (fn(r)) c++; }); return c; }
     var claim = 0, assessed = 0;
-    rows.forEach(function (r) { claim += (r._claim || 0); assessed += (r._assessed || 0); });
+    mrows.forEach(function (r) { claim += (r._claim || 0); assessed += (r._assessed || 0); });
     var dk = !!S.darkMode; function CC(l, d) { return dk ? d : l; }
     function tile(numTxt, label, color, tip) { return el('div', { class: 'tile', title: tip || label }, [el('b', { style: color ? 'color:' + color : '' }, [String(numTxt)]), el('small', {}, [label])]); }
     function moneyTile(v, label, color, tip) { return el('div', { class: 'tile wide', title: tip || label }, [el('b', { style: 'font-size:15px' + (color ? ';color:' + color : '') }, [money(round2(v))]), el('small', {}, [label])]); }
@@ -1303,9 +1321,11 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
       var c = statusColor(st);
       box.appendChild(tile(n, st, (c === '#ffffff' ? CC('#55637a', '#dfe7f0') : c), 'Status = ' + st));
     });
-    box.appendChild(moneyTile(claim, 'MPS Claimed', CC('#0B2A4A', '#7db3ff'), 'Sum of MPS VO Claim/Proposal Amount across the current view'));
-    box.appendChild(moneyTile(assessed, 'BHP Assessed', CC('#1e7e34', '#3ecf6a'), 'Sum of BHP Assessed/Approved Amount across the current view'));
-    box.appendChild(moneyTile(claim - assessed, 'Net Difference', CC('#c0392b', '#f2794a'), 'Claimed less Assessed across the current view'));
+    box.appendChild(moneyTile(claim, 'MPS Claimed', CC('#0B2A4A', '#7db3ff'), 'Sum of MPS VO Claim/Proposal Amount across the current view.' + hidNote));
+    box.appendChild(moneyTile(assessed, 'BHP Assessed', CC('#1e7e34', '#3ecf6a'), 'Sum of BHP Assessed/Approved Amount across the current view.' + hidNote));
+    box.appendChild(moneyTile(claim - assessed, 'Net Difference', CC('#c0392b', '#f2794a'), 'Claimed less Assessed across the current view.' + hidNote));
+    if (nHid) box.appendChild(el('div', { class: 'tile', title: 'These rows are hidden from your table, charts and export, but they are still counted in the three $ tiles above.' },
+      [el('b', { style: 'color:' + CC('#8a939b', '#9fb0c4') }, ['⚑ ' + nHid]), el('small', {}, ['hidden · still in $'])]));
   }
 
   /* ---- per-VO bar chart ---- */
@@ -1683,7 +1703,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     var table = el('table'); table.style.fontSize = S.fontSize + 'px';
     var thead = el('thead'), htr = el('tr', { class: 'hdr' }), letr = el('tr', { class: 'colletrow' });
     letr.appendChild(el('th', { class: 'colc rowact', title: 'Row actions' }, ['']));
-    htr.appendChild(el('th', { class: 'rowact', style: 'padding:1px 2px', title: 'Delete a VO row' }, ['']));
+    htr.appendChild(el('th', { class: 'rowact', style: 'padding:1px 0', title: 'Delete a VO row' }, ['']));
     visKeys().forEach(function (k, vi) {
       var cd = COLDEF[k];
       if (isDateCol(k) && !S.cols[k].userW) S.cols[k].w = dateColW();
@@ -1739,7 +1759,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     S.filtered.forEach(function (row) {
       var tr = el('tr', (S.hiVo && row.id === S.hiVo) ? { class: 'vohi' } : {});
       var del = el('span', { class: 'rowdel', title: 'Delete VO ' + (row.voNo || '') + ' from the register', onclick: function (e) { e.stopPropagation(); deleteVO(row); } }, ['✕']);
-      tr.appendChild(el('td', { class: 'rowact', style: 'padding:' + pad + 'px 2px' }, [del]));
+      tr.appendChild(el('td', { class: 'rowact', style: 'padding:' + pad + 'px 0' }, [del]));
       visKeys().forEach(function (k) {
         var td, w = S.cols[k].w;
         var base = 'width:' + w + 'px;max-width:' + w + 'px;padding:' + pad + 'px 6px;white-space:' + ws + ';overflow:' + ov + ';text-overflow:ellipsis';
@@ -2106,11 +2126,47 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     S.sortKey = ''; renderAll();
     toast('VO ' + r.voNo + ' added — fill in the row, and set Assessment Sheet if it needs a breakdown');
   }
+  /* The X sits one click away from the Rows panel's hide, and the two are easy to
+     confuse: hide is per-person, reversible and leaves the money alone, delete removes
+     the VO for the whole team and moves the $ totals. So the dialog names the difference
+     and offers the hide as a one-click alternative. A styled box rather than
+     window.confirm, which a browser can suppress after the first dialog. */
+  function hideRowFromView(row) {
+    var key = String(row.id); if (!S.hiddenRows) S.hiddenRows = [];
+    if (S.hiddenRows.indexOf(key) < 0) S.hiddenRows.push(key);
+    refreshFilters();
+    toast('VO ' + (row.voNo || '') + ' hidden from your view. ⚑ Rows brings it back. The $ totals are unchanged.');
+  }
+  function confirmDeleteVO(row, onConfirm) {
+    var wrap = root.getElementById('wrap');
+    var lbl = 'VO ' + (row.voNo || '') + (row.desc ? ' — ' + row.desc : '');
+    if (!wrap) { if (window.confirm('DELETE ' + lbl + ' from the register for the whole team?')) onConfirm(); return; }
+    var old = root.getElementById('mps-modal'); if (old) old.remove();
+    var ov = el('div', { class: 'mps-modal', id: 'mps-modal' });
+    function close() { ov.remove(); try { document.removeEventListener('keydown', esc, true); } catch (e) {} }
+    function esc(e) { if (e.key === 'Escape') { e.stopPropagation(); close(); } }
+    document.addEventListener('keydown', esc, true);
+    ov.onclick = function (e) { if (e.target === ov) close(); };
+    var box = el('div', { class: 'mps-mbox' }, [
+      el('h4', {}, ['Delete this VO — this is not the same as hiding it']),
+      el('p', {}, [el('b', { class: 'vo' }, [lbl])]),
+      el('p', {}, ['Deleting removes the variation from the register for everyone on the team, and it does change the $ totals. Its assessment sheet, if it has one, is kept.']),
+      el('p', {}, ['If you only want it out of your own table, hide it instead — under ⚑ Rows, or with the button below. Hiding is yours alone, reversible, and leaves the $ totals untouched.'])
+    ]);
+    var mrow = el('div', { class: 'mrow' }, [
+      el('button', { class: 'btn', title: 'Leave the register exactly as it is', onclick: close }, ['Cancel']),
+      el('button', { class: 'btn alt', title: 'Hide this row from your view instead of deleting it', onclick: function () { close(); hideRowFromView(row); } }, ['⚑ Hide instead']),
+      el('button', { class: 'btn mps-danger', title: 'Permanently delete ' + lbl + ' for the whole team', onclick: function () { close(); onConfirm(); } }, ['Delete for everyone'])
+    ]);
+    box.appendChild(mrow); ov.appendChild(box); wrap.appendChild(ov);
+    try { mrow.lastChild.focus(); } catch (e) {}
+  }
   function deleteVO(row) {
     var lbl = 'VO ' + (row.voNo || '') + (row.desc ? ' — ' + row.desc : '');
-    if (!window.confirm('Delete ' + lbl + ' from the register?\n\nThis is shared with the team. Its assessment sheet (if any) is kept.')) return;
-    S.allRows = S.allRows.filter(function (r) { return r !== row; });
-    recomputeAuto(); ghPush(); applyScope(); renderAll(); toast('Deleted ' + lbl);
+    confirmDeleteVO(row, function () {
+      S.allRows = S.allRows.filter(function (r) { return r !== row; });
+      recomputeAuto(); ghPush(); applyScope(); renderAll(); toast('Deleted ' + lbl + ' — the $ totals have been updated.');
+    });
   }
 
   /* ---------------------------------------------------------------------
