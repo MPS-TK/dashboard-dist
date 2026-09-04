@@ -21,7 +21,7 @@
   if (window.__MPS_ACONEX_VAR && window.__MPS_ACONEX_VAR.__live) { window.__MPS_ACONEX_VAR.boot(); return; }
 
   var NAVY = '#0B2A4A', NAVY2 = '#123a63', ACCENT = '#F26522', LINE = '#dfe4ea', INK = '#1f2d3d';
-  var VERSION = 'v12.18', BUILD_DATE = '4 Sep 2026';
+  var VERSION = 'v12.19', BUILD_DATE = '4 Sep 2026';
   var UI_FONTS = ['Segoe UI', 'Arial', 'Calibri', 'Helvetica', 'Roboto', 'Verdana', 'Tahoma', 'Trebuchet MS', 'Georgia', 'Times New Roman', 'Courier New', 'system-ui'];
   var DEF_FONT = '"Segoe UI",Arial,sans-serif', DEF_BASEPX = 13;
   function fontStack(f) { return f ? ('"' + f + '","Segoe UI",Arial,sans-serif') : DEF_FONT; }
@@ -92,9 +92,9 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     var cols = {}; FACTORY_ORDER.forEach(function (k) { cols[k] = { show: !!FACTORY_SHOW[k], w: COLDEF[k].w }; });
     var icols = {}; IORDER.forEach(function (k) { icols[k] = { show: true, w: ICOLDEF[k].w }; });
     return {
-      order: FACTORY_ORDER.slice(), cols: cols, icols: icols, fontSize: 12, rowPad: 4, wrap: true, chartType: 'donut',
+      order: FACTORY_ORDER.slice(), cols: cols, icols: icols, fontSize: 12, rowPad: 0, wrap: true, chartType: 'donut',
       selFilters: {}, selKnown: {}, colPri: {}, colDefW: {}, chartScale: 1, colorSchemes: { status: {}, type: {} }, fontFamily: '', baseFont: DEF_BASEPX,
-      darkMode: false, collapsed: {}, fontScale: 100, padScale: 100, hpadScale: 100, hdrFontSize: null, hdrMaxLines: 2,
+      darkMode: false, collapsed: {}, fontScale: 100, padScale: 20, hpadScale: 100, hdrFontSize: null, hdrMaxLines: 2,
       statusSel: '__ALL__', xProjectId: '', xProjectName: '', colNames: {}, statusList: STATUS_WORKFLOW.slice(),
       activeSheet: '', barStat: 'diff', barScale: 1, chartAutoFit: true, barHide: [], chartHide: [], chartSrc: 'status',
       fltDate: { from: '', to: '', preset: '' }, fltRef: '', hiddenRows: []
@@ -985,6 +985,9 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     + '.dark .mps-mbox{background:#132234;color:#e7eef7}.dark .mps-mbox h4{color:#ffb37a}.dark .mps-mbox b.vo{color:#8ec5ff}'
     +'.fx{color:#9bb4d0;font-size:9px;font-weight:700;margin-right:3px;font-style:italic}'
     +'.tile.wide{min-width:120px}'
+    +'#wrap table tr>th:nth-child(2),#wrap table tr>td:nth-child(2){text-align:center}'
+    + '#wrap table tr>td:nth-child(2) input,#wrap table tr>td:nth-child(2) .enumtrig{text-align:center}'
+    + '#wrap table tr>td:nth-child(2) .cnum{margin:0 auto}'
     +'td.edit input.moneyin,td.edit input.numin{text-align:right}'
     +'.corrbox{display:flex;flex-direction:column;gap:1px;cursor:pointer;min-height:16px;position:relative;padding-right:12px}'
     +'.corrbox.oneline{flex-direction:row;align-items:center}'
@@ -1208,7 +1211,62 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
   /* ---------------------------------------------------------------------
    * shell
    * ------------------------------------------------------------------- */
+  /* (a) Any open dropdown closes when you click away from it. Every dropdown in this
+     module is a div whose id ends in 'panel', and each is opened by a trigger that
+     already toggles itself, so a mousedown that lands neither inside a panel nor on a
+     trigger closes the lot. Escape does the same. Capture phase, so it runs before the
+     click reaches anything that might rebuild the panel. */
+  function closeAllPanels(except) {
+    var open = root.querySelectorAll('[id$="panel"]');
+    for (var i = 0; i < open.length; i++) if (open[i] !== except) open[i].remove();
+  }
+  function installOutsideClose() {
+    if (root.__mpsOutsideClose) return; root.__mpsOutsideClose = true;
+    function isTrigger(n) {
+      if (!n || !n.classList) return false;
+      return n.classList.contains('pnltrig') || n.classList.contains('pkgbtn') ||
+             n.classList.contains('chart') || n.classList.contains('mfbtn') ||
+             n.classList.contains('pal') || n.classList.contains('enumtrig');
+    }
+    function onDown(ev) {
+      var open = root.querySelectorAll('[id$="panel"]'); if (!open.length) return;
+      var path = (ev && ev.composedPath) ? ev.composedPath() : [];
+      var hitPanel = null, onTrigger = false;
+      for (var j = 0; j < path.length; j++) {
+        var n = path[j];
+        if (n && n.id && /panel$/.test(String(n.id))) { hitPanel = n; break; }
+        if (isTrigger(n)) { onTrigger = true; break; }
+      }
+      if (onTrigger) return;               // the trigger's own handler toggles it
+      closeAllPanels(hitPanel);            // hitPanel is null for a click in open space
+    }
+    root.addEventListener('mousedown', onDown, true);
+    document.addEventListener('mousedown', function (ev) {
+      var open = root.querySelectorAll('[id$="panel"]'); if (!open.length) return;
+      var path = (ev && ev.composedPath) ? ev.composedPath() : [];
+      for (var j = 0; j < path.length; j++) if (path[j] === host) return;
+      closeAllPanels(null);                // clicked right outside the dashboard
+    }, true);
+    root.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') closeAllPanels(null); }, true);
+  }
+
+  /* (b)(c)(d) v12.19 settings migration. Changing only the factory defaults would leave
+     everyone who already has a saved config on the old values, so the new defaults are
+     also pushed once onto existing configs. Anything the user changes afterwards sticks,
+     because the flag is only ever set once. */
+  function migrate1219() {
+    try {
+      if (S.mig1219) return;
+      S.rowPad = 0;                                   // (b) minimum row density
+      S.padScale = 20;                                // (c) Fonts padding 20%
+      S.order.forEach(function (k) {                  // (d) date cols back to their minimum
+        if (S.cols[k] && isDateCol(k)) { delete S.cols[k].userW; S.cols[k].w = dateColW(); }
+      });
+      S.mig1219 = 1; saveCfg();
+    } catch (e) {}
+  }
   function renderAll() {
+    installOutsideClose(); migrate1219();
     ensureShell();
     var wrap = root.getElementById('wrap'); wrap.innerHTML = '';
     wrap.appendChild(el('div', { class: 'top' }, [
