@@ -21,7 +21,7 @@
   if (window.__MPS_ACONEX_VAR && window.__MPS_ACONEX_VAR.__live) { window.__MPS_ACONEX_VAR.boot(); return; }
 
   var NAVY = '#0B2A4A', NAVY2 = '#123a63', ACCENT = '#F26522', LINE = '#dfe4ea', INK = '#1f2d3d';
-  var VERSION = 'v12.19', BUILD_DATE = '4 Sep 2026';
+  var VERSION = 'v12.20', BUILD_DATE = '4 Sep 2026';
   var UI_FONTS = ['Segoe UI', 'Arial', 'Calibri', 'Helvetica', 'Roboto', 'Verdana', 'Tahoma', 'Trebuchet MS', 'Georgia', 'Times New Roman', 'Courier New', 'system-ui'];
   var DEF_FONT = '"Segoe UI",Arial,sans-serif', DEF_BASEPX = 13;
   function fontStack(f) { return f ? ('"' + f + '","Segoe UI",Arial,sans-serif') : DEF_FONT; }
@@ -93,7 +93,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     var icols = {}; IORDER.forEach(function (k) { icols[k] = { show: true, w: ICOLDEF[k].w }; });
     return {
       order: FACTORY_ORDER.slice(), cols: cols, icols: icols, fontSize: 12, rowPad: 0, wrap: true, chartType: 'donut',
-      selFilters: {}, selKnown: {}, colPri: {}, colDefW: {}, chartScale: 1, colorSchemes: { status: {}, type: {} }, fontFamily: '', baseFont: DEF_BASEPX,
+      selFilters: {}, selKnown: {}, colPri: {}, colDefW: {}, chartSplit: 0.5, chartScale: 1, colorSchemes: { status: {}, type: {} }, fontFamily: '', baseFont: DEF_BASEPX,
       darkMode: false, collapsed: {}, fontScale: 100, padScale: 20, hpadScale: 100, hdrFontSize: null, hdrMaxLines: 2,
       statusSel: '__ALL__', xProjectId: '', xProjectName: '', colNames: {}, statusList: STATUS_WORKFLOW.slice(),
       activeSheet: '', barStat: 'diff', barScale: 1, chartAutoFit: true, barHide: [], chartHide: [], chartSrc: 'status',
@@ -114,7 +114,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     var icols = {}; IORDER.forEach(function (k) { var s = (saved.icols || {})[k] || {}; icols[k] = { show: s.show != null ? !!s.show : true, w: s.w || ICOLDEF[k].w }; });
     var out = f;
     out.order = o; out.cols = cols; out.icols = icols;
-    ['fontSize', 'rowPad', 'chartType', 'chartScale', 'fontFamily', 'baseFont', 'fontScale', 'padScale', 'hpadScale',
+    ['fontSize', 'rowPad', 'chartType', 'chartScale', 'chartSplit', 'fontFamily', 'baseFont', 'fontScale', 'padScale', 'hpadScale',
       'hdrMaxLines', 'statusSel', 'xProjectId', 'xProjectName', 'activeSheet', 'barStat', 'barScale', 'chartSrc'].forEach(function (k) {
         if (saved[k] != null) out[k] = saved[k];
       });
@@ -140,7 +140,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     out.hiddenRows = (saved.hiddenRows && saved.hiddenRows.length ? saved.hiddenRows.slice() : []);
     return out;
   }
-  var CFGKEYS = ['order', 'cols', 'icols', 'fontSize', 'rowPad', 'wrap', 'chartType', 'selFilters', 'selKnown', 'colPri', 'colDefW', 'chartScale', 'colorSchemes',
+  var CFGKEYS = ['order', 'cols', 'icols', 'fontSize', 'rowPad', 'wrap', 'chartType', 'selFilters', 'selKnown', 'colPri', 'colDefW', 'chartScale', 'chartSplit', 'colorSchemes',
     'fontFamily', 'baseFont', 'darkMode', 'collapsed', 'fontScale', 'padScale', 'hpadScale', 'hdrFontSize', 'hdrMaxLines',
     'statusSel', 'xProjectId', 'xProjectName', 'colNames', 'statusList', 'activeSheet', 'barStat', 'barScale', 'chartAutoFit', 'barHide', 'chartHide', 'chartSrc',
     'fltDate', 'fltRef', 'hiddenRows'];
@@ -877,11 +877,40 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     tw.style.maxHeight = '46vh';
   }
   function equalizePanelHeaders() {
-    var rowEl = root && root.querySelector('.cgrow'); if (!rowEl) return;
-    var hds = [];
-    for (var i = 0; i < rowEl.children.length; i++) { var p = rowEl.children[i]; var h = p.querySelector('.cpanelhd'); if (!h) continue; h.style.minHeight = ''; if (!p.classList.contains('coll')) hds.push(h); }
-    requestAnimationFrame(function () { var mx = 0; hds.forEach(function (h) { if (h.offsetHeight > mx) mx = h.offsetHeight; }); if (mx > 0) hds.forEach(function (h) { h.style.minHeight = mx + 'px'; }); });
+    if (!root) return; var rows = root.querySelectorAll('.cgrow,.cgrow2'); if (!rows.length) return;
+    Array.prototype.forEach.call(rows, function (rowEl) {
+      var hds = [];
+      for (var i = 0; i < rowEl.children.length; i++) { var p = rowEl.children[i]; if (!p.querySelector) continue; var h = p.querySelector('.cpanelhd'); if (!h) continue; h.style.minHeight = ''; if (!p.classList.contains('coll')) hds.push(h); }
+      requestAnimationFrame(function () { var mx = 0; hds.forEach(function (h) { if (h.offsetHeight > mx) mx = h.offsetHeight; }); if (mx > 0) hds.forEach(function (h) { h.style.minHeight = mx + 'px'; }); });
+    });
   }
+  // v12.20 (f/g): BAR CHART and the status chart sit side by side with a draggable split.
+  function chartSplitPct(){var v=+(S.chartSplit);if(!isFinite(v)||v<0.15||v>0.85)v=0.5;return v;}
+  function chartPanelTitle(){var t=S.chartType||'donut';return (t==='pie'?'PIE':t==='bar'?'BAR':'DONUT')+' CHART';}
+  function applySplit(){
+    if(!root)return;var row=root.querySelector('.cgrow2');if(!row)return;
+    var L=row.querySelector('.cpanel.cpc'),R=row.querySelector('.cpanel.cpt'),H=row.querySelector('.csplit');
+    if(!L||!R)return;
+    var lc=L.classList.contains('coll'),rc=R.classList.contains('coll');
+    if(H)H.style.display=(lc||rc)?'none':'';
+    if(lc||rc){L.style.flex='';R.style.flex='';L.style.maxWidth='';R.style.maxWidth='';return;}
+    var p=chartSplitPct();
+    L.style.flex='0 0 calc('+(p*100).toFixed(2)+'% - 5px)';L.style.maxWidth='none';
+    R.style.flex='1 1 0%';R.style.maxWidth='none';
+  }
+  function makeSplitter(){
+    var h=el('div',{class:'csplit',title:'Drag to change how the width is shared between the two chart panels \u00b7 double-click to reset to 50/50'});
+    h.onmousedown=function(e){
+      e.preventDefault();e.stopPropagation();
+      var row=h.parentNode;if(!row)return;var rect=row.getBoundingClientRect();
+      function mv(ev){var p=(ev.clientX-rect.left)/Math.max(1,rect.width);S.chartSplit=Math.max(0.15,Math.min(0.85,p));applySplit();}
+      function up(){document.removeEventListener('mousemove',mv,true);document.removeEventListener('mouseup',up,true);saveCfg();try{equalizePanelHeaders();}catch(_){}try{autoSizeChart();}catch(_){}}
+      document.addEventListener('mousemove',mv,true);document.addEventListener('mouseup',up,true);
+    };
+    h.ondblclick=function(e){e.preventDefault();e.stopPropagation();S.chartSplit=0.5;applySplit();saveCfg();try{equalizePanelHeaders();}catch(_){}try{autoSizeChart();}catch(_){}};
+    return h;
+  }
+
 
   function CSS(){return '#wrap{position:fixed;inset:0;background:#f4f6f8;color:'+INK+';font:13px/1.4 "Segoe UI",Arial,sans-serif;display:flex;flex-direction:column}'
     +'.content{flex:1;overflow:auto;padding-bottom:10px}'
@@ -1059,6 +1088,9 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     +'.dark #colpanel .crow .cpri,.dark #colpanel .crow .cwid{background:#0e1621;color:#dfe7f0;border-color:#37485e}'
     +'.cgrow>.cpanel.cpt{display:flex;flex-direction:column}'
     +'.cgrow>.cpanel.cpt>.cpbody{flex:1 1 auto;display:flex;min-height:0}'
+    +'.cgrow2>.cpanel.cpt{display:flex;flex-direction:column}'
+    +'.cgrow2>.cpanel.cpt>.cpbody{flex:1 1 auto;display:flex;min-height:0}'
+    +'.cgrow2{display:flex;gap:0;align-items:stretch;margin:calc(8px*var(--ps,1)) calc(12px*var(--hp,1)) 0;flex-wrap:nowrap}.cgrow2>.cpanel{margin:0;min-width:0}.cgrow2 .cpc{flex:1 1 50%;min-width:0}.cgrow2 .cpt{flex:1 1 50%;min-width:0;max-width:none}.cgrow2>.cpanel.coll{align-self:flex-start;flex:0 0 auto!important;max-width:none}.cgrow2 .doopen{border-top:0}.csplit{flex:0 0 10px;cursor:col-resize;align-self:stretch;position:relative;background:transparent}.csplit:after{content:"";position:absolute;left:4px;top:10px;bottom:10px;width:2px;border-radius:1px;background:'+LINE+'}.csplit:hover:after{background:'+ACCENT+';width:3px;left:3px}.dark .csplit:after{background:#28374a}'
     +'.charts{flex:1 1 auto;display:flex;align-items:center;justify-content:center;padding:10px;box-sizing:border-box;min-height:0}'
     +'.chartsrow{align-items:center;justify-content:center;align-content:center;width:100%}'
     +'#barlegend{margin-top:2px}'
@@ -1077,12 +1109,14 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     if (ctlEl) hd.appendChild(ctlEl);
     bodyEl.classList.add('cpbody');
     var panel = el('div', { class: 'cpanel' + (coll ? ' coll' : '') }, [hd, bodyEl]);
+    panel.__setTitle = function (t, sh) { titleText = t; shortTitle = sh || t; ttl.textContent = (panel.classList.contains('coll') && shortTitle) ? shortTitle : titleText; };
     function toggle() {
       var c = !panel.classList.contains('coll');
       panel.classList.toggle('coll', c); chev.textContent = c ? '▸' : '▾';
       chev.setAttribute('title', c ? 'Expand this panel' : 'Roll up this panel');
       if (shortTitle) ttl.textContent = c ? shortTitle : titleText;
       S.collapsed = S.collapsed || {}; S.collapsed[id] = c; saveCfg(); fitRegisterHeight();
+      try { applySplit(); } catch (e) { } try { equalizePanelHeaders(); } catch (e) { } try { autoSizeChart(); } catch (e) { }
     }
     chev.onclick = toggle; ttl.onclick = toggle;
     return panel;
@@ -1296,12 +1330,15 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     var content = el('div', { class: 'content' });
 
     /* STATS + CHART */
-    var statsBody = el('div', {}, [el('div', { class: 'statsrow', id: 'stats' }), el('div', { class: 'doopen', id: 'varbar' })]);
-    var statsPanel = makeCPanel('stats', 'STATS', null, statsBody, 'Counts and money totals for the current view, plus the per-VO bar chart.');
-    statsPanel.classList.add('cpc');
-    var chartsPanel = makeCPanel('chart', 'CHART', el('div', { class: 'chartctl', id: 'chartctl' }), el('div', { class: 'charts', id: 'chart' }), 'Status breakdown of the current view.', 'CHART');
+    var statsBody = el('div', {}, [el('div', { class: 'statsrow', id: 'stats' })]);
+    var statsPanel = makeCPanel('stats', 'STATS', null, statsBody, 'Counts and money totals for the current view. Roll this up and the charts stay put.');
+    content.appendChild(el('div', { class: 'cgrow' }, [statsPanel]));
+    var barBody = el('div', {}, [el('div', { class: 'doopen', id: 'varbar' })]);
+    var barPanel = makeCPanel('barchart', 'BAR CHART', null, barBody, 'The per-VO bar chart. Click the title to roll this panel up.', 'BAR CHART');
+    barPanel.classList.add('cpc');
+    var chartsPanel = makeCPanel('chart', chartPanelTitle(), el('div', { class: 'chartctl', id: 'chartctl' }), el('div', { class: 'charts', id: 'chart' }), 'Status breakdown of the current view.', chartPanelTitle());
     chartsPanel.classList.add('cpt');
-    content.appendChild(el('div', { class: 'cgrow' }, [statsPanel, chartsPanel]));
+    content.appendChild(el('div', { class: 'cgrow2' }, [barPanel, makeSplitter(), chartsPanel]));
 
     /* REGISTER */
     var regCount = el('span', { style: 'margin-left:auto;display:inline-flex;align-items:center;gap:7px' }, [
@@ -1321,7 +1358,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     content.appendChild(makeCPanel('sheets', 'ASSESSMENT SHEETS', shCount, shBody, 'The workbook’s numbered assessment sheets. Pick a sheet from the tabs along the bottom; each one exports as its own Excel sheet and feeds its VO’s Claim / Assessed amounts.'));
 
     wrap.appendChild(content);
-    applyTheme(); renderStats(); renderVarBar(); renderChart(); renderTable(); renderSheetPanel(); renderHiChip(); fitRegisterHeight(); equalizePanelHeaders();
+    applyTheme(); applySplit(); renderStats(); renderVarBar(); renderChart(); renderTable(); renderSheetPanel(); renderHiChip(); fitRegisterHeight(); equalizePanelHeaders();
   }
 
   function regToolbar() {
@@ -1607,6 +1644,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
       }) };
   }
   function renderChart() {
+    (function () { var b = root.getElementById('chart'); if (!b) return; var p = b; while (p && !(p.classList && p.classList.contains('cpanel'))) p = p.parentNode; if (p && p.__setTitle) p.__setTitle(chartPanelTitle(), chartPanelTitle()); })();
     var ctl = root.getElementById('chartctl');
     if (ctl) {
       ctl.innerHTML = '';
