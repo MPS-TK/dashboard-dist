@@ -21,7 +21,7 @@
   if (window.__MPS_ACONEX_VAR && window.__MPS_ACONEX_VAR.__live) { window.__MPS_ACONEX_VAR.boot(); return; }
 
   var NAVY = '#0B2A4A', NAVY2 = '#123a63', ACCENT = '#F26522', LINE = '#dfe4ea', INK = '#1f2d3d';
-  var VERSION = 'v12.14', BUILD_DATE = '4 Sep 2026';
+  var VERSION = 'v12.15', BUILD_DATE = '4 Sep 2026';
   var UI_FONTS = ['Segoe UI', 'Arial', 'Calibri', 'Helvetica', 'Roboto', 'Verdana', 'Tahoma', 'Trebuchet MS', 'Georgia', 'Times New Roman', 'Courier New', 'system-ui'];
   var DEF_FONT = '"Segoe UI",Arial,sans-serif', DEF_BASEPX = 13;
   function fontStack(f) { return f ? ('"' + f + '","Segoe UI",Arial,sans-serif') : DEF_FONT; }
@@ -96,7 +96,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
       selFilters: {}, selKnown: {}, colPri: {}, colDefW: {}, chartScale: 1, colorSchemes: { status: {}, type: {} }, fontFamily: '', baseFont: DEF_BASEPX,
       darkMode: false, collapsed: {}, fontScale: 100, padScale: 100, hpadScale: 100, hdrFontSize: null, hdrMaxLines: 2,
       statusSel: '__ALL__', xProjectId: '', xProjectName: '', colNames: {}, statusList: STATUS_WORKFLOW.slice(),
-      activeSheet: '', barStat: 'diff', barScale: 1, chartAutoFit: true, barHide: []
+      activeSheet: '', barStat: 'diff', barScale: 1, chartAutoFit: true, barHide: [], chartSrc: 'status'
     };
   }
   var LKEY = 'mps_aconex_var_cfg_' + CFG.mpsProjectNo, DKEY = 'mps_aconex_var_defcfg_' + CFG.mpsProjectNo;
@@ -114,7 +114,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     var out = f;
     out.order = o; out.cols = cols; out.icols = icols;
     ['fontSize', 'rowPad', 'chartType', 'chartScale', 'fontFamily', 'baseFont', 'fontScale', 'padScale', 'hpadScale',
-      'hdrMaxLines', 'statusSel', 'xProjectId', 'xProjectName', 'activeSheet', 'barStat', 'barScale'].forEach(function (k) {
+      'hdrMaxLines', 'statusSel', 'xProjectId', 'xProjectName', 'activeSheet', 'barStat', 'barScale', 'chartSrc'].forEach(function (k) {
         if (saved[k] != null) out[k] = saved[k];
       });
     out.wrap = (saved.wrap != null ? !!saved.wrap : true);
@@ -137,7 +137,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
   }
   var CFGKEYS = ['order', 'cols', 'icols', 'fontSize', 'rowPad', 'wrap', 'chartType', 'selFilters', 'selKnown', 'colPri', 'colDefW', 'chartScale', 'colorSchemes',
     'fontFamily', 'baseFont', 'darkMode', 'collapsed', 'fontScale', 'padScale', 'hpadScale', 'hdrFontSize', 'hdrMaxLines',
-    'statusSel', 'xProjectId', 'xProjectName', 'colNames', 'statusList', 'activeSheet', 'barStat', 'barScale', 'chartAutoFit', 'barHide'];
+    'statusSel', 'xProjectId', 'xProjectName', 'colNames', 'statusList', 'activeSheet', 'barStat', 'barScale', 'chartAutoFit', 'barHide', 'chartSrc'];
   function snapCfg() { var o = {}; CFGKEYS.forEach(function (k) { o[k] = S[k]; }); return o; }
   function saveCfg() { try { localStorage.setItem(LKEY, JSON.stringify(snapCfg())); } catch (e) { } }
   function setAsDefault() { try { localStorage.setItem(DKEY, JSON.stringify(snapCfg())); } catch (e) { } toast('Saved as your default view'); }
@@ -300,13 +300,19 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
   }
   function round2(n) { return Math.round((n + Number.EPSILON) * 100) / 100; }
   function linkedSheet(r) { var sn = String(r.sheetNo || '').trim(); return (sn && S.sheets[sn]) ? sn : ''; }
+  /* A blank Site Instruction Ref or BHP VO Direction No. (blank, NA, N/A, none, a
+     dash) drops its whole segment out of the CONCAT name rather than writing
+     _SI-NA or _VD-NA. Same rule as the chart labels. */
+  function isBlankRef(v) { var t = String(v == null ? '' : v).trim(); return !t || /^(n\/?a|none|nil|-|—)$/i.test(t); }
   function concatName(r) {
     var vo = pad2(r.voNo) || 'NA';
-    var si = String(r.siRef == null ? '' : r.siRef).trim() || 'NA';
+    var siRaw = String(r.siRef == null ? '' : r.siRef).trim();
     var vdRaw = String(r.bhpVd == null ? '' : r.bhpVd).trim();
-    var vd = vdRaw ? pad2(vdRaw) : 'NA';
     var rev = (r.rev === '' || r.rev == null) ? 0 : r.rev;
-    return 'VAR-' + vo + '_SI-' + si + '_VD-' + vd + ' ' + String(r.desc || '') + '_REV' + rev;
+    var head = 'VAR-' + vo;
+    if (!isBlankRef(siRaw)) head += '_SI-' + siRaw;
+    if (!isBlankRef(vdRaw)) head += '_VD-' + pad2(vdRaw);
+    return head + ' ' + String(r.desc || '') + '_REV' + rev;
   }
   function recomputeAuto() {
     S.allRows.forEach(function (r) {
@@ -1352,13 +1358,57 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
   }
   function shortMoney(v) { var a = Math.abs(v); var s = a >= 1000000 ? (a / 1000000).toFixed(1) + 'm' : a >= 1000 ? Math.round(a / 1000) + 'k' : Math.round(a); return (v < 0 ? '-$' : '$') + s; }
 
-  /* ---- status chart ---- */
+  /* ---- CHART panel ---------------------------------------------------------
+     Four charts share one panel and one chart-type cycle (Donut / Bars / Pie):
+       By Status            counts of VOs per status  (click a slice to filter)
+       By Claimed Amount    one slice or bar per VO, MPS VO Claim/Proposal Amount
+       By Approved Amount   one slice or bar per VO, BHP Assessed/Approved Amount
+       Claimed vs Assessed  the two TOTALS side by side (not per VO — the per-VO
+                            comparison lives in the STATS bar chart)
+     Each source hands back a plain series, so the drawing code below is shared. */
   var CT_NEXT = { donut: 'bar', bar: 'pie', pie: 'donut' }, CT_LABEL = { donut: 'Bars', bar: 'Pie Chart', pie: 'Donut' };
+  var CHART_SRCS = [
+    { key: 'status', label: 'By Status' },
+    { key: 'claim', label: 'By Claimed Amount' },
+    { key: 'assessed', label: 'By Approved Amount' },
+    { key: 'cvatot', label: 'Claimed vs Assessed' }
+  ];
+  function chartSrc() { var k = S.chartSrc || 'status'; for (var i = 0; i < CHART_SRCS.length; i++) if (CHART_SRCS[i].key === k) return CHART_SRCS[i]; return CHART_SRCS[0]; }
+  function nextChartSrc() { var k = chartSrc().key; for (var i = 0; i < CHART_SRCS.length; i++) if (CHART_SRCS[i].key === k) return CHART_SRCS[(i + 1) % CHART_SRCS.length]; return CHART_SRCS[0]; }
+  function voHue(i) { return 'hsl(' + Math.round((i * 137.508) % 360) + ',58%,46%)'; }
+  /* the four sources, each returning { title, money, legend, items[] } */
+  function chartSeries() {
+    var src = chartSrc().key, dark = !!S.darkMode;
+    if (src === 'status') {
+      var counts = scCounts(), keys = scKeys(counts), total = 0; keys.forEach(function (k) { total += counts[k]; });
+      return { title: 'Status (' + total + ')', money: false, legend: true, total: total,
+        items: keys.map(function (k) {
+          var c = statusColor(k); if (c === '#ffffff' && dark) c = '#dfe7f0';
+          return { key: k, label: (k === '—' ? '(blank)' : k), value: counts[k], col: c, onclick: function () { toggleStatusFilter(k); }, tipLabel: 'Filter to ' + k };
+        }) };
+    }
+    if (src === 'cvatot') {
+      var cl = 0, as = 0; S.filtered.forEach(function (r) { cl += (r._claim || 0); as += (r._assessed || 0); });
+      return { title: 'Claimed vs Assessed — ' + money(round2(cl)) + ' vs ' + money(round2(as)), money: true, legend: true, total: cl + as,
+        items: [{ key: 'claim', label: 'MPS Claimed', value: cl, col: CLAIM_COL },
+                { key: 'assessed', label: 'BHP Assessed', value: as, col: ASSESS_COL }] };
+    }
+    var claim = (src === 'claim');
+    var rows = S.filtered.slice().sort(byVoNo), sum = 0;
+    rows.forEach(function (r) { sum += ((claim ? r._claim : r._assessed) || 0); });
+    return { title: (claim ? 'MPS Claimed per VO — ' : 'BHP Assessed per VO — ') + money(round2(sum)), money: true, legend: false, perVo: true, total: sum,
+      items: rows.map(function (r, i) {
+        return { key: String(r.voNo), label: voLabel(r), value: (claim ? r._claim : r._assessed) || 0, col: voHue(i),
+          onclick: function () { setHiVo(r.voNo); }, tipLabel: voLabel(r) + (r.desc ? ' · ' + r.desc : ''), sub: r.desc || '' };
+      }) };
+  }
   function renderChart() {
     var ctl = root.getElementById('chartctl');
     if (ctl) {
       ctl.innerHTML = '';
       ctl.appendChild(el('span', { class: 'ccount', title: 'VOs in the current view' }, [String(S.rows.length) + ' · VOs']));
+      var ns = nextChartSrc();
+      ctl.appendChild(btn(ns.label, 'Switch the chart to ' + ns.label + ' (cycles By Status → By Claimed Amount → By Approved Amount → Claimed vs Assessed)', function () { S.chartSrc = nextChartSrc().key; saveCfg(); renderChart(); }, 'chart'));
       var nextLbl = CT_LABEL[S.chartType] || 'Bars';
       ctl.appendChild(btn(nextLbl, 'Switch the chart to ' + nextLbl + ' (cycles Donut → Bars → Pie)', function () { S.chartType = CT_NEXT[S.chartType] || 'donut'; saveCfg(); renderChart(); }, 'chart'));
       ctl.appendChild(el('button', { class: 'chip' + (S.chartAutoFit ? ' active' : ''), title: 'Size the chart to fill its panel automatically. Moving the size slider turns this off.', onclick: function () { S.chartAutoFit = !S.chartAutoFit; saveCfg(); renderChart(); } }, ['Autofit']));
@@ -1403,11 +1453,17 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
   }
 
   function ocChart() {
-    var counts = scCounts(), keys = scKeys(counts), total = 0; keys.forEach(function (k) { total += counts[k]; });
-    var wrapEl = el('div', { class: 'pchart', title: 'Status breakdown — ' + total + ' VO' + (total === 1 ? '' : 's') });
-    var sc = S.chartScale || 1, dark = !!S.darkMode;
-    wrapEl.appendChild(el('div', { class: 'pctitle', style: 'color:' + (dark ? '#dfe7f0' : NAVY) }, ['Status (' + total + ')']));
-    function colFor(k) { var c = statusColor(k); return (c === '#ffffff' && dark) ? '#dfe7f0' : c; }
+    var ser = chartSeries(), items = ser.items || [], total = 0;
+    items.forEach(function (it) { total += Math.max(0, it.value || 0); });
+    var sc = S.chartScale || 1, dark = !!S.darkMode, perVo = !!ser.perVo;
+    function fmt(v) { return ser.money ? money(round2(v)) : String(v); }
+    function shortFmt(v) { return ser.money ? shortMoney(v) : String(v); }
+    var wrapEl = el('div', { class: 'pchart', title: ser.title });
+    wrapEl.appendChild(el('div', { class: 'pctitle', style: 'color:' + (dark ? '#dfe7f0' : NAVY) }, [ser.title]));
+    if (!items.length || total <= 0) {
+      wrapEl.appendChild(el('div', { class: 'muted', style: 'font-size:11px;padding:10px' }, ['Nothing to chart in the current view.']));
+      return wrapEl;
+    }
     if (S.chartType === 'donut' || S.chartType === 'pie') {
       var pie = S.chartType === 'pie', ringBg = dark ? '#111b28' : '#eef2f7', ctrInk = dark ? '#dfe7f0' : NAVY;
       var vb = 120, r = 42, cx = 60, cy = 60, sw = 18, CC2 = 2 * Math.PI * r, off = 0;
@@ -1415,50 +1471,70 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
       if (!pie) {
         var gap = (total > 0) ? 4 : 0;
         svg.appendChild(svgEl('circle', { cx: cx, cy: cy, r: r, fill: 'none', stroke: ringBg, 'stroke-width': sw }));
-        keys.forEach(function (k) {
-          var frac = total ? counts[k] / total : 0; if (frac <= 0) return;
-          var seg = svgEl('circle', { cx: cx, cy: cy, r: r, fill: 'none', stroke: colFor(k), 'stroke-width': sw, 'stroke-dasharray': Math.max(0.01, frac * CC2 - gap) + ' ' + CC2, transform: 'rotate(-90 ' + cx + ' ' + cy + ')', 'stroke-dashoffset': CC2 });
-          seg.style.transition = 'stroke-dashoffset 1s ease'; seg.style.cursor = 'pointer';
-          var tt = svgEl('title', {}); tt.textContent = k + ': ' + counts[k]; seg.appendChild(tt);
-          seg.onclick = function () { toggleStatusFilter(k); }; svg.appendChild(seg);
+        items.forEach(function (it) {
+          var frac = total ? Math.max(0, it.value || 0) / total : 0; if (frac <= 0) return;
+          var seg = svgEl('circle', { cx: cx, cy: cy, r: r, fill: 'none', stroke: it.col, 'stroke-width': sw, 'stroke-dasharray': Math.max(0.01, frac * CC2 - gap) + ' ' + CC2, transform: 'rotate(-90 ' + cx + ' ' + cy + ')', 'stroke-dashoffset': CC2 });
+          seg.style.transition = 'stroke-dashoffset 1s ease';
+          var tt = svgEl('title', {}); tt.textContent = (it.tipLabel || it.label) + ': ' + fmt(it.value); seg.appendChild(tt);
+          if (it.onclick) { seg.style.cursor = 'pointer'; seg.onclick = it.onclick; }
+          svg.appendChild(seg);
           (function (so, o) { requestAnimationFrame(function () { requestAnimationFrame(function () { so.setAttribute('stroke-dashoffset', (-o * CC2)); }); }); })(seg, off);
           off += frac;
         });
-        var lt = svgEl('text', { x: cx, y: cy + 6, 'text-anchor': 'middle', 'font-size': '22', 'font-weight': '700', fill: ctrInk }); lt.textContent = String(total); svg.appendChild(lt);
+        var ctrTxt = ser.money ? shortMoney(total) : String(total);
+        var lt = svgEl('text', { x: cx, y: cy + 6, 'text-anchor': 'middle', 'font-size': (ctrTxt.length > 5 ? '14' : '22'), 'font-weight': '700', fill: ctrInk }); lt.textContent = ctrTxt; svg.appendChild(lt);
       } else {
         var pr = 48, a0 = -Math.PI / 2;
-        keys.forEach(function (k) {
-          var frac = total ? counts[k] / total : 0; if (frac <= 0) return;
+        items.forEach(function (it) {
+          var frac = total ? Math.max(0, it.value || 0) / total : 0; if (frac <= 0) return;
           var a1 = a0 + frac * 2 * Math.PI, sh;
-          if (frac >= 0.9999) sh = svgEl('circle', { cx: cx, cy: cy, r: pr, fill: colFor(k), stroke: '#fff', 'stroke-width': '1' });
-          else { var x1 = cx + pr * Math.cos(a0), y1 = cy + pr * Math.sin(a0), x2 = cx + pr * Math.cos(a1), y2 = cy + pr * Math.sin(a1), large = (a1 - a0) > Math.PI ? 1 : 0; sh = svgEl('path', { d: 'M' + cx + ' ' + cy + ' L' + x1.toFixed(2) + ' ' + y1.toFixed(2) + ' A' + pr + ' ' + pr + ' 0 ' + large + ' 1 ' + x2.toFixed(2) + ' ' + y2.toFixed(2) + ' Z', fill: colFor(k), stroke: '#fff', 'stroke-width': '1' }); }
-          sh.style.cursor = 'pointer'; var tt = svgEl('title', {}); tt.textContent = k + ': ' + counts[k]; sh.appendChild(tt); sh.onclick = function () { toggleStatusFilter(k); }; svg.appendChild(sh); a0 = a1;
+          if (frac >= 0.9999) sh = svgEl('circle', { cx: cx, cy: cy, r: pr, fill: it.col, stroke: '#fff', 'stroke-width': '1' });
+          else { var x1 = cx + pr * Math.cos(a0), y1 = cy + pr * Math.sin(a0), x2 = cx + pr * Math.cos(a1), y2 = cy + pr * Math.sin(a1), large = (a1 - a0) > Math.PI ? 1 : 0; sh = svgEl('path', { d: 'M' + cx + ' ' + cy + ' L' + x1.toFixed(2) + ' ' + y1.toFixed(2) + ' A' + pr + ' ' + pr + ' 0 ' + large + ' 1 ' + x2.toFixed(2) + ' ' + y2.toFixed(2) + ' Z', fill: it.col, stroke: '#fff', 'stroke-width': '1' }); }
+          var tt2 = svgEl('title', {}); tt2.textContent = (it.tipLabel || it.label) + ': ' + fmt(it.value); sh.appendChild(tt2);
+          if (it.onclick) { sh.style.cursor = 'pointer'; sh.onclick = it.onclick; }
+          svg.appendChild(sh); a0 = a1;
         });
       }
       wrapEl.appendChild(svg);
-      var lg = el('div', { class: 'plegend' });
-      keys.forEach(function (k) { var d = el('div', { title: 'Filter to ' + k, onclick: function () { toggleStatusFilter(k); } }); var i = el('i'); i.style.background = colFor(k); d.appendChild(i); d.appendChild(document.createTextNode(k)); d.appendChild(el('b', {}, [String(counts[k])])); lg.appendChild(d); });
-      wrapEl.appendChild(lg);
+      if (ser.legend) {
+        var lg = el('div', { class: 'plegend' });
+        items.forEach(function (it) {
+          var d = el('div', it.onclick ? { title: it.tipLabel || it.label, onclick: it.onclick } : { title: it.tipLabel || it.label });
+          var i2 = el('i'); i2.style.background = it.col; d.appendChild(i2); d.appendChild(document.createTextNode(it.label)); d.appendChild(el('b', {}, [fmt(it.value)])); lg.appendChild(d);
+        });
+        wrapEl.appendChild(lg);
+      }
     } else {
-      var nn = Math.max(1, keys.length), bw = 36, gp = 26, mL = 30, mR = 14, topPad = 18, plotH = 150, botPad = 70;
+      /* bars — narrower when there is one bar per VO, so twenty of them still
+         fit the panel once Autofit has scaled the drawing */
+      var nn = items.length;
+      var bw = perVo ? 14 : 36, gp = perVo ? 8 : 26, mL = ser.money ? 44 : 30, mR = 14, topPad = 18, plotH = 150, botPad = perVo ? 64 : 70;
       var W = mL + nn * (bw + gp) + gp + mR, H = topPad + plotH + botPad, baseY = topPad + plotH, x0 = mL + gp;
       var bInk = dark ? '#dfe7f0' : NAVY, bGrid = dark ? '#22303f' : '#e6ebf0', bAxis = dark ? '#3a4d64' : '#cfd8e3', bY = dark ? '#8fa0b4' : '#8a939b', bX = dark ? '#9aa8bb' : '#5b6b7b';
-      var maxv = 1; keys.forEach(function (k) { if (counts[k] > maxv) maxv = counts[k]; });
-      var top = (maxv % 2 === 0) ? maxv : maxv + 1; if (top < 2) top = 2; var mid = top / 2;
+      var maxv = 0; items.forEach(function (it) { if ((it.value || 0) > maxv) maxv = it.value || 0; });
+      var top = maxv;
+      if (!ser.money) { top = (maxv % 2 === 0) ? maxv : maxv + 1; if (top < 2) top = 2; }
+      if (top <= 0) top = 1;
+      var mid = top / 2;
       var svg2 = svgEl('svg', { width: Math.round(W * sc), height: Math.round(H * sc), viewBox: '0 0 ' + W + ' ' + H });
       [[top, topPad], [mid, baseY - plotH * (mid / top)], [0, baseY]].forEach(function (t) {
         svg2.appendChild(svgEl('line', { x1: mL, x2: W - mR, y1: t[1], y2: t[1], stroke: bGrid }));
-        var tl = svgEl('text', { x: mL - 6, y: t[1] + 3, 'text-anchor': 'end', 'font-size': '10', fill: bY }); tl.textContent = String(t[0]); svg2.appendChild(tl);
+        var tl = svgEl('text', { x: mL - 6, y: t[1] + 3, 'text-anchor': 'end', 'font-size': '10', fill: bY }); tl.textContent = shortFmt(t[0]); svg2.appendChild(tl);
       });
       svg2.appendChild(svgEl('line', { x1: mL, x2: mL, y1: topPad, y2: baseY, stroke: bAxis }));
-      keys.forEach(function (k, i) {
-        var h = Math.round((counts[k] / top) * plotH), x = x0 + i * (bw + gp), cxb = x + bw / 2;
-        var rect = svgEl('rect', { x: x, width: bw, rx: 3, fill: colFor(k), y: baseY, height: 0 });
-        rect.style.transition = 'height 1s ease, y 1s ease'; rect.style.cursor = 'pointer';
-        var tt = svgEl('title', {}); tt.textContent = k + ': ' + counts[k]; rect.appendChild(tt); rect.onclick = function () { toggleStatusFilter(k); }; svg2.appendChild(rect);
-        var vl = svgEl('text', { x: cxb, y: baseY - h - 6, 'text-anchor': 'middle', 'font-size': '12', 'font-weight': '700', fill: bInk }); vl.textContent = String(counts[k]); svg2.appendChild(vl);
-        var xl = svgEl('text', { x: cxb, y: baseY + 13, 'text-anchor': 'end', 'font-size': '10', fill: bX, transform: 'rotate(-40 ' + cxb + ' ' + (baseY + 13) + ')' }); xl.textContent = (k === '—' ? '(blank)' : k); svg2.appendChild(xl);
-        (function (rc, hh, vlab) { requestAnimationFrame(function () { requestAnimationFrame(function () { rc.setAttribute('y', baseY - hh); rc.setAttribute('height', hh); vlab.setAttribute('y', baseY - hh - 6); }); }); })(rect, h, vl);
+      items.forEach(function (it, i) {
+        var v = Math.max(0, it.value || 0);
+        var h = Math.round((v / top) * plotH), x = x0 + i * (bw + gp), cxb = x + bw / 2;
+        var rect = svgEl('rect', { x: x, width: bw, rx: 3, fill: it.col, y: baseY, height: 0 });
+        rect.style.transition = 'height 1s ease, y 1s ease';
+        var tt3 = svgEl('title', {}); tt3.textContent = (it.tipLabel || it.label) + ': ' + fmt(it.value); rect.appendChild(tt3);
+        if (it.onclick) { rect.style.cursor = 'pointer'; rect.onclick = it.onclick; }
+        svg2.appendChild(rect);
+        var vl = null;
+        if (!perVo) { vl = svgEl('text', { x: cxb, y: baseY - h - 6, 'text-anchor': 'middle', 'font-size': '12', 'font-weight': '700', fill: bInk }); vl.textContent = shortFmt(it.value); svg2.appendChild(vl); }
+        var xl = svgEl('text', { x: cxb, y: baseY + 13, 'text-anchor': 'end', 'font-size': (perVo ? '9' : '10'), fill: bX, transform: 'rotate(' + (perVo ? -55 : -40) + ' ' + cxb + ' ' + (baseY + 13) + ')' });
+        xl.textContent = it.label; svg2.appendChild(xl);
+        (function (rc, hh, vlab) { requestAnimationFrame(function () { requestAnimationFrame(function () { rc.setAttribute('y', baseY - hh); rc.setAttribute('height', hh); if (vlab) vlab.setAttribute('y', baseY - hh - 6); }); }); })(rect, h, vl);
       });
       svg2.appendChild(svgEl('line', { x1: mL, x2: W - mR, y1: baseY, y2: baseY, stroke: bAxis }));
       wrapEl.appendChild(svg2);
@@ -2520,8 +2596,12 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
 
       if (String(row.concat || '').trim()) put('concat', { v: String(row.concat), st: st('concat') });
       else put('concat', {
-        f: '"VAR-"&TEXT($' + XL(XCOL.voNo) + r + ',"00")&"_SI-"&IF($' + XL(XCOL.siRef) + r + '="","NA",$' + XL(XCOL.siRef) + r + ')'
-          + '&"_VD-"&IF($' + XL(XCOL.bhpVd) + r + '="","NA",IF(ISNUMBER($' + XL(XCOL.bhpVd) + r + '),TEXT($' + XL(XCOL.bhpVd) + r + ',"00"),$' + XL(XCOL.bhpVd) + r + '))'
+        /* blank / NA / N/A drops the whole _SI- or _VD- segment, exactly as the
+           dashboard renders it — the formula stays live, so editing the source
+           cell in Excel adds the segment back the moment a value is entered */
+        f: '"VAR-"&TEXT($' + XL(XCOL.voNo) + r + ',"00")'
+          + '&IF(OR($' + XL(XCOL.siRef) + r + '="",UPPER($' + XL(XCOL.siRef) + r + ')="NA",UPPER($' + XL(XCOL.siRef) + r + ')="N/A"),"","_SI-"&$' + XL(XCOL.siRef) + r + ')'
+          + '&IF(OR($' + XL(XCOL.bhpVd) + r + '="",UPPER($' + XL(XCOL.bhpVd) + r + ')="NA",UPPER($' + XL(XCOL.bhpVd) + r + ')="N/A"),"","_VD-"&IF(ISNUMBER($' + XL(XCOL.bhpVd) + r + '),TEXT($' + XL(XCOL.bhpVd) + r + ',"00"),$' + XL(XCOL.bhpVd) + r + '))'
           + '&" "&$' + XL(XCOL.desc) + r + '&"_REV"&$' + XL(XCOL.rev) + r, st: st('concat')
       });
 
