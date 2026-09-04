@@ -21,7 +21,7 @@
   if (window.__MPS_ACONEX_VAR && window.__MPS_ACONEX_VAR.__live) { window.__MPS_ACONEX_VAR.boot(); return; }
 
   var NAVY = '#0B2A4A', NAVY2 = '#123a63', ACCENT = '#F26522', LINE = '#dfe4ea', INK = '#1f2d3d';
-  var VERSION = 'v12.15', BUILD_DATE = '4 Sep 2026';
+  var VERSION = 'v12.16', BUILD_DATE = '4 Sep 2026';
   var UI_FONTS = ['Segoe UI', 'Arial', 'Calibri', 'Helvetica', 'Roboto', 'Verdana', 'Tahoma', 'Trebuchet MS', 'Georgia', 'Times New Roman', 'Courier New', 'system-ui'];
   var DEF_FONT = '"Segoe UI",Arial,sans-serif', DEF_BASEPX = 13;
   function fontStack(f) { return f ? ('"' + f + '","Segoe UI",Arial,sans-serif') : DEF_FONT; }
@@ -96,7 +96,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
       selFilters: {}, selKnown: {}, colPri: {}, colDefW: {}, chartScale: 1, colorSchemes: { status: {}, type: {} }, fontFamily: '', baseFont: DEF_BASEPX,
       darkMode: false, collapsed: {}, fontScale: 100, padScale: 100, hpadScale: 100, hdrFontSize: null, hdrMaxLines: 2,
       statusSel: '__ALL__', xProjectId: '', xProjectName: '', colNames: {}, statusList: STATUS_WORKFLOW.slice(),
-      activeSheet: '', barStat: 'diff', barScale: 1, chartAutoFit: true, barHide: [], chartSrc: 'status'
+      activeSheet: '', barStat: 'diff', barScale: 1, chartAutoFit: true, barHide: [], chartHide: [], chartSrc: 'status'
     };
   }
   var LKEY = 'mps_aconex_var_cfg_' + CFG.mpsProjectNo, DKEY = 'mps_aconex_var_defcfg_' + CFG.mpsProjectNo;
@@ -130,6 +130,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     out.statusList = (saved.statusList && saved.statusList.length ? saved.statusList : STATUS_WORKFLOW.slice());
     out.chartAutoFit = (saved.chartAutoFit !== false);
     out.barHide = (saved.barHide && saved.barHide.length ? saved.barHide.slice() : []);
+    out.chartHide = (saved.chartHide && saved.chartHide.length ? saved.chartHide.slice() : []);
     /* v12.12: Claimed vs Assessed moved out of the CHART panel and into the STATS
        bar chart. Anyone who had it ticked there lands on it in its new home. */
     if (saved.activeCharts && saved.activeCharts.indexOf('cva') >= 0 && saved.activeCharts.indexOf('status') < 0) out.barStat = 'cva';
@@ -137,7 +138,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
   }
   var CFGKEYS = ['order', 'cols', 'icols', 'fontSize', 'rowPad', 'wrap', 'chartType', 'selFilters', 'selKnown', 'colPri', 'colDefW', 'chartScale', 'colorSchemes',
     'fontFamily', 'baseFont', 'darkMode', 'collapsed', 'fontScale', 'padScale', 'hpadScale', 'hdrFontSize', 'hdrMaxLines',
-    'statusSel', 'xProjectId', 'xProjectName', 'colNames', 'statusList', 'activeSheet', 'barStat', 'barScale', 'chartAutoFit', 'barHide', 'chartSrc'];
+    'statusSel', 'xProjectId', 'xProjectName', 'colNames', 'statusList', 'activeSheet', 'barStat', 'barScale', 'chartAutoFit', 'barHide', 'chartHide', 'chartSrc'];
   function snapCfg() { var o = {}; CFGKEYS.forEach(function (k) { o[k] = S[k]; }); return o; }
   function saveCfg() { try { localStorage.setItem(LKEY, JSON.stringify(snapCfg())); } catch (e) { } }
   function setAsDefault() { try { localStorage.setItem(DKEY, JSON.stringify(snapCfg())); } catch (e) { } toast('Saved as your default view'); }
@@ -944,7 +945,11 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     +'.cgrow>.cpanel.cpt>.cpbody{flex:1 1 auto;display:flex;min-height:0}'
     +'.charts{flex:1 1 auto;display:flex;align-items:center;justify-content:center;padding:10px;box-sizing:border-box;min-height:0}'
     +'.chartsrow{align-items:center;justify-content:center;align-content:center;width:100%}'
-    +'#barlegend{margin-top:2px}';}
+    +'#barlegend{margin-top:2px}'
+    +'.btn.dvo{white-space:nowrap}'
+    +'.btn.dvo.on{background:#0B2A4A;border-color:#0B2A4A;color:#fff;font-weight:700}'
+    +'.btn.dvo.on:hover{background:#123a63}'
+    +'.dark .btn.dvo.on{background:#2f8bff;border-color:#2f8bff;color:#04203a}';}
 
 
   /* ---- collapsible panels ---- */
@@ -1214,45 +1219,65 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
                { label: 'BHP Assessed', col: ASSESS_COL, val: function (r) { return r._assessed || 0; } }],
       val: function (r) { return r._claim || 0; } }
   ];
-  /* ---- which VOs appear in the bar chart ----------------------------------
-     One outlier (VO 1 at ~20x the next) flattens every other bar. Ticking it out
-     here drops it from the CHART only: the register, the filters, the STATS tiles
-     and the export are untouched. Kept in S.barHide, so it survives a reload. */
-  function barHidden() { if (!S.barHide) S.barHide = []; return S.barHide; }
-  function barKey(r) { return String(r.voNo == null ? '' : r.voNo).trim(); }
-  function barAllRows() { return S.filtered.slice().sort(byVoNo); }
-  function barShownRows() { var h = barHidden(); return barAllRows().filter(function (r) { return h.indexOf(barKey(r)) < 0; }); }
-  function barItemsPanel(anchor) {
+  /* ---- which VOs appear in a chart -----------------------------------------
+     Two independent selections, one per panel: S.barHide for the STATS bar chart
+     and S.chartHide for the CHART panel. Either can be copied onto the other from
+     inside its dropdown. Both are chart-only: the register, the filters, the STATS
+     tiles, the totals and the export always carry every VO. */
+  function voHiddenList(which) {
+    if (which === 'chart') { if (!S.chartHide) S.chartHide = []; return S.chartHide; }
+    if (!S.barHide) S.barHide = []; return S.barHide;
+  }
+  function voKey(r) { return String(r.voNo == null ? '' : r.voNo).trim(); }
+  function voAllRows() { return S.filtered.slice().sort(byVoNo); }
+  function voShownRows(which) { var h = voHiddenList(which); return voAllRows().filter(function (r) { return h.indexOf(voKey(r)) < 0; }); }
+  function setVoHidden(which, list) {
+    if (which === 'chart') { S.chartHide = list; saveCfg(); renderChart(); }
+    else { S.barHide = list; saveCfg(); renderVarBar(); }
+  }
+  /* kept for readability at the call sites */
+  function barHidden() { return voHiddenList('bar'); }
+  function barKey(r) { return voKey(r); }
+  function barAllRows() { return voAllRows(); }
+  function barShownRows() { return voShownRows('bar'); }
+  function voPickerPanel(which, anchor) {
     var wrapEl = root.getElementById('wrap');
-    var ex = root.getElementById('bipanel'); if (ex) { ex.remove(); return; }
-    var panel = el('div', { id: 'bipanel', class: 'mfpanel', style: 'min-width:210px' });
+    var pid = (which === 'chart' ? 'cipanel' : 'bipanel'), trigId = (which === 'chart' ? 'chartfilt' : 'barfilt');
+    var other = (which === 'chart' ? 'bar' : 'chart');
+    var ex = root.getElementById(pid); if (ex) { ex.remove(); return; }
+    var panel = el('div', { id: pid, class: 'mfpanel', style: 'min-width:210px' });
     var listWrap = el('div', {});
     var srch = el('input', { type: 'search', placeholder: '\u2315 Filter VOs\u2026', style: 'width:100%;box-sizing:border-box;font-size:11px;padding:2px 5px;border:1px solid #cfd8e3;border-radius:4px;margin-bottom:4px' });
     function apply(list) {
-      S.barHide = list; saveCfg(); renderVarBar();
-      /* the header (and the trigger) is rebuilt by renderVarBar, so re-anchor */
-      var a2 = root.getElementById('barfilt');
+      setVoHidden(which, list);
+      /* the header (and the trigger) is rebuilt by the re-render, so re-anchor */
+      var a2 = root.getElementById(trigId);
       if (a2 && panel.isConnected) placePanel(panel, a2, { w: 210, maxH: 320 });
     }
     function build() {
       listWrap.innerHTML = '';
-      var q = (srch.value || '').toLowerCase(), h = barHidden(), all = barAllRows();
+      var q = (srch.value || '').toLowerCase(), h = voHiddenList(which), all = voAllRows();
       var shown = all.filter(function (r) { return !q || (voLabel(r) + ' ' + (r.desc || '')).toLowerCase().indexOf(q) >= 0; });
       if (!shown.length) { listWrap.appendChild(el('div', { class: 'muted', style: 'font-size:11px;padding:4px' }, ['No matches.'])); return; }
       shown.forEach(function (r) {
-        var k = barKey(r), cb = el('input', { type: 'checkbox' });
+        var k = voKey(r), cb = el('input', { type: 'checkbox' });
         cb.checked = h.indexOf(k) < 0;
-        cb.onchange = function () { var s = barHidden().slice(), i = s.indexOf(k); if (cb.checked) { if (i >= 0) s.splice(i, 1); } else if (i < 0) s.push(k); apply(s); };
+        cb.onchange = function () { var t = voHiddenList(which).slice(), i = t.indexOf(k); if (cb.checked) { if (i >= 0) t.splice(i, 1); } else if (i < 0) t.push(k); apply(t); };
         listWrap.appendChild(el('label', { class: 'mfrow', title: r.desc || '' }, [cb, el('span', { style: 'flex:1' }, [voLabel(r)])]));
       });
     }
     srch.oninput = function () { build(); };
     panel.appendChild(el('div', { class: 'mfhd' }, [
-      el('a', { title: 'Show every VO in the chart', onclick: function () { apply([]); build(); } }, ['(All)']),
-      el('a', { title: 'Hide every VO from the chart', onclick: function () { apply(barAllRows().map(barKey)); build(); } }, ['(None)']),
-      el('a', { title: 'Swap what is shown and what is hidden', onclick: function () { var h = barHidden(); apply(barAllRows().map(barKey).filter(function (k) { return h.indexOf(k) < 0; })); build(); } }, ['(Invert)']),
+      el('a', { title: 'Show every VO', onclick: function () { apply([]); build(); } }, ['(All)']),
+      el('a', { title: 'Hide every VO', onclick: function () { apply(voAllRows().map(voKey)); build(); } }, ['(None)']),
+      el('a', { title: 'Swap what is shown and what is hidden', onclick: function () { var h = voHiddenList(which); apply(voAllRows().map(voKey).filter(function (k) { return h.indexOf(k) < 0; })); build(); } }, ['(Invert)']),
       el('a', { title: 'Close', style: 'margin-left:auto', onclick: function () { panel.remove(); } }, ['\u2715'])
     ]));
+    var copyLbl = (which === 'chart') ? 'Copy STATS Displayed VOs' : 'Copy CHART Displayed VOs';
+    var copyTip = (which === 'chart')
+      ? 'Match the CHART panel to whatever the STATS bar chart is showing'
+      : 'Match the STATS bar chart to whatever the CHART panel is showing';
+    panel.appendChild(el('button', { class: 'btn', style: 'width:100%;margin-bottom:4px', title: copyTip, onclick: function () { apply(voHiddenList(other).slice()); build(); } }, [copyLbl]));
     panel.appendChild(srch); build(); panel.appendChild(listWrap); wrapEl.appendChild(panel);
     placePanel(panel, anchor, { w: 210, maxH: 320 });
   }
@@ -1266,7 +1291,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     var sz = el('input', { type: 'range', min: '20', max: '240', value: String(Math.round((S.barScale || 1) * 100)), class: 'rng', style: 'width:150px', title: 'Resize the bars' });
     sz.oninput = function () { S.barScale = (+sz.value) / 100; saveCfg(); drawVarBar(); };
     var af = el('button', { class: 'btn sq', title: 'Autofit — size the bars so every VO fits the panel width', onclick: function () { autofitBars(); } }, ['Autofit']);
-    var fil = el('button', { id: 'barfilt', class: 'chip' + (nHid ? ' active' : ''), title: 'Choose which VOs the chart draws — untick an outlier to read the rest. The register and totals are not affected.', onclick: function () { barItemsPanel(fil); } }, ['VOs shown' + (nHid ? ' (' + rows.length + '/' + all.length + ')' : '')]);
+    var fil = el('button', { id: 'barfilt', class: 'btn sq dvo' + (nHid ? ' on' : ''), title: 'Choose which VOs this chart draws — untick an outlier to read the rest. The register and totals are not affected.', onclick: function () { voPickerPanel('bar', fil); } }, ['Displayed VOs' + (nHid ? ' (' + rows.length + '/' + all.length + ')' : '')]);
     var cntTxt = nHid ? (rows.length + ' of ' + all.length + ' VOs') : (rows.length + ' VO' + (rows.length === 1 ? '' : 's'));
     box.appendChild(el('div', { class: 'dohd' }, [el('span', { class: 'dotitle' }, [def.label]), el('span', { class: 'muted', style: 'font-size:11px' }, [cntTxt]), btns,
       el('span', { style: 'margin-left:auto;display:inline-flex;align-items:center;gap:6px' }, [fil, af, el('span', { class: 'muted', style: 'font-size:11px' }, ['Bar Size']), sz])]));
@@ -1380,7 +1405,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
   function chartSeries() {
     var src = chartSrc().key, dark = !!S.darkMode;
     if (src === 'status') {
-      var counts = scCounts(), keys = scKeys(counts), total = 0; keys.forEach(function (k) { total += counts[k]; });
+      var counts = scCounts(voShownRows('chart')), keys = scKeys(counts), total = 0; keys.forEach(function (k) { total += counts[k]; });
       return { title: 'Status (' + total + ')', money: false, legend: true, total: total,
         items: keys.map(function (k) {
           var c = statusColor(k); if (c === '#ffffff' && dark) c = '#dfe7f0';
@@ -1388,13 +1413,13 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
         }) };
     }
     if (src === 'cvatot') {
-      var cl = 0, as = 0; S.filtered.forEach(function (r) { cl += (r._claim || 0); as += (r._assessed || 0); });
+      var cl = 0, as = 0; voShownRows('chart').forEach(function (r) { cl += (r._claim || 0); as += (r._assessed || 0); });
       return { title: 'Claimed vs Assessed — ' + money(round2(cl)) + ' vs ' + money(round2(as)), money: true, legend: true, total: cl + as,
         items: [{ key: 'claim', label: 'MPS Claimed', value: cl, col: CLAIM_COL },
                 { key: 'assessed', label: 'BHP Assessed', value: as, col: ASSESS_COL }] };
     }
     var claim = (src === 'claim');
-    var rows = S.filtered.slice().sort(byVoNo), sum = 0;
+    var rows = voShownRows('chart'), sum = 0;
     rows.forEach(function (r) { sum += ((claim ? r._claim : r._assessed) || 0); });
     return { title: (claim ? 'MPS Claimed per VO — ' : 'BHP Assessed per VO — ') + money(round2(sum)), money: true, legend: false, perVo: true, total: sum,
       items: rows.map(function (r, i) {
@@ -1406,9 +1431,13 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     var ctl = root.getElementById('chartctl');
     if (ctl) {
       ctl.innerHTML = '';
-      ctl.appendChild(el('span', { class: 'ccount', title: 'VOs in the current view' }, [String(S.rows.length) + ' · VOs']));
+      var cnAll = voAllRows().length, cnShown = voShownRows('chart').length;
+      ctl.appendChild(el('span', { class: 'ccount', title: 'VOs drawn in this chart out of the current view' }, [(cnShown === cnAll ? String(S.rows.length) : cnShown + ' of ' + cnAll) + ' · VOs']));
       var ns = nextChartSrc();
       ctl.appendChild(btn(ns.label, 'Switch the chart to ' + ns.label + ' (cycles By Status → By Claimed Amount → By Approved Amount → Claimed vs Assessed)', function () { S.chartSrc = nextChartSrc().key; saveCfg(); renderChart(); }, 'chart'));
+      var cAll = voAllRows(), cShown = voShownRows('chart'), cHid = cAll.length - cShown.length;
+      var cfil = el('button', { id: 'chartfilt', class: 'btn sq dvo' + (cHid ? ' on' : ''), title: 'Choose which VOs this chart draws — untick an outlier to read the rest. The register and totals are not affected.', onclick: function () { voPickerPanel('chart', cfil); } }, ['Displayed VOs' + (cHid ? ' (' + cShown.length + '/' + cAll.length + ')' : '')]);
+      ctl.appendChild(cfil);
       var nextLbl = CT_LABEL[S.chartType] || 'Bars';
       ctl.appendChild(btn(nextLbl, 'Switch the chart to ' + nextLbl + ' (cycles Donut → Bars → Pie)', function () { S.chartType = CT_NEXT[S.chartType] || 'donut'; saveCfg(); renderChart(); }, 'chart'));
       ctl.appendChild(el('button', { class: 'chip' + (S.chartAutoFit ? ' active' : ''), title: 'Size the chart to fill its panel automatically. Moving the size slider turns this off.', onclick: function () { S.chartAutoFit = !S.chartAutoFit; saveCfg(); renderChart(); } }, ['Autofit']));
@@ -1420,7 +1449,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     renderChartBody();
   }
   function statusRank(v) { return (S.statusList || STATUS_WORKFLOW).map(function (s) { return s.toLowerCase(); }).indexOf(String(v || '').toLowerCase()); }
-  function scCounts() { var c = {}; S.filtered.forEach(function (r) { var k = r.status || '—'; c[k] = (c[k] || 0) + 1; }); return c; }
+  function scCounts(rows) { var c = {}; (rows || S.filtered).forEach(function (r) { var k = r.status || '—'; c[k] = (c[k] || 0) + 1; }); return c; }
   function scKeys(counts) { return Object.keys(counts).sort(function (a, b) { var ra = statusRank(a), rb = statusRank(b); ra = ra < 0 ? 999 : ra; rb = rb < 0 ? 999 : rb; return ra !== rb ? ra - rb : (a < b ? -1 : 1); }); }
   function toggleStatusFilter(v) { var cur = S.selFilters.status; if (cur && cur.length === 1 && cur[0] === v) S.selFilters.status = null; else S.selFilters.status = [v]; applyFilters(); renderChart(); renderStats(); renderVarBar(); renderBody(); saveCfg(); }
   function renderChartBody() {
@@ -1469,7 +1498,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
       var vb = 120, r = 42, cx = 60, cy = 60, sw = 18, CC2 = 2 * Math.PI * r, off = 0;
       var svg = svgEl('svg', { width: Math.round(120 * sc), height: Math.round(120 * sc), viewBox: '0 0 ' + vb + ' ' + vb });
       if (!pie) {
-        var gap = (total > 0) ? 4 : 0;
+        var gap = (total > 0) ? 1 : 0;   /* v12.16: a quarter of the old 4px sector gap */
         svg.appendChild(svgEl('circle', { cx: cx, cy: cy, r: r, fill: 'none', stroke: ringBg, 'stroke-width': sw }));
         items.forEach(function (it) {
           var frac = total ? Math.max(0, it.value || 0) / total : 0; if (frac <= 0) return;
