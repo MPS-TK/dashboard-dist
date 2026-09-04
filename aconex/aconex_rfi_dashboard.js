@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.20', BUILD_DATE='4 Sep 2026';
+  var VERSION='v12.21', BUILD_DATE='4 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -106,6 +106,11 @@
 
   // ---- GitHub team sync (shares manual edits like the ITP module) ----
   var GH={repo:'MPS-TK/ITR-Dashboard',branch:'main',path:'aconex/rfi_overrides_'+CFG.mpsProjectNo+'.json',sha:null,timer:null,state:''};
+  function rfiSeenKey(){return 'mps_aconex_rfi_lastseen_'+CFG.mpsProjectNo;}
+  function rfiLoadSeen(){try{return JSON.parse(localStorage.getItem(rfiSeenKey())||'null');}catch(e){return null;}}
+  function rfiSaveSeen(n){try{localStorage.setItem(rfiSeenKey(),JSON.stringify({count:n,ts:Date.now()}));}catch(e){}}
+  function rfiCheckNew(){if(S._seenChecked)return;S._seenChecked=true;var cur=S.allRows.length;var prev=rfiLoadSeen();S._newBaseline=(prev&&typeof prev.count==='number')?prev.count:null;S._newTs=(prev&&prev.ts)?prev.ts:0;rfiSaveSeen(cur);}
+  function rfiAckNew(){S._newBaseline=S.allRows.length;rfiSaveSeen(S.allRows.length);renderAll();}
   function ghToken(){try{return localStorage.getItem('mps_gh_token')||localStorage.getItem('__itr_gh_token__')||'';}catch(e){return '';}}
   function ghHeaders(){return {Authorization:'token '+ghToken(),Accept:'application/vnd.github+json'};}
   function rowKey(r){return String(r.rfiNo||r.aconexRef||'');}
@@ -439,6 +444,7 @@
     +'#wrap table tr>th:first-child,#wrap table tr>td:first-child{padding-left:16px!important}#wrap table tr>th:last-child,#wrap table tr>td:last-child{padding-right:16px!important}'
     +'.loading{padding:40px;text-align:center;color:#6b7b8c}.err{padding:16px;color:#c0392b}.rng{vertical-align:middle;accent-color:#8fa6c0}'
     +'.vbadge{background:rgba(255,255,255,.14);color:#dfe7f0;border-radius:10px;padding:2px 9px;font-size:11px;font-weight:600;letter-spacing:.3px;white-space:nowrap}'
+    +'.newbadge{background:#2e7d32;color:#fff;border-radius:10px;padding:2px 10px;font-size:11px;font-weight:700;letter-spacing:.2px;white-space:nowrap;cursor:pointer;box-shadow:0 0 0 1px rgba(255,255,255,.25) inset}.newbadge:hover{background:#256628}'
     +'.fontrow{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px}.fontrow label{min-width:70px;color:#55637a;font-weight:600}.fontrow select{flex:1;border:1px solid #cfd8e3;border-radius:5px;padding:4px 8px;font-size:12px}'
     +'#wrap.dark{background:#0e1621;color:#dfe7f0}'
     +'.dark .toolbar{background:#16202e;border-bottom-color:#28374a}'
@@ -605,6 +611,7 @@
       (function(){var b=el('div',{class:'brand'});b.innerHTML='MPS <span>GROUP</span>';return b;})(),
       el('div',{class:'title',title:'MPS live RFI/TQ register dashboard on the Aconex platform'},['Aconex RFI / TQ Register']),
       el('div',{class:'vbadge',title:'Dashboard version · build date'},[VERSION+' · '+BUILD_DATE]),
+      (function(){if(S._newBaseline==null)return null;var d=S.allRows.length-S._newBaseline;if(d<=0)return null;var since=S._newTs?(' (last visit '+fmtDate(new Date(S._newTs).toISOString().slice(0,10))+')'):'';var b=el('div',{class:'newbadge',title:'The register has grown by '+d+' RFI/TQ entr'+(d===1?'y':'ies')+' since you last opened this dashboard'+since+'. Click to acknowledge.',onclick:rfiAckNew},['\u25B2 '+d+' new since last visit']);return b;})(),
       el('div',{class:'muted'},['· '+CFG.projectName+' · MPS '+CFG.mpsProjectNo+' · '+(S.rows.length+' of '+S.allRows.length+' entries')]),
       btn('↻ Reload','Reload the register from its saved data and recalculate the day counts',function(){initRows();applyScope();renderAll();}),
       btn('Fonts','Choose the dashboard font and base size for all elements',function(ev){toggleFontPanel(ev&&ev.currentTarget);},'pnltrig'),
@@ -1553,7 +1560,7 @@ async function fullScan(){
   }
   function exportExcel(){try{var keys=visKeys(),data=buildXlsx(keys,S.filtered);var blob=new Blob([data],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Aconex_RFITQ_Register_'+CFG.mpsProjectNo+'_'+new Date().toISOString().slice(0,10)+'.xlsx';document.documentElement.appendChild(a);a.click();a.remove();}catch(e){alert('Export failed: '+e);}}
 
-  function boot(){ensureShell();host.style.display='block';if(!S.allRows.length){initRows();if(ghToken())ghLoad();}applyScope();renderAll();maybeFullScan();}
+  function boot(){ensureShell();host.style.display='block';if(!S.allRows.length){initRows();if(ghToken())ghLoad();}rfiCheckNew();applyScope();renderAll();maybeFullScan();}
   function maybeAutoCrosscheck(){try{if(__xSyncing)return;var pid=S.xProjectId||detectProjectId();if(!pid)return;var c=loadXCache();var hasX=false;try{hasX=!!localStorage.getItem('mps_aconex_rfi_xdata_73409');}catch(e){}if(hasX&&c&&c.ts&&(Date.now()-c.ts)<7200000)return;setTimeout(function(){crosscheckMail(null);},700);}catch(e){}}
   function close(){if(host)host.style.display='none';}
   window.__MPS_ACONEX_RFI={__live:true,boot:boot,close:close,_state:S,_cfg:CFG,buildXlsx:buildXlsx,crosscheck:crosscheckMail};
