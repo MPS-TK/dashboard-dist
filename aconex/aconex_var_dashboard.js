@@ -21,7 +21,7 @@
   if (window.__MPS_ACONEX_VAR && window.__MPS_ACONEX_VAR.__live) { window.__MPS_ACONEX_VAR.boot(); return; }
 
   var NAVY = '#0B2A4A', NAVY2 = '#123a63', ACCENT = '#F26522', LINE = '#dfe4ea', INK = '#1f2d3d';
-  var VERSION = 'v12.13', BUILD_DATE = '4 Sep 2026';
+  var VERSION = 'v12.14', BUILD_DATE = '4 Sep 2026';
   var UI_FONTS = ['Segoe UI', 'Arial', 'Calibri', 'Helvetica', 'Roboto', 'Verdana', 'Tahoma', 'Trebuchet MS', 'Georgia', 'Times New Roman', 'Courier New', 'system-ui'];
   var DEF_FONT = '"Segoe UI",Arial,sans-serif', DEF_BASEPX = 13;
   function fontStack(f) { return f ? ('"' + f + '","Segoe UI",Arial,sans-serif') : DEF_FONT; }
@@ -96,7 +96,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
       selFilters: {}, selKnown: {}, colPri: {}, colDefW: {}, chartScale: 1, colorSchemes: { status: {}, type: {} }, fontFamily: '', baseFont: DEF_BASEPX,
       darkMode: false, collapsed: {}, fontScale: 100, padScale: 100, hpadScale: 100, hdrFontSize: null, hdrMaxLines: 2,
       statusSel: '__ALL__', xProjectId: '', xProjectName: '', colNames: {}, statusList: STATUS_WORKFLOW.slice(),
-      activeSheet: '', barStat: 'diff', barScale: 1, chartAutoFit: true
+      activeSheet: '', barStat: 'diff', barScale: 1, chartAutoFit: true, barHide: []
     };
   }
   var LKEY = 'mps_aconex_var_cfg_' + CFG.mpsProjectNo, DKEY = 'mps_aconex_var_defcfg_' + CFG.mpsProjectNo;
@@ -129,6 +129,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     out.colorSchemes = { status: (saved.colorSchemes || {}).status || {}, type: (saved.colorSchemes || {}).type || {} };
     out.statusList = (saved.statusList && saved.statusList.length ? saved.statusList : STATUS_WORKFLOW.slice());
     out.chartAutoFit = (saved.chartAutoFit !== false);
+    out.barHide = (saved.barHide && saved.barHide.length ? saved.barHide.slice() : []);
     /* v12.12: Claimed vs Assessed moved out of the CHART panel and into the STATS
        bar chart. Anyone who had it ticked there lands on it in its new home. */
     if (saved.activeCharts && saved.activeCharts.indexOf('cva') >= 0 && saved.activeCharts.indexOf('status') < 0) out.barStat = 'cva';
@@ -136,7 +137,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
   }
   var CFGKEYS = ['order', 'cols', 'icols', 'fontSize', 'rowPad', 'wrap', 'chartType', 'selFilters', 'selKnown', 'colPri', 'colDefW', 'chartScale', 'colorSchemes',
     'fontFamily', 'baseFont', 'darkMode', 'collapsed', 'fontScale', 'padScale', 'hpadScale', 'hdrFontSize', 'hdrMaxLines',
-    'statusSel', 'xProjectId', 'xProjectName', 'colNames', 'statusList', 'activeSheet', 'barStat', 'barScale', 'chartAutoFit'];
+    'statusSel', 'xProjectId', 'xProjectName', 'colNames', 'statusList', 'activeSheet', 'barStat', 'barScale', 'chartAutoFit', 'barHide'];
   function snapCfg() { var o = {}; CFGKEYS.forEach(function (k) { o[k] = S[k]; }); return o; }
   function saveCfg() { try { localStorage.setItem(LKEY, JSON.stringify(snapCfg())); } catch (e) { } }
   function setAsDefault() { try { localStorage.setItem(DKEY, JSON.stringify(snapCfg())); } catch (e) { } toast('Saved as your default view'); }
@@ -1207,18 +1208,62 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
                { label: 'BHP Assessed', col: ASSESS_COL, val: function (r) { return r._assessed || 0; } }],
       val: function (r) { return r._claim || 0; } }
   ];
+  /* ---- which VOs appear in the bar chart ----------------------------------
+     One outlier (VO 1 at ~20x the next) flattens every other bar. Ticking it out
+     here drops it from the CHART only: the register, the filters, the STATS tiles
+     and the export are untouched. Kept in S.barHide, so it survives a reload. */
+  function barHidden() { if (!S.barHide) S.barHide = []; return S.barHide; }
+  function barKey(r) { return String(r.voNo == null ? '' : r.voNo).trim(); }
+  function barAllRows() { return S.filtered.slice().sort(byVoNo); }
+  function barShownRows() { var h = barHidden(); return barAllRows().filter(function (r) { return h.indexOf(barKey(r)) < 0; }); }
+  function barItemsPanel(anchor) {
+    var wrapEl = root.getElementById('wrap');
+    var ex = root.getElementById('bipanel'); if (ex) { ex.remove(); return; }
+    var panel = el('div', { id: 'bipanel', class: 'mfpanel', style: 'min-width:210px' });
+    var listWrap = el('div', {});
+    var srch = el('input', { type: 'search', placeholder: '\u2315 Filter VOs\u2026', style: 'width:100%;box-sizing:border-box;font-size:11px;padding:2px 5px;border:1px solid #cfd8e3;border-radius:4px;margin-bottom:4px' });
+    function apply(list) {
+      S.barHide = list; saveCfg(); renderVarBar();
+      /* the header (and the trigger) is rebuilt by renderVarBar, so re-anchor */
+      var a2 = root.getElementById('barfilt');
+      if (a2 && panel.isConnected) placePanel(panel, a2, { w: 210, maxH: 320 });
+    }
+    function build() {
+      listWrap.innerHTML = '';
+      var q = (srch.value || '').toLowerCase(), h = barHidden(), all = barAllRows();
+      var shown = all.filter(function (r) { return !q || (voLabel(r) + ' ' + (r.desc || '')).toLowerCase().indexOf(q) >= 0; });
+      if (!shown.length) { listWrap.appendChild(el('div', { class: 'muted', style: 'font-size:11px;padding:4px' }, ['No matches.'])); return; }
+      shown.forEach(function (r) {
+        var k = barKey(r), cb = el('input', { type: 'checkbox' });
+        cb.checked = h.indexOf(k) < 0;
+        cb.onchange = function () { var s = barHidden().slice(), i = s.indexOf(k); if (cb.checked) { if (i >= 0) s.splice(i, 1); } else if (i < 0) s.push(k); apply(s); };
+        listWrap.appendChild(el('label', { class: 'mfrow', title: r.desc || '' }, [cb, el('span', { style: 'flex:1' }, [voLabel(r)])]));
+      });
+    }
+    srch.oninput = function () { build(); };
+    panel.appendChild(el('div', { class: 'mfhd' }, [
+      el('a', { title: 'Show every VO in the chart', onclick: function () { apply([]); build(); } }, ['(All)']),
+      el('a', { title: 'Hide every VO from the chart', onclick: function () { apply(barAllRows().map(barKey)); build(); } }, ['(None)']),
+      el('a', { title: 'Swap what is shown and what is hidden', onclick: function () { var h = barHidden(); apply(barAllRows().map(barKey).filter(function (k) { return h.indexOf(k) < 0; })); build(); } }, ['(Invert)']),
+      el('a', { title: 'Close', style: 'margin-left:auto', onclick: function () { panel.remove(); } }, ['\u2715'])
+    ]));
+    panel.appendChild(srch); build(); panel.appendChild(listWrap); wrapEl.appendChild(panel);
+    placePanel(panel, anchor, { w: 210, maxH: 320 });
+  }
   function barDef() { for (var i = 0; i < BAR_DEFS.length; i++) if (BAR_DEFS[i].key === S.barStat) return BAR_DEFS[i]; return BAR_DEFS[0]; }
   function renderVarBar() {
     var box = root.getElementById('varbar'); if (!box) return; box.innerHTML = '';
-    var rows = S.filtered.slice().sort(byVoNo);
+    var all = barAllRows(), rows = barShownRows(), nHid = all.length - rows.length;
     var def = barDef();
     var btns = el('span', { style: 'display:inline-flex;gap:5px;flex-wrap:wrap' });
     BAR_DEFS.forEach(function (sd) { btns.appendChild(el('button', { class: 'chip' + (S.barStat === sd.key ? ' active' : ''), title: 'Show ' + sd.label, onclick: function () { S.barStat = sd.key; saveCfg(); renderVarBar(); } }, [sd.label])); });
     var sz = el('input', { type: 'range', min: '20', max: '240', value: String(Math.round((S.barScale || 1) * 100)), class: 'rng', style: 'width:150px', title: 'Resize the bars' });
     sz.oninput = function () { S.barScale = (+sz.value) / 100; saveCfg(); drawVarBar(); };
     var af = el('button', { class: 'btn sq', title: 'Autofit — size the bars so every VO fits the panel width', onclick: function () { autofitBars(); } }, ['Autofit']);
-    box.appendChild(el('div', { class: 'dohd' }, [el('span', { class: 'dotitle' }, [def.label]), el('span', { class: 'muted', style: 'font-size:11px' }, [rows.length + ' VO' + (rows.length === 1 ? '' : 's')]), btns,
-      el('span', { style: 'margin-left:auto;display:inline-flex;align-items:center;gap:6px' }, [af, el('span', { class: 'muted', style: 'font-size:11px' }, ['Bar Size']), sz])]));
+    var fil = el('button', { id: 'barfilt', class: 'chip' + (nHid ? ' active' : ''), title: 'Choose which VOs the chart draws — untick an outlier to read the rest. The register and totals are not affected.', onclick: function () { barItemsPanel(fil); } }, ['VOs shown' + (nHid ? ' (' + rows.length + '/' + all.length + ')' : '')]);
+    var cntTxt = nHid ? (rows.length + ' of ' + all.length + ' VOs') : (rows.length + ' VO' + (rows.length === 1 ? '' : 's'));
+    box.appendChild(el('div', { class: 'dohd' }, [el('span', { class: 'dotitle' }, [def.label]), el('span', { class: 'muted', style: 'font-size:11px' }, [cntTxt]), btns,
+      el('span', { style: 'margin-left:auto;display:inline-flex;align-items:center;gap:6px' }, [fil, af, el('span', { class: 'muted', style: 'font-size:11px' }, ['Bar Size']), sz])]));
     var scroll = el('div', { class: 'doscroll', id: 'doscroll' }); box.appendChild(scroll);
     box.appendChild(el('div', { class: 'plegend', id: 'barlegend', style: 'justify-content:flex-start;margin-left:62px' }));
     box.__rows = rows; drawVarBar();

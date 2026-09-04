@@ -2,7 +2,7 @@
 (function () {
   /* Single dashboard version — the Aconex Dashboard is ONE updatable element.
      All tabs (Doc. Registers + RFIs/TQs + Variations) display this exact string; bump it here in one place. */
-  var AC_VER = 'v12.13 \u00B7 4 Sep 2026';
+  var AC_VER = 'v12.14 \u00B7 4 Sep 2026';
 
   var MODS = [
     { host: 'mps-aconex-host',     g: '__MPS_ACONEX' },
@@ -34,6 +34,17 @@
         + '#wrap td.edit input[type=date]{padding:0 1px !important;min-height:0 !important}'
         + '#wrap td.edit .enumval{padding:0 5px !important;line-height:1.15 !important}'
         + '#wrap .corrbox{min-height:0 !important}'
+        /* v12.14 item b: below the row-density minimum the date picker comes off,
+           which is what is holding the row at its floor (the native control is
+           taller than every other cell). Pressing + puts it back. */
+        + '#wrap.mps-nodate td.edit input[type=date]::-webkit-calendar-picker-indicator{display:none!important}'
+        + '#wrap.mps-nodate td.edit input[type=date]{padding:0!important;min-height:0!important;height:14px!important}'
+        /* the picker is what blocks the floor on Variations; on the other two tabs it is
+           the cell line box and the coloured pills, so this mode flattens those as well.
+           Everything here is undone the moment + is pressed. */
+        + '#wrap.mps-nodate tbody td{line-height:1.1!important}'
+        + '#wrap.mps-nodate tbody td span{padding-top:0!important;padding-bottom:0!important;line-height:1.1!important}'
+        + '#wrap.mps-nodate tbody td.edit input,#wrap.mps-nodate tbody td.edit select{height:14px!important}'
         + '#wrap .mps-pm{display:inline-flex;align-items:center;gap:3px;margin-right:4px;vertical-align:middle}'
         + '#wrap #fontlbl{margin-left:2px}'
         /* item e: RFIs/TQs and Variations only — the chart fills its panel and sits
@@ -44,18 +55,31 @@
           + '.charts{flex:1 1 auto;display:flex;align-items:center;justify-content:center;padding:10px !important;box-sizing:border-box;min-height:0}'
           + '.chartsrow{align-items:center;justify-content:center;align-content:center;width:100%}');
       Array.prototype.forEach.call(root.querySelectorAll('td.edit input[type=date]'), function (inp) { inp.classList.toggle('mps-empty-date', !inp.value); });
+      /* sub-minimum row density: the class is re-applied on every tick because the
+         module rebuilds #wrap's contents on most renders */
+      var NDKEY = 'mps_nodate_' + m.g;
+      if (typeof M.__noDate === 'undefined') { try { M.__noDate = localStorage.getItem(NDKEY) === '1'; } catch (e) { M.__noDate = false; } }
+      var wrapEl = root.getElementById('wrap');
+      if (wrapEl) wrapEl.classList.toggle('mps-nodate', !!M.__noDate);
+      function setNoDate(on) {
+        M.__noDate = !!on;
+        try { localStorage.setItem(NDKEY, on ? '1' : '0'); } catch (e) {}
+        var w = root.getElementById('wrap'); if (w) w.classList.toggle('mps-nodate', !!on);
+      }
 
       /* ---- item a: a full step either side of every chart / bar size slider ----
          The slider lives in the STATS panel on RFIs/TQs and Variations and in the
          Charts panel on Doc. Registers, so both containers are covered. Pressing a
          button sets the value and fires 'input', which is what the module's own
          handler listens to — no module change needed. */
-      function pmGroup(slider, step, tipDown, tipUp) {
+      function pmGroup(slider, step, tipDown, tipUp, belowMin) {
         if (slider.__mpsPM) return; slider.__mpsPM = 1;
         function bump(dir) {
           var mn = +slider.min || 0, mx = +slider.max || 100, cur = +slider.value;
           var v = Math.max(mn, Math.min(mx, cur + dir * step));
-          if (v === cur) return;
+          if (v === cur) { if (belowMin) belowMin(dir, cur, mn); return; }
+          /* coming back up from a sub-minimum state: undo that first */
+          if (dir > 0 && belowMin && belowMin(dir, cur, mn) === 'consumed') return;
           slider.value = String(v);
           slider.dispatchEvent(new Event('input', { bubbles: true }));
         }
@@ -84,7 +108,11 @@
       Array.prototype.forEach.call(root.querySelectorAll('.toolbar input[type=range]'), function (sl) {
         if (!/row height/i.test(sl.title || '')) return;
         if (!sl.__mpsNarrow) { sl.__mpsNarrow = 1; sl.style.width = '74px'; }
-        pmGroup(sl, 1, 'Tighter rows (1px)', 'Looser rows (1px)');
+        pmGroup(sl, 1, 'Tighter rows (1px) — at the minimum, the next press removes the date pickers so the rows can go tighter still',
+          'Looser rows (1px) — puts the date pickers back first if they were removed', function (dir, cur, mn) {
+            if (dir < 0) { if (cur <= mn && !M.__noDate) { setNoDate(true); } return; }
+            if (dir > 0 && M.__noDate) { setNoDate(false); return 'consumed'; }
+          });
       });
       var fitBtn = null, bs = root.querySelectorAll('button');
       for (var i = 0; i < bs.length; i++) { if ((bs[i].textContent || '').trim() === 'Fit to 1 Page') { fitBtn = bs[i]; break; } }

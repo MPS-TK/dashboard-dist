@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.13', BUILD_DATE='4 Sep 2026';
+  var VERSION='v12.14', BUILD_DATE='4 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -76,7 +76,7 @@
 
   function factoryCfg(){
     var cols={}; FACTORY_ORDER.forEach(function(k){cols[k]={show:!!FACTORY_SHOW[k],w:COLDEF[k].w};});
-    return {order:FACTORY_ORDER.slice(),cols:cols,fontSize:12,rowPad:4,wrap:false,chartType:'donut',selFilters:{},chartScale:1,colorSchemes:{closed:{},sender:{},eot:{},costVar:{}},fontFamily:'',baseFont:DEF_BASEPX,darkMode:false,collapsed:{},fontScale:100,padScale:100,hpadScale:100,hdrFontSize:null,hdrMaxLines:2,statusSel:'__ALL__',typeSel:null,xProjectId:'',xProjectName:'',colPri:{},colDefW:{},colNames:{},statusList:STATUS_WORKFLOW.slice(),doScale:1,doStat:'daysOpen',doHideClosed:false,chartAutoFit:true};
+    return {order:FACTORY_ORDER.slice(),cols:cols,fontSize:12,rowPad:4,wrap:false,chartType:'donut',selFilters:{},chartScale:1,colorSchemes:{closed:{},sender:{},eot:{},costVar:{}},fontFamily:'',baseFont:DEF_BASEPX,darkMode:false,collapsed:{},fontScale:100,padScale:100,hpadScale:100,hdrFontSize:null,hdrMaxLines:2,statusSel:'__ALL__',typeSel:null,xProjectId:'',xProjectName:'',colPri:{},colDefW:{},colNames:{},statusList:STATUS_WORKFLOW.slice(),doScale:1,doStat:'daysOpen',doHideClosed:false,chartAutoFit:true,doHide:[]};
   }
   var LKEY='mps_aconex_rfi_cfg_'+CFG.mpsProjectNo, DKEY='mps_aconex_rfi_defcfg_'+CFG.mpsProjectNo;
   function loadCfg(){
@@ -84,9 +84,9 @@
     try{var d=localStorage.getItem(DKEY);if(d)return mergeCfg(JSON.parse(d));}catch(e){}
     return factoryCfg();
   }
-  function mergeCfg(saved){var f=factoryCfg();var o=(saved.order||f.order).filter(function(k){return COLDEF[k];});FACTORY_ORDER.forEach(function(k){if(o.indexOf(k)<0){var fi=FACTORY_ORDER.indexOf(k),pv=fi>0?FACTORY_ORDER[fi-1]:null,pi=pv?o.indexOf(pv):-1;if(pi>=0)o.splice(pi+1,0,k);else o.push(k);}});var cols={};o.forEach(function(k){var s=(saved.cols||{})[k]||{};cols[k]={show:s.show!=null?!!s.show:!!FACTORY_SHOW[k],w:s.w||COLDEF[k].w};});return {order:o,cols:cols,fontSize:saved.fontSize||12,rowPad:(saved.rowPad!=null?saved.rowPad:4),wrap:!!saved.wrap,chartType:saved.chartType||'donut',selFilters:saved.selFilters||{},chartScale:saved.chartScale||1,colorSchemes:normSchemes(saved.colorSchemes),fontFamily:saved.fontFamily||'',baseFont:saved.baseFont||DEF_BASEPX,darkMode:!!saved.darkMode,collapsed:saved.collapsed||{},fontScale:saved.fontScale||100,padScale:saved.padScale||100,hpadScale:saved.hpadScale||100,hdrFontSize:(saved.hdrFontSize!=null?saved.hdrFontSize:null),hdrMaxLines:saved.hdrMaxLines||2,statusSel:saved.statusSel||'__ALL__',typeSel:(saved.typeSel!=null?saved.typeSel:null),xProjectId:saved.xProjectId||'',xProjectName:saved.xProjectName||'',colPri:saved.colPri||{},colDefW:saved.colDefW||{},colNames:saved.colNames||{},statusList:(saved.statusList&&saved.statusList.length?saved.statusList:STATUS_WORKFLOW.slice()),doScale:saved.doScale||1,doStat:saved.doStat||'daysOpen',doHideClosed:!!saved.doHideClosed,chartAutoFit:saved.chartAutoFit!==false};}
+  function mergeCfg(saved){var f=factoryCfg();var o=(saved.order||f.order).filter(function(k){return COLDEF[k];});FACTORY_ORDER.forEach(function(k){if(o.indexOf(k)<0){var fi=FACTORY_ORDER.indexOf(k),pv=fi>0?FACTORY_ORDER[fi-1]:null,pi=pv?o.indexOf(pv):-1;if(pi>=0)o.splice(pi+1,0,k);else o.push(k);}});var cols={};o.forEach(function(k){var s=(saved.cols||{})[k]||{};cols[k]={show:s.show!=null?!!s.show:!!FACTORY_SHOW[k],w:s.w||COLDEF[k].w};});return {order:o,cols:cols,fontSize:saved.fontSize||12,rowPad:(saved.rowPad!=null?saved.rowPad:4),wrap:!!saved.wrap,chartType:saved.chartType||'donut',selFilters:saved.selFilters||{},chartScale:saved.chartScale||1,colorSchemes:normSchemes(saved.colorSchemes),fontFamily:saved.fontFamily||'',baseFont:saved.baseFont||DEF_BASEPX,darkMode:!!saved.darkMode,collapsed:saved.collapsed||{},fontScale:saved.fontScale||100,padScale:saved.padScale||100,hpadScale:saved.hpadScale||100,hdrFontSize:(saved.hdrFontSize!=null?saved.hdrFontSize:null),hdrMaxLines:saved.hdrMaxLines||2,statusSel:saved.statusSel||'__ALL__',typeSel:(saved.typeSel!=null?saved.typeSel:null),xProjectId:saved.xProjectId||'',xProjectName:saved.xProjectName||'',colPri:saved.colPri||{},colDefW:saved.colDefW||{},colNames:saved.colNames||{},statusList:(saved.statusList&&saved.statusList.length?saved.statusList:STATUS_WORKFLOW.slice()),doScale:saved.doScale||1,doStat:saved.doStat||'daysOpen',doHideClosed:!!saved.doHideClosed,chartAutoFit:saved.chartAutoFit!==false,doHide:(saved.doHide&&saved.doHide.length?saved.doHide.slice():[])};}
   function normSchemes(cs){cs=cs||{};return {closed:cs.closed||{},sender:cs.sender||{},eot:cs.eot||{},costVar:cs.costVar||{}};}
-  function saveCfg(){try{localStorage.setItem(LKEY,JSON.stringify({order:S.order,cols:S.cols,fontSize:S.fontSize,rowPad:S.rowPad,wrap:S.wrap,chartType:S.chartType,selFilters:S.selFilters,chartScale:S.chartScale,colorSchemes:S.colorSchemes,fontFamily:S.fontFamily,baseFont:S.baseFont,darkMode:S.darkMode,collapsed:S.collapsed,fontScale:S.fontScale,padScale:S.padScale,hpadScale:S.hpadScale,hdrFontSize:S.hdrFontSize,hdrMaxLines:S.hdrMaxLines,statusSel:S.statusSel,typeSel:S.typeSel,xProjectId:S.xProjectId,xProjectName:S.xProjectName,colPri:S.colPri,colDefW:S.colDefW,colNames:S.colNames,statusList:S.statusList,doScale:S.doScale,doStat:S.doStat,doHideClosed:S.doHideClosed,chartAutoFit:S.chartAutoFit}));}catch(e){}}
+  function saveCfg(){try{localStorage.setItem(LKEY,JSON.stringify({order:S.order,cols:S.cols,fontSize:S.fontSize,rowPad:S.rowPad,wrap:S.wrap,chartType:S.chartType,selFilters:S.selFilters,chartScale:S.chartScale,colorSchemes:S.colorSchemes,fontFamily:S.fontFamily,baseFont:S.baseFont,darkMode:S.darkMode,collapsed:S.collapsed,fontScale:S.fontScale,padScale:S.padScale,hpadScale:S.hpadScale,hdrFontSize:S.hdrFontSize,hdrMaxLines:S.hdrMaxLines,statusSel:S.statusSel,typeSel:S.typeSel,xProjectId:S.xProjectId,xProjectName:S.xProjectName,colPri:S.colPri,colDefW:S.colDefW,colNames:S.colNames,statusList:S.statusList,doScale:S.doScale,doStat:S.doStat,doHideClosed:S.doHideClosed,chartAutoFit:S.chartAutoFit,doHide:S.doHide}));}catch(e){}}
 
   var C=loadCfg();
   var S={allRows:[],rows:[],filtered:[],loading:false,error:'',
@@ -94,7 +94,7 @@
          order:C.order,cols:C.cols,fontSize:C.fontSize,rowPad:C.rowPad,wrap:C.wrap,
          chartType:C.chartType,selFilters:C.selFilters,chartScale:C.chartScale,colorSchemes:C.colorSchemes,
          fontFamily:C.fontFamily,baseFont:C.baseFont,darkMode:C.darkMode,collapsed:C.collapsed,fontScale:C.fontScale,padScale:C.padScale,hpadScale:C.hpadScale||100,hdrFontSize:C.hdrFontSize,hdrMaxLines:C.hdrMaxLines||2,
-         statusSel:C.statusSel,typeSel:C.typeSel,colNames:C.colNames||{},statusList:(C.statusList&&C.statusList.length?C.statusList:STATUS_WORKFLOW.slice()),doScale:C.doScale||1,doStat:C.doStat||'daysOpen',doHideClosed:!!C.doHideClosed,chartAutoFit:C.chartAutoFit!==false,
+         statusSel:C.statusSel,typeSel:C.typeSel,colNames:C.colNames||{},statusList:(C.statusList&&C.statusList.length?C.statusList:STATUS_WORKFLOW.slice()),doScale:C.doScale||1,doStat:C.doStat||'daysOpen',doHideClosed:!!C.doHideClosed,chartAutoFit:C.chartAutoFit!==false,doHide:(C.doHide&&C.doHide.length?C.doHide.slice():[]),
          xProjectId:(C.xProjectId||detectProjectId()||DEFAULT_XPID),
          xProjectName:(C.xProjectName||((C.xProjectId&&C.xProjectId!==DEFAULT_XPID)?'':DEFAULT_XNAME)),
          projects:null,
@@ -599,15 +599,54 @@
     var rng=root.querySelector('.dohd input[type=range]');if(rng)rng.value=String(Math.round(sc*100));
     drawDaysOpen();
   }
+  /* ---- which RFIs/TQs the bar chart draws --------------------------------
+     One outlier (a long-running RFI) flattens every other bar. Unticking it here
+     drops it from the CHART only — the register, filters and STATS tiles keep it.
+     Held in S.doHide, so the choice survives a reload. */
+  function doHidden(){if(!S.doHide)S.doHide=[];return S.doHide;}
+  function doKey(r){return (r.type||'RFI')+'|'+String(r.rfiNo==null?'':r.rfiNo).trim();}
+  function doLabel(r){var isB=(String(r.sender||'').toUpperCase().indexOf('BHP')>=0)||/^BHP/i.test(r.aconexRef||'');return (isB?'BHP ':'')+(r.type||'RFI')+' ('+r.rfiNo+')';}
+  function doBaseRows(){return S.filtered.filter(function(r){return !(S.doHideClosed&&isClosed(r));}).sort(function(a,b){var x=parseFloat(a.rfiNo),y=parseFloat(b.rfiNo);if(!isNaN(x)&&!isNaN(y))return x-y;return String(a.rfiNo)<String(b.rfiNo)?-1:1;});}
+  function doShownRows(){var h=doHidden();return doBaseRows().filter(function(r){return h.indexOf(doKey(r))<0;});}
+  function doItemsPanel(anchor){
+    var wrapEl=root.getElementById('wrap');
+    var ex=root.getElementById('dipanel');if(ex){ex.remove();return;}
+    var panel=el('div',{id:'dipanel',class:'mfpanel',style:'min-width:210px;max-height:320px;overflow:auto'});
+    var listWrap=el('div',{});
+    var srch=el('input',{type:'search',placeholder:'\u2315 Filter items\u2026',style:'width:100%;box-sizing:border-box;font-size:11px;padding:2px 5px;border:1px solid #cfd8e3;border-radius:4px;margin-bottom:4px'});
+    function place(){var a2=root.getElementById('dofilt')||anchor;if(!a2||!panel.isConnected)return;var ar=a2.getBoundingClientRect(),wr=wrapEl.getBoundingClientRect();panel.style.left=Math.max(4,Math.min(ar.left-wr.left,wr.width-panel.offsetWidth-6))+'px';panel.style.top=(ar.bottom-wr.top+4)+'px';}
+    function apply(list){S.doHide=list;saveCfg();renderDaysOpen();place();}
+    function build(){
+      listWrap.innerHTML='';
+      var q=(srch.value||'').toLowerCase(),h=doHidden(),all=doBaseRows();
+      var shown=all.filter(function(r){return !q||(doLabel(r)+' '+(r.description||'')).toLowerCase().indexOf(q)>=0;});
+      if(!shown.length){listWrap.appendChild(el('div',{class:'muted',style:'font-size:11px;padding:4px'},['No matches.']));return;}
+      shown.forEach(function(r){
+        var k=doKey(r),cb=el('input',{type:'checkbox'});cb.checked=h.indexOf(k)<0;
+        cb.onchange=function(){var t=doHidden().slice(),i=t.indexOf(k);if(cb.checked){if(i>=0)t.splice(i,1);}else if(i<0)t.push(k);apply(t);};
+        listWrap.appendChild(el('label',{class:'mfrow',title:r.description||''},[cb,el('span',{style:'flex:1'},[doLabel(r)])]));
+      });
+    }
+    srch.oninput=function(){build();};
+    panel.appendChild(el('div',{class:'mfhd'},[
+      el('a',{title:'Show every RFI/TQ in the chart',onclick:function(){apply([]);build();}},['(All)']),
+      el('a',{title:'Hide every RFI/TQ from the chart',onclick:function(){apply(doBaseRows().map(doKey));build();}},['(None)']),
+      el('a',{title:'Swap what is shown and what is hidden',onclick:function(){var h=doHidden();apply(doBaseRows().map(doKey).filter(function(k){return h.indexOf(k)<0;}));build();}},['(Invert)']),
+      el('a',{title:'Close',style:'margin-left:auto',onclick:function(){panel.remove();}},['\u2715'])
+    ]));
+    panel.appendChild(srch);build();panel.appendChild(listWrap);wrapEl.appendChild(panel);place();
+  }
   function renderDaysOpen(){
     var box=root.getElementById('daysopen');if(!box)return;box.innerHTML='';
-    var rows=S.filtered.filter(function(r){return !(S.doHideClosed&&isClosed(r));}).sort(function(a,b){var x=parseFloat(a.rfiNo),y=parseFloat(b.rfiNo);if(!isNaN(x)&&!isNaN(y))return x-y;return String(a.rfiNo)<String(b.rfiNo)?-1:1;});
+    var allRows=doBaseRows(),rows=doShownRows(),nHid=allRows.length-rows.length;
     var def=statDef();
     var btns=el('span',{style:'display:inline-flex;gap:5px;flex-wrap:wrap'});
     STAT_DEFS.forEach(function(sd){btns.appendChild(el('button',{class:'chip'+(S.doStat===sd.key?' active':''),title:'Show '+sd.label,onclick:function(){S.doStat=sd.key;saveCfg();renderDaysOpen();}},[sd.label]));});
     var sz=el('input',{type:'range',min:'20',max:'240',value:String(Math.round((S.doScale||1)*100)),class:'rng',style:'width:150px',title:'Resize the bars (useful when there are many RFIs/TQs)'});sz.oninput=function(){S.doScale=(+sz.value)/100;saveCfg();drawDaysOpen();};
     var hideBtn=el('button',{class:'chip'+(S.doHideClosed?' active':''),title:'Hide the closed RFIs/TQs from this chart (does not change the bar size)',onclick:function(){S.doHideClosed=!S.doHideClosed;saveCfg();renderDaysOpen();}},['Hide Closed']);var afBtn=el('button',{class:'btn sq',title:'Autofit — size the bars so every item fits the panel width',onclick:function(){autofitBars();}},['Autofit']);
-    var hd=el('div',{class:'dohd'},[el('span',{class:'dotitle'},[def.label]),el('span',{class:'muted',style:'font-size:11px'},[rows.length+' item'+(rows.length===1?'':'s')]),btns,el('span',{style:'margin-left:auto;display:inline-flex;align-items:center;gap:6px'},[hideBtn,afBtn,el('span',{class:'muted',style:'font-size:11px'},['Bar Size']),sz])]);
+    var filBtn=el('button',{id:'dofilt',class:'chip'+(nHid?' active':''),title:'Choose which RFIs/TQs the chart draws \u2014 untick an outlier to read the rest. The register and the tiles are not affected.',onclick:function(){doItemsPanel(filBtn);}},['Items shown'+(nHid?' ('+rows.length+'/'+allRows.length+')':'')]);
+    var cntTxt=nHid?(rows.length+' of '+allRows.length+' items'):(rows.length+' item'+(rows.length===1?'':'s'));
+    var hd=el('div',{class:'dohd'},[el('span',{class:'dotitle'},[def.label]),el('span',{class:'muted',style:'font-size:11px'},[cntTxt]),btns,el('span',{style:'margin-left:auto;display:inline-flex;align-items:center;gap:6px'},[filBtn,hideBtn,afBtn,el('span',{class:'muted',style:'font-size:11px'},['Bar Size']),sz])]);
     box.appendChild(hd);
     var exp=statExplain(def.key);if(exp)box.appendChild(el('div',{class:'muted',style:'font-size:11px;margin:0 0 5px'},['\u24d8 '+exp]));
     var scroll=el('div',{class:'doscroll',id:'doscroll'});box.appendChild(scroll);
@@ -1257,8 +1296,8 @@ async function fullScan(){
     saveCfg();renderTable();
   }
 
-  function resetCols(){var b;try{var d=localStorage.getItem(DKEY);if(d)b=mergeCfg(JSON.parse(d));}catch(e){}if(!b)b=factoryCfg();S.order=b.order;S.cols=b.cols;S.colPri=b.colPri||{};S.colDefW=b.colDefW||{};S.fontSize=b.fontSize;S.rowPad=b.rowPad;S.wrap=b.wrap;S.chartType=b.chartType;if(b.selFilters)S.selFilters=b.selFilters;S.chartScale=b.chartScale||1;if(b.colorSchemes)S.colorSchemes=normSchemes(b.colorSchemes);if(b.collapsed)S.collapsed=b.collapsed;S.fontScale=b.fontScale||100;S.padScale=b.padScale||100;S.statusSel=b.statusSel||'__ALL__';S.typeSel=(b.typeSel!=null?b.typeSel:null);S.colNames=b.colNames||{};S.statusList=(b.statusList&&b.statusList.length?b.statusList:STATUS_WORKFLOW.slice());S.doScale=b.doScale||1;S.doHideClosed=!!b.doHideClosed;S.chartAutoFit=b.chartAutoFit!==false;applyScope();saveCfg();renderAll();}
-  function setAsDefault(){try{localStorage.setItem(DKEY,JSON.stringify({order:S.order,cols:S.cols,fontSize:S.fontSize,rowPad:S.rowPad,wrap:S.wrap,chartType:S.chartType,selFilters:S.selFilters,chartScale:S.chartScale,colorSchemes:S.colorSchemes,fontFamily:S.fontFamily,baseFont:S.baseFont,darkMode:S.darkMode,collapsed:S.collapsed,fontScale:S.fontScale,padScale:S.padScale,hpadScale:S.hpadScale,hdrFontSize:S.hdrFontSize,hdrMaxLines:S.hdrMaxLines,statusSel:S.statusSel,typeSel:S.typeSel,colPri:S.colPri,colDefW:S.colDefW,colNames:S.colNames,statusList:S.statusList,doScale:S.doScale,doStat:S.doStat,doHideClosed:S.doHideClosed,chartAutoFit:S.chartAutoFit}));}catch(e){}toast('Saved as your default view');}
+  function resetCols(){var b;try{var d=localStorage.getItem(DKEY);if(d)b=mergeCfg(JSON.parse(d));}catch(e){}if(!b)b=factoryCfg();S.order=b.order;S.cols=b.cols;S.colPri=b.colPri||{};S.colDefW=b.colDefW||{};S.fontSize=b.fontSize;S.rowPad=b.rowPad;S.wrap=b.wrap;S.chartType=b.chartType;if(b.selFilters)S.selFilters=b.selFilters;S.chartScale=b.chartScale||1;if(b.colorSchemes)S.colorSchemes=normSchemes(b.colorSchemes);if(b.collapsed)S.collapsed=b.collapsed;S.fontScale=b.fontScale||100;S.padScale=b.padScale||100;S.statusSel=b.statusSel||'__ALL__';S.typeSel=(b.typeSel!=null?b.typeSel:null);S.colNames=b.colNames||{};S.statusList=(b.statusList&&b.statusList.length?b.statusList:STATUS_WORKFLOW.slice());S.doScale=b.doScale||1;S.doHideClosed=!!b.doHideClosed;S.doHide=(b.doHide&&b.doHide.length?b.doHide.slice():[]);S.chartAutoFit=b.chartAutoFit!==false;applyScope();saveCfg();renderAll();}
+  function setAsDefault(){try{localStorage.setItem(DKEY,JSON.stringify({order:S.order,cols:S.cols,fontSize:S.fontSize,rowPad:S.rowPad,wrap:S.wrap,chartType:S.chartType,selFilters:S.selFilters,chartScale:S.chartScale,colorSchemes:S.colorSchemes,fontFamily:S.fontFamily,baseFont:S.baseFont,darkMode:S.darkMode,collapsed:S.collapsed,fontScale:S.fontScale,padScale:S.padScale,hpadScale:S.hpadScale,hdrFontSize:S.hdrFontSize,hdrMaxLines:S.hdrMaxLines,statusSel:S.statusSel,typeSel:S.typeSel,colPri:S.colPri,colDefW:S.colDefW,colNames:S.colNames,statusList:S.statusList,doScale:S.doScale,doStat:S.doStat,doHideClosed:S.doHideClosed,chartAutoFit:S.chartAutoFit,doHide:S.doHide}));}catch(e){}toast('Saved as your default view');}
   // Toast: stays 10s, can be dismissed with the x, and pauses while the pointer is over
   // it so a long message can actually be read. Only one at a time — a second message
   // replaces the first instead of stacking on the same spot. If the persistent Open
