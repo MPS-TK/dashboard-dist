@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.18', BUILD_DATE='4 Sep 2026';
+  var VERSION='v12.19', BUILD_DATE='4 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -76,7 +76,7 @@
 
   function factoryCfg(){
     var cols={}; FACTORY_ORDER.forEach(function(k){cols[k]={show:!!FACTORY_SHOW[k],w:COLDEF[k].w};});
-    return {order:FACTORY_ORDER.slice(),cols:cols,fontSize:12,rowPad:4,wrap:false,chartType:'donut',selFilters:{},chartScale:1,colorSchemes:{closed:{},sender:{},eot:{},costVar:{}},fontFamily:'',baseFont:DEF_BASEPX,darkMode:false,collapsed:{},fontScale:100,padScale:100,hpadScale:100,hdrFontSize:null,hdrMaxLines:2,statusSel:'__ALL__',typeSel:null,xProjectId:'',xProjectName:'',colPri:{},colDefW:{},colNames:{},statusList:STATUS_WORKFLOW.slice(),doScale:1,doStat:'daysOpen',doHideClosed:false,chartAutoFit:true,doHide:[],fltDate:{from:'',to:'',preset:''},fltRef:'',hiddenRows:[]};
+    return {order:FACTORY_ORDER.slice(),cols:cols,fontSize:12,rowPad:0,wrap:false,chartType:'donut',selFilters:{},chartScale:1,colorSchemes:{closed:{},sender:{},eot:{},costVar:{}},fontFamily:'',baseFont:DEF_BASEPX,darkMode:false,collapsed:{},fontScale:100,padScale:20,hpadScale:100,hdrFontSize:null,hdrMaxLines:2,statusSel:'__ALL__',typeSel:null,xProjectId:'',xProjectName:'',colPri:{},colDefW:{},colNames:{},statusList:STATUS_WORKFLOW.slice(),doScale:1,doStat:'daysOpen',doHideClosed:false,chartAutoFit:true,doHide:[],fltDate:{from:'',to:'',preset:''},fltRef:'',hiddenRows:[]};
   }
   var LKEY='mps_aconex_rfi_cfg_'+CFG.mpsProjectNo, DKEY='mps_aconex_rfi_defcfg_'+CFG.mpsProjectNo;
   function loadCfg(){
@@ -84,7 +84,7 @@
     try{var d=localStorage.getItem(DKEY);if(d)return mergeCfg(JSON.parse(d));}catch(e){}
     return factoryCfg();
   }
-  function mergeCfg(saved){var f=factoryCfg();var o=(saved.order||f.order).filter(function(k){return COLDEF[k];});FACTORY_ORDER.forEach(function(k){if(o.indexOf(k)<0){var fi=FACTORY_ORDER.indexOf(k),pv=fi>0?FACTORY_ORDER[fi-1]:null,pi=pv?o.indexOf(pv):-1;if(pi>=0)o.splice(pi+1,0,k);else o.push(k);}});var cols={};o.forEach(function(k){var s=(saved.cols||{})[k]||{};cols[k]={show:s.show!=null?!!s.show:!!FACTORY_SHOW[k],w:s.w||COLDEF[k].w};});return {order:o,cols:cols,fontSize:saved.fontSize||12,rowPad:(saved.rowPad!=null?saved.rowPad:4),wrap:!!saved.wrap,chartType:saved.chartType||'donut',selFilters:saved.selFilters||{},chartScale:saved.chartScale||1,colorSchemes:normSchemes(saved.colorSchemes),fontFamily:saved.fontFamily||'',baseFont:saved.baseFont||DEF_BASEPX,darkMode:!!saved.darkMode,collapsed:saved.collapsed||{},fontScale:saved.fontScale||100,padScale:saved.padScale||100,hpadScale:saved.hpadScale||100,hdrFontSize:(saved.hdrFontSize!=null?saved.hdrFontSize:null),hdrMaxLines:saved.hdrMaxLines||2,statusSel:saved.statusSel||'__ALL__',typeSel:(saved.typeSel!=null?saved.typeSel:null),xProjectId:saved.xProjectId||'',xProjectName:saved.xProjectName||'',colPri:saved.colPri||{},colDefW:saved.colDefW||{},colNames:saved.colNames||{},statusList:(saved.statusList&&saved.statusList.length?saved.statusList:STATUS_WORKFLOW.slice()),doScale:saved.doScale||1,doStat:saved.doStat||'daysOpen',doHideClosed:!!saved.doHideClosed,chartAutoFit:saved.chartAutoFit!==false,doHide:(saved.doHide&&saved.doHide.length?saved.doHide.slice():[]),fltDate:(saved.fltDate&&typeof saved.fltDate==='object')?{from:saved.fltDate.from||'',to:saved.fltDate.to||'',preset:saved.fltDate.preset||''}:{from:'',to:'',preset:''},fltRef:saved.fltRef||'',hiddenRows:(saved.hiddenRows&&saved.hiddenRows.length?saved.hiddenRows.slice():[])};}
+  function mergeCfg(saved){var f=factoryCfg();var o=(saved.order||f.order).filter(function(k){return COLDEF[k];});FACTORY_ORDER.forEach(function(k){if(o.indexOf(k)<0){var fi=FACTORY_ORDER.indexOf(k),pv=fi>0?FACTORY_ORDER[fi-1]:null,pi=pv?o.indexOf(pv):-1;if(pi>=0)o.splice(pi+1,0,k);else o.push(k);}});var cols={};o.forEach(function(k){var s=(saved.cols||{})[k]||{};cols[k]={show:s.show!=null?!!s.show:!!FACTORY_SHOW[k],w:s.w||COLDEF[k].w};});return {order:o,cols:cols,fontSize:saved.fontSize||12,rowPad:(saved.rowPad!=null?saved.rowPad:0),wrap:!!saved.wrap,chartType:saved.chartType||'donut',selFilters:saved.selFilters||{},chartScale:saved.chartScale||1,colorSchemes:normSchemes(saved.colorSchemes),fontFamily:saved.fontFamily||'',baseFont:saved.baseFont||DEF_BASEPX,darkMode:!!saved.darkMode,collapsed:saved.collapsed||{},fontScale:saved.fontScale||100,padScale:(saved.padScale!=null?saved.padScale:20),hpadScale:saved.hpadScale||100,hdrFontSize:(saved.hdrFontSize!=null?saved.hdrFontSize:null),hdrMaxLines:saved.hdrMaxLines||2,statusSel:saved.statusSel||'__ALL__',typeSel:(saved.typeSel!=null?saved.typeSel:null),xProjectId:saved.xProjectId||'',xProjectName:saved.xProjectName||'',colPri:saved.colPri||{},colDefW:saved.colDefW||{},colNames:saved.colNames||{},statusList:(saved.statusList&&saved.statusList.length?saved.statusList:STATUS_WORKFLOW.slice()),doScale:saved.doScale||1,doStat:saved.doStat||'daysOpen',doHideClosed:!!saved.doHideClosed,chartAutoFit:saved.chartAutoFit!==false,doHide:(saved.doHide&&saved.doHide.length?saved.doHide.slice():[]),fltDate:(saved.fltDate&&typeof saved.fltDate==='object')?{from:saved.fltDate.from||'',to:saved.fltDate.to||'',preset:saved.fltDate.preset||''}:{from:'',to:'',preset:''},fltRef:saved.fltRef||'',hiddenRows:(saved.hiddenRows&&saved.hiddenRows.length?saved.hiddenRows.slice():[])};}
   function normSchemes(cs){cs=cs||{};return {closed:cs.closed||{},sender:cs.sender||{},eot:cs.eot||{},costVar:cs.costVar||{}};}
   function saveCfg(){try{localStorage.setItem(LKEY,JSON.stringify({order:S.order,cols:S.cols,fontSize:S.fontSize,rowPad:S.rowPad,wrap:S.wrap,chartType:S.chartType,selFilters:S.selFilters,chartScale:S.chartScale,colorSchemes:S.colorSchemes,fontFamily:S.fontFamily,baseFont:S.baseFont,darkMode:S.darkMode,collapsed:S.collapsed,fontScale:S.fontScale,padScale:S.padScale,hpadScale:S.hpadScale,hdrFontSize:S.hdrFontSize,hdrMaxLines:S.hdrMaxLines,statusSel:S.statusSel,typeSel:S.typeSel,xProjectId:S.xProjectId,xProjectName:S.xProjectName,colPri:S.colPri,colDefW:S.colDefW,colNames:S.colNames,statusList:S.statusList,doScale:S.doScale,doStat:S.doStat,doHideClosed:S.doHideClosed,chartAutoFit:S.chartAutoFit,doHide:S.doHide,fltDate:S.fltDate,fltRef:S.fltRef,hiddenRows:S.hiddenRows}));}catch(e){}}
 
@@ -432,6 +432,9 @@
     +'.dark .dtlbl{color:#9fb0c4}.dark .toolbar select.dtsel{background:#2a1d12;color:#ffd7bf;border-color:'+ACCENT+'}'
     +'.dark .chip{background:#1e2a3a;color:#cfe0f2;border-color:#37485e}.dark .mini{background:#1e2a3a;color:#cfe0f2;border-color:#37485e}'
     +'.dark .rng{accent-color:'+ACCENT+'}'
+    +'#wrap table tr>th:nth-child(2),#wrap table tr>td:nth-child(2){text-align:center}'
+    + '#wrap table tr>td:nth-child(2) input,#wrap table tr>td:nth-child(2) .enumtrig{text-align:center}'
+    + '#wrap table tr>td:nth-child(2) .cnum{margin:0 auto}'
     +'#wrap table th.mps-selcell,#wrap table td.mps-selcell{width:13px;min-width:13px;max-width:13px;text-align:center;vertical-align:middle}'
     +'#wrap table tr>th.mps-selcell:first-child,#wrap table tr>td.mps-selcell:first-child{padding-left:1px!important;padding-right:1px!important}'
     +'.mps-selcell input[type=checkbox]{margin:0;cursor:pointer;width:13px;height:13px;vertical-align:middle;accent-color:'+ACCENT+'}'
@@ -511,7 +514,62 @@
       });
   }
 
+  /* (a) Any open dropdown closes when you click away from it. Every dropdown in this
+     module is a div whose id ends in 'panel', and each is opened by a trigger that
+     already toggles itself, so a mousedown that lands neither inside a panel nor on a
+     trigger closes the lot. Escape does the same. Capture phase, so it runs before the
+     click reaches anything that might rebuild the panel. */
+  function closeAllPanels(except) {
+    var open = root.querySelectorAll('[id$="panel"]');
+    for (var i = 0; i < open.length; i++) if (open[i] !== except) open[i].remove();
+  }
+  function installOutsideClose() {
+    if (root.__mpsOutsideClose) return; root.__mpsOutsideClose = true;
+    function isTrigger(n) {
+      if (!n || !n.classList) return false;
+      return n.classList.contains('pnltrig') || n.classList.contains('pkgbtn') ||
+             n.classList.contains('chart') || n.classList.contains('mfbtn') ||
+             n.classList.contains('pal') || n.classList.contains('enumtrig');
+    }
+    function onDown(ev) {
+      var open = root.querySelectorAll('[id$="panel"]'); if (!open.length) return;
+      var path = (ev && ev.composedPath) ? ev.composedPath() : [];
+      var hitPanel = null, onTrigger = false;
+      for (var j = 0; j < path.length; j++) {
+        var n = path[j];
+        if (n && n.id && /panel$/.test(String(n.id))) { hitPanel = n; break; }
+        if (isTrigger(n)) { onTrigger = true; break; }
+      }
+      if (onTrigger) return;               // the trigger's own handler toggles it
+      closeAllPanels(hitPanel);            // hitPanel is null for a click in open space
+    }
+    root.addEventListener('mousedown', onDown, true);
+    document.addEventListener('mousedown', function (ev) {
+      var open = root.querySelectorAll('[id$="panel"]'); if (!open.length) return;
+      var path = (ev && ev.composedPath) ? ev.composedPath() : [];
+      for (var j = 0; j < path.length; j++) if (path[j] === host) return;
+      closeAllPanels(null);                // clicked right outside the dashboard
+    }, true);
+    root.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') closeAllPanels(null); }, true);
+  }
+
+  /* (b)(c)(d) v12.19 settings migration. Changing only the factory defaults would leave
+     everyone who already has a saved config on the old values, so the new defaults are
+     also pushed once onto existing configs. Anything the user changes afterwards sticks,
+     because the flag is only ever set once. */
+  function migrate1219() {
+    try {
+      if (S.mig1219) return;
+      S.rowPad = 0;                                   // (b) minimum row density
+      S.padScale = 20;                                // (c) Fonts padding 20%
+      S.order.forEach(function (k) {                  // (d) date cols back to their minimum
+        if (S.cols[k] && isDateCol(k)) { delete S.cols[k].userW; S.cols[k].w = dateColW(); }
+      });
+      S.mig1219 = 1; saveCfg();
+    } catch (e) {}
+  }
   function renderAll(){
+    installOutsideClose(); migrate1219();
     ensureShell();var wrap=root.getElementById('wrap');wrap.innerHTML='';
     wrap.appendChild(el('div',{class:'top'},[
       (function(){var b=el('div',{class:'brand'});b.innerHTML='MPS <span>GROUP</span>';return b;})(),
