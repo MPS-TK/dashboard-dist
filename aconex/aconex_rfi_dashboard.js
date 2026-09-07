@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.23', BUILD_DATE='7 Sep 2026';
+  var VERSION='v12.24', BUILD_DATE='7 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -100,13 +100,13 @@
          xProjectName:(C.xProjectName||((C.xProjectId&&C.xProjectId!==DEFAULT_XPID)?'':DEFAULT_XNAME)),
          projects:null,
          overrides:loadOverrides()};
-  function ovKey(){return 'mps_aconex_rfi_ov_'+CFG.mpsProjectNo;}
+  function ovKey(){return 'mps_aconex_rfi_ov_'+CFG.projectId;}
   function loadOverrides(){try{return JSON.parse(localStorage.getItem(ovKey())||'{}');}catch(e){return {};}}
   function saveOverrides(){try{localStorage.setItem(ovKey(),JSON.stringify(S.overrides));}catch(e){}}
 
   // ---- GitHub team sync (shares manual edits like the ITP module) ----
   var GH={repo:'MPS-TK/ITR-Dashboard',branch:'main',path:'aconex/rfi_overrides_'+CFG.mpsProjectNo+'.json',sha:null,timer:null,state:''};
-  function rfiSeenKey(){return 'mps_aconex_rfi_lastseen_'+CFG.mpsProjectNo;}
+  function rfiSeenKey(){return 'mps_aconex_rfi_lastseen_'+CFG.projectId;}
   function rfiLoadSeen(){try{return JSON.parse(localStorage.getItem(rfiSeenKey())||'null');}catch(e){return null;}}
   function rfiSaveSeen(n){try{localStorage.setItem(rfiSeenKey(),JSON.stringify({count:n,ts:Date.now()}));}catch(e){}}
   function rfiCheckNew(){if(S._seenChecked)return;S._seenChecked=true;var cur=S.allRows.length;var prev=rfiLoadSeen();S._newBaseline=(prev&&typeof prev.count==='number')?prev.count:null;S._newTs=(prev&&prev.ts)?prev.ts:0;rfiSaveSeen(cur);}
@@ -137,7 +137,7 @@
   function recomputeAuto(){S.allRows.forEach(function(r){r.type=r.type||refType(r.aconexRef);var a=daysBetween(r.dateSent);r.daysSinceSub=(a==null?'':String(a));var b=daysBetween(r.dateRespRecd);r.daysSinceRespNum=(b==null?0:b);r.daysSinceResp=(b==null?'—':(isClosed(r)?('Closed ('+b+')'):String(b)));r.daysOpen=computeDaysOpen(r);r.daysToClose=(r.daysOpen==null?'':String(r.daysOpen));var mc=(r._mpsMails?r._mpsMails.length:0),bc=(r._bhpMails?r._bhpMails.length:0);r.totalCorr=String(mc+bc);});}
   // One-time (per project) backfill: set every closed RFI/TQ's Date Closed to its Date Response Received (last response). Item 1a.
   function backfillClosedDates(){
-    var KEY='rfi_closedBackfill_'+CFG.mpsProjectNo;
+    var KEY='rfi_closedBackfill_'+CFG.projectId;
     try{if(localStorage.getItem(KEY))return;}catch(e){}
     var changed=false;
     S.allRows.forEach(function(r){if(isClosed(r)&&r.dateRespRecd&&r.dateClosed!==r.dateRespRecd){r.dateClosed=r.dateRespRecd;var o=S.overrides[rowKey(r)]||(S.overrides[rowKey(r)]={});o.dateClosed=r.dateRespRecd;changed=true;}});
@@ -399,6 +399,30 @@
     +'.btn.alt{background:'+NAVY+';color:#fff;border-color:'+NAVY+'}.btn.alt:hover{background:'+NAVY2+'}'
     +'.badge{background:'+ACCENT+';color:#fff;border-radius:12px;padding:2px 9px;font-size:11px;font-weight:700}'
     +'.tabs{display:flex;gap:4px;background:'+NAVY2+';padding:0 10px}.tab{padding:calc(7px*var(--ps,1)) 15px;color:#cdd8e6;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;font-size:12px}.tab.active{color:#fff;border-color:'+ACCENT+'}.tab.disabled{opacity:.4;cursor:not-allowed}.tab.link:hover{color:#fff;background:rgba(255,255,255,.06)}'
+    +'.pbr{background:#fff;border-bottom:1px solid #e2e6ec;padding:9px 12px;display:flex;align-items:center;gap:8px}'
+    +'.pbrl{font-size:11px;font-weight:700;text-transform:uppercase;color:#6B7280;letter-spacing:.5px}'
+    +'select.psel{border:1px solid #cfd7e0;border-radius:6px;padding:5px 10px;font-size:12px;color:'+INK+';background:#fff;min-width:360px;max-width:560px;outline:none;font-family:inherit}'
+    +'.pselcfg{margin-left:-9px;height:29px;display:inline-flex;align-items:center;justify-content:center;padding:0 8px;border:1px solid #cfd7e0;border-radius:6px;background:#fff;color:#C0392B;font-size:12px;font-weight:700;cursor:pointer;line-height:1}.pselcfg:hover{border-color:'+ACCENT+'}'
+    +'.pst{font-size:11px;color:#9BA3AF;margin-left:6px}'
+    +'.apvpanel{position:absolute;z-index:60;background:#fff;border:1px solid #D1D5DB;border-radius:8px;box-shadow:0 12px 40px rgba(11,42,74,.22);width:636px;max-height:62vh;display:flex;flex-direction:column}'
+    +'.apvhd{padding:12px 14px;background:'+NAVY+';color:#fff;border-radius:8px 8px 0 0;flex-shrink:0}.apvhd .t{font-weight:700;font-size:13px}.apvhd .s{font-size:11px;opacity:.85;margin-top:3px;line-height:1.4}'
+    +'.apvtools{padding:8px 14px;display:flex;gap:8px;border-bottom:1px solid #F3F4F6;align-items:center;flex-shrink:0}'
+    +'.apvbtn{font-size:11px;padding:4px 10px;border:1px solid #D1D5DB;border-radius:5px;background:#fff;cursor:pointer;color:#374151}.apvbtn:hover{border-color:'+ACCENT+';color:'+ACCENT+'}'
+    +'.apvsrch{margin-left:auto;font-size:11px;padding:4px 8px;border:1px solid #D1D5DB;border-radius:5px;width:130px;outline:none}'
+    +'.apvlist{overflow-y:auto;flex:1 1 auto;min-height:60px}'
+    +'.apvrow{display:flex;align-items:center;gap:5px;height:30px;padding:0 12px;border-bottom:1px solid #F3F4F6}.apvrow.na{opacity:.5}'
+    +'.apvpre,.apvnum,.apvctl{flex-shrink:0;font-size:11px;font-family:"Consolas",monospace;padding:3px 5px;border:1px solid #D1D5DB;border-radius:4px;outline:none;color:'+NAVY+'}'
+    +'.apvpre{width:44px;text-transform:uppercase}.apvnum{width:54px}.apvctl{width:38px}'
+    +'.apvbar{color:#9CA3AF;font-family:monospace;font-size:12px;flex-shrink:0;width:6px;text-align:center}'
+    +'.apvidx{width:20px;flex-shrink:0;font-size:10px;color:#9BA3AF;text-align:right;font-variant-numeric:tabular-nums}'
+    +'.apvlab{display:flex;align-items:center;gap:6px;flex:1;min-width:0;cursor:pointer;margin-left:3px}.apvlab input{width:14px;height:14px;flex-shrink:0;cursor:pointer;accent-color:'+NAVY+'}'
+    +'.apvname{font-size:12px;color:#374151;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
+    +'.apvscope{width:120px;flex-shrink:0;font-size:11px;font-family:"Consolas",monospace;padding:3px 5px;border:1px solid #D1D5DB;border-radius:4px;outline:none;color:'+NAVY+'}'
+    +'.apvpill{font-size:9px;font-weight:700;color:#9CA3AF;background:#F3F4F6;border:1px solid #E5E7EB;padding:1px 5px;border-radius:10px;white-space:nowrap;flex-shrink:0}'
+    +'.apvfoot{padding:12px 14px;border-top:1px solid #E2E5EB;display:flex;gap:10px;justify-content:flex-end;align-items:center;flex-shrink:0}'
+    +'.apvcount{margin-right:auto;font-size:11px;color:#9BA3AF}'
+    +'.apvcancel{font-size:12px;padding:7px 16px;border:1px solid #D1D5DB;border-radius:6px;background:#fff;cursor:pointer;color:#374151}'
+    +'.apvsave{font-size:12px;font-weight:600;padding:7px 16px;border:none;border-radius:6px;background:'+NAVY+';color:#fff;cursor:pointer}'
     +'.toolbar{display:flex;align-items:center;gap:calc(7px*var(--ps,1));padding:calc(6px*var(--ps,1)) calc(12px*var(--hp,1));background:#fff;border-bottom:1px solid '+LINE+';flex-wrap:wrap}'
     +'.toolbar input[type=search],.toolbar select{border:1px solid #cfd8e3;border-radius:5px;padding:4px 8px;font-size:12px}.search{width:220px}'
     +'.cpanel{margin:calc(8px*var(--ps,1)) calc(12px*var(--hp,1)) 0;border:1px solid '+LINE+';border-radius:8px;background:#fff;overflow:hidden}'
@@ -612,13 +636,13 @@
       el('div',{class:'title',title:'MPS live RFI/TQ register dashboard on the Aconex platform'},['Aconex RFI / TQ Register']),
       el('div',{class:'vbadge',title:'Dashboard version · build date'},[VERSION+' · '+BUILD_DATE]),
       (function(){if(S._newBaseline==null)return null;var d=S.allRows.length-S._newBaseline;if(d<=0)return null;var since=S._newTs?(' (last visit '+fmtDate(new Date(S._newTs).toISOString().slice(0,10))+')'):'';var b=el('div',{class:'newbadge',title:'The register has grown by '+d+' RFI/TQ entr'+(d===1?'y':'ies')+' since you last opened this dashboard'+since+'. Click to acknowledge.',onclick:rfiAckNew},['\u25B2 '+d+' new since last visit']);return b;})(),
-      el('div',{class:'muted'},['· '+CFG.projectName+' · MPS '+CFG.mpsProjectNo+' · '+(S.rows.length+' of '+S.allRows.length+' entries')]),
+      el('div',{class:'muted'},['· '+CFG.projectName+(CFG.mpsProjectNo?(' · MPS '+CFG.mpsProjectNo):'')+' · '+(S.loading?'loading…':(S.rows.length+' of '+S.allRows.length+' entries'))]),
       btn('↻ Reload','Reload the register from its saved data and recalculate the day counts',function(){initRows();applyScope();renderAll();}),
       btn('Fonts','Choose the dashboard font and base size for all elements',function(ev){toggleFontPanel(ev&&ev.currentTarget);},'pnltrig'),
       btn((S.darkMode?'☀ Light Mode':'☾ Dark Mode'),'Toggle dark mode',function(){S.darkMode=!S.darkMode;saveCfg();renderAll();}),
       (function(){selBtnEl=el('button',{class:'btn mps-open',onclick:openSelected},['🔗 Open Selected']);selBtnEl.setAttribute('disabled','disabled');selBtnEl.setAttribute('title','Tick one or more rows in the left-hand column to enable this');return selBtnEl;})(),
       btn('⟳ Cross-check Aconex Mail','Scan the Request For Information, Technical Query, Response to RFI and Response to Technical Query mails in the selected Aconex project and auto-fill the Aconex-sourced columns (matched on Aconex Reference No)',function(ev){fullScan();}),
-      (function(){var b=el('button',{class:'btn pnltrig',id:'projbtn',title:'Choose which Aconex project the cross-check queries',onclick:function(){openProjectPanel(b);}},[el('span',{style:'opacity:.7'},['Project: ']),el('span',{id:'projlbl',style:'font-weight:700'},[projectLabel()]),el('span',{style:'margin-left:5px'},['▾'])]);return b;})(),
+      null,
       el('span',{class:'muted',id:'xsync',style:'font-size:11px',title:'When the Aconex-sourced columns were last cross-checked against the mail module'},[lastXText()]),
       el('div',{class:'spacer'}),
       el('div',{class:'badge',title:'This dashboard is running on the Aconex platform'},['ACONEX']),
@@ -633,6 +657,14 @@
       el('div',{class:'tab link',title:'Switch to the Variation register',onclick:gotoVAR},['Variations']),
       el('div',{class:'tab disabled',title:'Coming soon'},['Drawings'])
     ]));
+    // ---- project selector bar (team-wide registry; drives which project's RFIs load) ----
+    wrap.appendChild(el('div',{class:'pbr'},[
+      el('span',{class:'pbrl'},['Project']),
+      (function(){var s=el('select',{class:'psel',id:'psel',title:'Choose which Aconex project’s RFIs / TQs to load'});s.onchange=function(){if(s.value)apvSelect(s.value);};return s;})(),
+      el('button',{class:'pselcfg',id:'pselcfg',title:'Manage the project list: hide projects and set each project’s MPS Ref for the whole team',onclick:apvOpenPanel},['▾']),
+      el('span',{class:'pst',id:'pst'},[(S.loading?'loading…':(S.rows.length+' of '+S.allRows.length+' entries'))])
+    ]));
+    apvRenderDropdown();apvBindSelSwap();
     // toolbar
     var search=el('input',{type:'search',class:'search',title:'Search across all columns',placeholder:'⌕ Search RFIs / TQs…',value:S.globalSearch});search.oninput=function(){S.globalSearch=search.value;applyFilters();renderBody();renderChart();};
     var ssel=el('select',{class:'dtsel',title:'Filter the whole register by Open / Closed status'});[['__ALL__','All Statuses'],['__OPEN__','Open only'],['__CLOSED__','Closed only']].forEach(function(p){var o=el('option',{value:p[0]},[p[1]]);if(S.statusSel===p[0])o.selected=true;ssel.appendChild(o);});ssel.onchange=function(){S.statusSel=ssel.value;applyScope();renderAll();};
@@ -1560,7 +1592,310 @@ async function fullScan(){
   }
   function exportExcel(){try{var keys=visKeys(),data=buildXlsx(keys,S.filtered);var blob=new Blob([data],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Aconex_RFITQ_Register_'+CFG.mpsProjectNo+'_'+new Date().toISOString().slice(0,10)+'.xlsx';document.documentElement.appendChild(a);a.click();a.remove();}catch(e){alert('Export failed: '+e);}}
 
-  function boot(){ensureShell();host.style.display='block';if(!S.allRows.length){initRows();if(ghToken())ghLoad();}rfiCheckNew();applyScope();renderAll();maybeFullScan();}
+  // ================= Aconex Project Selector (__apv) — team-wide registry, MPS Ref + per-project scope =================
+  // Ported from the Procore __pv subsystem, adapted for the Aconex shadow-DOM modules.
+  // Shared state on window.__apv* so all three tabs (ITP / RFI / VAR) read the same registry.
+  // Panel matches the Procore Project Management Dropdown (Prefix / Job No / Control No. MPS Ref boxes),
+  // plus one Aconex-only addition: a per-project document Scope, because the Aconex register search
+  // ignores page_size and hard-caps at 250 results with no paging.
+  window.__apvAccessSet = window.__apvAccessSet || new Set();
+  window.__apvAccessNames = window.__apvAccessNames || {};
+  window.__apvRegistry = window.__apvRegistry || {};
+  window.__apvHidden = window.__apvHidden || new Set();
+  window.__apvScope = window.__apvScope || {};
+  window.__apvJN = window.__apvJN || {};
+  window.__apvHiddenMeta = window.__apvHiddenMeta || {};
+  window.__apvShas = window.__apvShas || {};
+  var APV_REG = 'aconex/project_registry_au1.json';
+  var APV_HID = 'aconex/project_hidden_au1.json';
+  var APV_SCOPE = 'aconex/project_scope_au1.json';
+  var APV_JN = 'aconex/project_jn_au1.json';
+  var APV_SELKEY = 'mps_aconex_selproj';
+  var APV_DEFAULT_ID = '2013294019';            // CNPI CUSA
+  var APV_DEFAULT_SCOPE = 'MPSBE-1202158-*';     // the CNPI CUSA package the dashboard shipped with
+  var APV_CAP = 250;                             // register search hard cap (page_size ignored above this)
+  function apvScopeFor(id){
+    if (window.__apvScope && Object.prototype.hasOwnProperty.call(window.__apvScope, id)) return window.__apvScope[id] || '';
+    if (String(id) === APV_DEFAULT_ID) return APV_DEFAULT_SCOPE;
+    return '';
+  }
+  function apvName(id){ return window.__apvRegistry[id] || window.__apvAccessNames[id] || String(id); }
+  function apvJnParse(id){ var raw = (window.__apvJN && window.__apvJN[id]) || ''; var pm = raw.split('|'); var left = pm[0] || ''; var ctl = pm[1] || ''; var mm = left.match(/^([A-Za-z]{0,3})(.*)$/); var pre = (mm && mm[1] ? mm[1].toUpperCase() : ''); var num = (mm ? mm[2] : left) || ''; return { pre: pre, num: num, ctl: ctl }; }
+  function apvJobNo(id){ var p = apvJnParse(id); if (!p.num) return ''; var n = parseInt(p.num, 10); return isNaN(n) ? '' : String(n); }
+  function apvLabel(id){ var jn = apvJobNo(id); var nm = apvName(id); return jn ? (jn + ' ' + nm) : nm; }
+  function apvGhUrl(path){ return 'https://api.github.com/repos/' + GH.repo + '/contents/' + path; }
+  function apvLoad(path){
+    if (!ghToken()) return Promise.resolve(undefined);
+    return fetch(apvGhUrl(path) + '?ref=' + GH.branch + '&t=' + Date.now(), { headers: ghHeaders() })
+      .then(function(r){ if (r.status === 404){ window.__apvShas[path] = null; return null; } if (!r.ok) throw 0; return r.json(); })
+      .then(function(j){ if (!j) return null; window.__apvShas[path] = j.sha; try { return JSON.parse(decodeURIComponent(escape(atob((j.content||'').replace(/\n/g,''))))); } catch(e){ return null; } })
+      .catch(function(){ return undefined; });
+  }
+  function apvSave(path, obj){
+    if (!ghToken()) return Promise.resolve(false);
+    var body = { message: 'Update ' + path + ' (Aconex project selector)', content: btoa(unescape(encodeURIComponent(JSON.stringify(obj, null, 2)))), branch: GH.branch };
+    if (window.__apvShas[path]) body.sha = window.__apvShas[path];
+    return fetch(apvGhUrl(path), { method: 'PUT', headers: ghHeaders(), body: JSON.stringify(body) })
+      .then(function(r){ if (r.status === 409){ window.__apvShas[path] = null; return apvLoad(path).then(function(){ return apvSave(path, obj); }); } if (!r.ok) return false; return r.json().then(function(j){ if (j && j.content) window.__apvShas[path] = j.content.sha; return true; }); })
+      .catch(function(){ return false; });
+  }
+  function apvFetchProjects(){
+    return fetch('/api/projects', { headers: { Accept: 'application/xml' }, credentials: 'include' })
+      .then(function(r){ return r.text(); })
+      .then(function(t){
+        var d = new DOMParser().parseFromString(t, 'text/xml');
+        return [].slice.call(d.querySelectorAll('Project')).map(function(p){
+          return { id: (p.getAttribute('ProjectId') || (p.querySelector('ProjectId')||{}).textContent || '').trim(), name: ((p.querySelector('ProjectName')||{}).textContent || '').trim() };
+        }).filter(function(p){ return p.id; });
+      });
+  }
+  function apvSaveRegistry(){
+    var out = { projects: {}, updated: new Date().toISOString() };
+    Object.keys(window.__apvRegistry || {}).forEach(function(id){ out.projects[id] = { name: window.__apvRegistry[id] }; });
+    return apvSave(APV_REG, out);
+  }
+  function apvInit(){
+    return Promise.all([ apvLoad(APV_REG), apvLoad(APV_HID), apvLoad(APV_SCOPE), apvLoad(APV_JN) ]).then(function(res){
+      var reg = res[0], hid = res[1], sc = res[2], jn = res[3];
+      var next = {};
+      if (reg && reg.projects && typeof reg.projects === 'object') Object.keys(reg.projects).forEach(function(id){ next[id] = (reg.projects[id] && reg.projects[id].name) || String(id); });
+      var changed = (reg === undefined || reg === null);
+      window.__apvAccessSet.forEach(function(id){ var nm = window.__apvAccessNames[id] || String(id); if (next[id] !== nm){ next[id] = nm; changed = true; } });
+      window.__apvRegistry = next;
+      if (hid && Array.isArray(hid.hidden)) { window.__apvHidden = new Set(hid.hidden.map(String)); window.__apvHiddenMeta = { lastAction: hid.lastAction||null, lastActor: hid.lastActor||null, lastActorAt: hid.lastActorAt||null }; }
+      if (sc && sc.scope && typeof sc.scope === 'object') window.__apvScope = sc.scope;
+      if (jn && jn.jn && typeof jn.jn === 'object') window.__apvJN = jn.jn;
+      if (changed && ghToken()) return apvSaveRegistry();
+    });
+  }
+  function apvVisibleIds(){
+    var all = Object.keys(window.__apvRegistry || {});
+    var out = [], seen = {};
+    all.forEach(function(id){ if (!window.__apvHidden.has(id)){ out.push(id); seen[id] = 1; } });
+    window.__apvAccessSet.forEach(function(id){ if (!seen[id] && !window.__apvHidden.has(id)) out.push(id); });
+    out.sort(function(a,b){ return apvName(a).localeCompare(apvName(b)); });
+    return out;
+  }
+  function apvRenderDropdown(){
+    var sel = root && root.getElementById('psel'); if (!sel) return;
+    var cur = CFG.projectId; sel.innerHTML = '';
+    var allIds = Object.keys(window.__apvRegistry || {}).sort(function(a,b){ return apvName(a).localeCompare(apvName(b)); });
+    var numMap = {}; allIds.forEach(function(id,i){ numMap[id] = i + 1; });
+    apvVisibleIds().forEach(function(id){
+      var o = document.createElement('option'); o.value = id;
+      var na = !window.__apvAccessSet.has(id);
+      var plain = apvLabel(id) + (na ? '  (NO ACCESS)' : '');
+      var numbered = (numMap[id] || '?') + ') ' + plain;
+      o.textContent = plain; o.setAttribute('data-num', numbered); o.setAttribute('data-plain', plain);
+      o.title = na ? 'You do not have Aconex access to this project yet; it opens automatically once access is granted' : apvName(id);
+      if (na){ o.disabled = true; o.style.color = '#9CA3AF'; }
+      sel.appendChild(o);
+    });
+    if (cur && [].some.call(sel.options, function(o){ return o.value === cur; })) sel.value = cur;
+    var so = sel.options[sel.selectedIndex]; if (so && so.getAttribute('data-plain') != null) so.textContent = so.getAttribute('data-plain');
+  }
+  function apvBindSelSwap(){
+    if (window.__apvSelDelegated || !root) return; window.__apvSelDelegated = true;
+    function showNums(){ var s = root.getElementById('psel'); if (!s) return; for (var i=0;i<s.options.length;i++){ var n = s.options[i].getAttribute('data-num'); if (n != null) s.options[i].textContent = n; } }
+    function hideNum(){ var s = root.getElementById('psel'); if (!s) return; var o = s.options[s.selectedIndex]; if (o){ var p = o.getAttribute('data-plain'); if (p != null) o.textContent = p; } }
+    root.addEventListener('mousedown', function(e){ if (e.target && e.target.id === 'psel') showNums(); }, true);
+    root.addEventListener('change', function(e){ if (e.target && e.target.id === 'psel') hideNum(); }, true);
+    root.addEventListener('blur', function(e){ if (e.target && e.target.id === 'psel') hideNum(); }, true);
+  }
+  function apvApplyProjectContext(id){
+    // Point every per-project key at the selected project so nothing bleeds across projects.
+    CFG.projectId = id;
+    CFG.projectName = apvName(id);
+    CFG.mpsProjectNo = apvJobNo(id) || '';   // MPS Ref job number (from the panel), display only
+    S.xProjectId = id; S.xProjectName = CFG.projectName;   // cross-check follows the selected project
+    try { LKEY = 'mps_aconex_rfi_cfg_' + CFG.projectId; DKEY = 'mps_aconex_rfi_defcfg_' + CFG.projectId; } catch(e){}
+    GH.path = 'aconex/rfi_overrides_' + CFG.projectId + '.json'; GH.sha = null;
+    try { S.overrides = loadOverrides(); } catch(e){ S.overrides = {}; }
+    try { localStorage.setItem(APV_SELKEY, id); } catch(e){}
+  }
+  function apvReloadProjectView(){
+    var c; try { c = loadCfg(); } catch(e){ c = null; }
+    if (c){
+      S.selFilters = c.selFilters || {};
+      S.statusSel = c.statusSel || '__ALL__';
+      S.typeSel = c.typeSel || [];
+      S.fltDate = (c.fltDate && typeof c.fltDate === 'object') ? { from: c.fltDate.from||'', to: c.fltDate.to||'', preset: c.fltDate.preset||'' } : { from:'', to:'', preset:'' };
+      S.fltRef = c.fltRef || '';
+      S.hiddenRows = (c.hiddenRows && c.hiddenRows.length ? c.hiddenRows.slice() : []);
+    } else {
+      S.selFilters = {}; S.statusSel = '__ALL__'; S.typeSel = []; S.fltDate = { from:'', to:'', preset:'' }; S.fltRef = ''; S.hiddenRows = [];
+    }
+    S.colFilters = {}; S.globalSearch = ''; S._seenChecked = false;
+  }
+  function apvSelect(id, opts){
+    opts = opts || {};
+    if (!id) return;
+    apvApplyProjectContext(id);
+    apvReloadProjectView();
+    apvRenderDropdown();
+    if (opts.fetch !== false){ S.allRows = []; fetchRFIsLive(); }
+  }
+  function apvAutoSelect(){
+    var saved = ''; try { saved = localStorage.getItem(APV_SELKEY) || ''; } catch(e){}
+    var vis = apvVisibleIds();
+    var pick = (saved && window.__apvAccessSet.has(saved)) ? saved
+             : (window.__apvAccessSet.has(CFG.projectId) ? CFG.projectId
+             : (vis.filter(function(id){ return window.__apvAccessSet.has(id); })[0] || CFG.projectId));
+    apvApplyProjectContext(pick);
+    apvReloadProjectView();
+    apvRenderDropdown();
+  }
+  function apvBoot(){
+    apvFetchProjects().then(function(list){
+      list.sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
+      window.__apvAccessSet = new Set(); window.__apvAccessNames = {};
+      list.forEach(function(p){ window.__apvAccessSet.add(p.id); window.__apvAccessNames[p.id] = p.name || p.id; });
+    }).catch(function(){}).then(function(){
+      return apvInit();
+    }).then(function(){
+      apvBindSelSwap(); apvRenderDropdown(); apvAutoSelect();
+      fetchRFIsLive();
+    }).catch(function(){ if (!S.allRows.length && !S.loading) fetchRFIsLive(); });
+  }
+  // ---- live RFI/TQ fetch from Aconex Mail (per selected project) ----
+  function fetchRFIsLive(){
+    var pid = CFG.projectId; if (!pid){ S.allRows = []; renderAll(); return Promise.resolve(); }
+    S.loading = true; renderAll();
+    var RF = 'docno,subject,sentdate,corrtypeid,responseDate';
+    // Narrow the fetch with the same keyword search used in Aconex Mail (General Correspondence "RFI").
+    // The mail search hard-caps at 250 and ignores paging, so a narrowed query reaches older RFIs an
+    // unfiltered fetch would truncate. Multiple terms cover RFIs and TQs; correspondence-type filter below
+    // discards any keyword false positives.
+    var TERMS = ['RFI', 'Technical Query', 'TQ', 'TECHQ'];
+    function q(b, term){
+      return fetch('/api/projects/' + pid + '/mail?mail_box=' + b + '&page_size=500&return_fields=' + RF + '&search_query=' + encodeURIComponent(term), { headers: { Accept: 'application/xml' }, credentials: 'include' })
+        .then(function(r){ return r.ok ? r.text() : ''; })
+        .then(function(t){ var d = new DOMParser().parseFromString(t, 'application/xml'); return [].slice.call(d.querySelectorAll('Mail')).map(function(m){ function T(s){ var n = m.querySelector(s); return n ? (n.textContent||'').trim() : ''; } return { no: T('MailNo'), subj: T('Subject'), sent: T('SentDate'), ct: T('CorrespondenceType').toLowerCase(), rrq: T('ResponseRequired') }; }); })
+        .catch(function(){ return []; });
+    }
+    var jobs = []; ['sentbox', 'inbox'].forEach(function(b){ TERMS.forEach(function(term){ jobs.push(q(b, term)); }); });
+    return Promise.all(jobs).then(function(res){
+      var raw = [].concat.apply([], res); var seen = {}, all = [];
+      raw.forEach(function(m){ if (m.no && !seen[m.no]){ seen[m.no] = 1; all.push(m); } });
+      var RFI_T = { 'request for information': 'rfi', 'technical query': 'tq' };
+      var RESP_T = { 'response to rfi': 'rfi', 'response to technical query': 'tq' };
+      function ns(s){ return String(s||'').replace(/^((re|fw|fwd)\s*:\s*)+/i, '').replace(/\s+/g, ' ').trim().toLowerCase(); }
+      function iso(s){ var m = String(s).match(/^(\d{4}-\d{2}-\d{2})/); return m ? m[1] : ''; }
+      function sndr(no){ var p = String(no).split('-')[0].toUpperCase(); return p.indexOf('MPS') >= 0 ? 'MPS' : (p.indexOf('BHP') >= 0 ? 'BHP' : (p.indexOf('QPE') >= 0 ? 'QPE' : p)); }
+      var respBy = {}; all.filter(function(m){ return RESP_T[m.ct]; }).forEach(function(m){ var k = ns(m.subj); (respBy[k] = respBy[k] || []).push(m); });
+      var initials = all.filter(function(m){ return RFI_T[m.ct]; }).sort(function(a,b){ return iso(a.sent).localeCompare(iso(b.sent)); });
+      S.allRows = initials.map(function(m, i){
+        var r = {}; MANUAL_FIELDS.forEach(function(k){ r[k] = ''; });
+        var resps = respBy[ns(m.subj)] || [];
+        var last = resps.map(function(x){ return iso(x.sent); }).sort().slice(-1)[0] || '';
+        r.rfiNo = i + 1; r.aconexRef = m.no; r.sender = sndr(m.no);
+        r.dateSent = iso(m.sent); r.dateRespReq = iso(m.rrq); r.dateRespRecd = last;
+        r.closed = (resps.length ? 'Closed' : 'Open'); r.description = m.subj;
+        r.mailNo = ''; r.respMailNo = ''; r.type = refType(m.no) || (RFI_T[m.ct] === 'tq' ? 'TQ' : 'RFI');
+        return r;
+      });
+      applyOverridesToRows(); recomputeAuto(); backfillClosedDates();
+      S.loading = false; rfiCheckNew(); applyScope(); renderAll();
+      if (ghToken()) ghLoad().then(function(){ applyOverridesToRows(); recomputeAuto(); applyScope(); renderAll(); });
+    }).catch(function(e){ S.loading = false; S.error = String(e && e.message || e); renderAll(); });
+  }
+  function apvOpenPanel(){
+    var wrapEl = root.getElementById('wrap'); if (!wrapEl) return;
+    var ex = root.getElementById('apvpanel'); if (ex){ ex.remove(); return; }
+    var btn = root.getElementById('pselcfg'); if (!btn) return;
+    var ids = Object.keys(window.__apvRegistry);
+    if (!ids.length){ window.__apvAccessSet.forEach(function(id){ window.__apvRegistry[id] = window.__apvAccessNames[id] || String(id); }); ids = Object.keys(window.__apvRegistry); }
+    ids.sort(function(a,b){ return apvName(a).localeCompare(apvName(b)); });
+    // prefix datalist from prefixes already in use plus the common MPS set
+    var preSet = { CV:1, EL:1, BD:1, CM:1 };
+    Object.keys(window.__apvJN || {}).forEach(function(k){ var lm = String(window.__apvJN[k]||'').match(/^([A-Za-z]{1,3})/); if (lm) preSet[lm[1].toUpperCase()] = 1; });
+    var dl = el('datalist', { id: 'apvprelist' }, Object.keys(preSet).sort().map(function(p){ return el('option', { value: p }); }));
+    var panel = el('div', { id: 'apvpanel', class: 'apvpanel' });
+    var hd = el('div', { class: 'apvhd' }, [
+      el('div', { class: 't' }, ['Project Management Dropdown']),
+      el('div', { class: 's' }, ['Untick to hide a project from the dropdown for everyone. Greyed projects are ones you can’t access yet, and they update automatically once access is granted. The boxes on the left set each project’s MPS Ref (prefix · job no · control). Scope limits a project to a document-number pattern (e.g. MPSBE-1202158-*); blank pulls the whole project (first 250 documents).'])
+    ]);
+    var tools = el('div', { class: 'apvtools' }, [
+      el('button', { class: 'apvbtn', id: 'apvall', title: 'Show every project in the selector, for everyone.' }, ['Show all']),
+      el('button', { class: 'apvbtn', id: 'apvnone', title: 'Hide every project from the selector, for everyone.' }, ['Hide all']),
+      el('input', { class: 'apvsrch', id: 'apvsrch', placeholder: 'Filter…' })
+    ]);
+    var listEl = el('div', { class: 'apvlist', id: 'apvlist' }, [dl]);
+    ids.forEach(function(id, idx){
+      var na = !window.__apvAccessSet.has(id);
+      var checked = !window.__apvHidden.has(id);
+      var jp = apvJnParse(id);
+      var row = el('div', { class: 'apvrow' + (na ? ' na' : ''), 'data-pid': id });
+      row.appendChild(el('span', { class: 'apvidx' }, [String(idx + 1)]));
+      var preIn = el('input', { class: 'apvpre', list: 'apvprelist', maxlength: '3', placeholder: 'Pfx', title: 'MPS Ref prefix; pick from the list or type up to 3 letters', value: jp.pre }); if (na) preIn.disabled = true;
+      var numIn = el('input', { class: 'apvnum', maxlength: '7', placeholder: 'Job No', title: 'Job number (padded to 6 digits on save)', value: jp.num }); if (na) numIn.disabled = true;
+      var ctlIn = el('input', { class: 'apvctl', maxlength: '4', placeholder: 'Ctrl', title: 'MPS control number', value: jp.ctl }); if (na) ctlIn.disabled = true;
+      row.appendChild(preIn); row.appendChild(numIn);
+      row.appendChild(el('span', { class: 'apvbar' }, ['|']));
+      row.appendChild(ctlIn);
+      var lab = el('label', { class: 'apvlab' });
+      var cb = el('input', { type: 'checkbox', 'data-pid': id }); if (checked) cb.checked = true; if (na) cb.disabled = true;
+      lab.appendChild(cb);
+      lab.appendChild(el('span', { class: 'apvname', title: apvName(id) }, [apvName(id)]));
+      row.appendChild(lab);
+      var scin = el('input', { class: 'apvscope', 'data-pid': id, placeholder: 'Whole project', title: 'Document-number scope for this project (e.g. MPSBE-1202158-*). Blank pulls the whole project.', value: apvScopeFor(id) });
+      if (na) scin.disabled = true;
+      row.appendChild(scin);
+      if (na) row.appendChild(el('span', { class: 'apvpill' }, ['NO ACCESS']));
+      listEl.appendChild(row);
+    });
+    var foot = el('div', { class: 'apvfoot' }, [
+      el('span', { class: 'apvcount', id: 'apvcount' }, ['']),
+      el('button', { class: 'apvcancel', id: 'apvcancel', title: 'Close without applying changes.' }, ['Cancel']),
+      el('button', { class: 'apvsave', id: 'apvsave', title: 'Save the project visibility, MPS Refs and scope for everyone.' }, ['Save'])
+    ]);
+    panel.appendChild(hd); panel.appendChild(tools); panel.appendChild(listEl); panel.appendChild(foot);
+    wrapEl.appendChild(panel);
+    try { var ar = btn.getBoundingClientRect(), wr = wrapEl.getBoundingClientRect(); panel.style.left = Math.max(8, Math.min(ar.left - wr.left, wr.width - 636)) + 'px'; panel.style.top = (ar.bottom - wr.top + 6) + 'px'; } catch(e){}
+    function upd(){ var n = panel.querySelectorAll('.apvlist input[type=checkbox]:checked').length; var cc = root.getElementById('apvcount'); if (cc) cc.textContent = n + ' of ' + ids.length + ' shown'; panel.querySelectorAll('.apvrow').forEach(function(rw){ var c = rw.querySelector('input[type=checkbox]'); var off = c && !c.checked; rw.style.opacity = (off || rw.classList.contains('na')) ? '0.5' : '1'; }); }
+    upd();
+    panel.querySelectorAll('.apvlist input[type=checkbox]').forEach(function(c){ c.addEventListener('change', upd); });
+    root.getElementById('apvsrch').oninput = function(){ var v = this.value.toLowerCase(); panel.querySelectorAll('.apvrow').forEach(function(rw){ var sc = (rw.querySelector('.apvscope')||{}).value || ''; var pr = (rw.querySelector('.apvpre')||{}).value || ''; var nu = (rw.querySelector('.apvnum')||{}).value || ''; rw.style.display = (rw.textContent + ' ' + sc + ' ' + pr + ' ' + nu).toLowerCase().indexOf(v) > -1 ? '' : 'none'; }); };
+    function bulk(isShow){
+      if (!confirm((isShow ? 'Show' : 'Hide') + ' EVERY project in the dropdown for all users?')) return;
+      panel.querySelectorAll('.apvlist input[type=checkbox]').forEach(function(c){ if (!c.disabled) c.checked = isShow; });
+      upd();
+    }
+    root.getElementById('apvall').onclick = function(){ bulk(true); };
+    root.getElementById('apvnone').onclick = function(){ bulk(false); };
+    root.getElementById('apvcancel').onclick = function(){ panel.remove(); };
+    root.getElementById('apvsave').onclick = function(){
+      var hidden = [], scope = {}, jnMap = {};
+      panel.querySelectorAll('.apvrow').forEach(function(rw){
+        var pid = rw.getAttribute('data-pid');
+        var c = rw.querySelector('input[type=checkbox]'); if (c && !c.checked) hidden.push(pid);
+        var sc = ((rw.querySelector('.apvscope')||{}).value || '').trim(); if (sc) scope[pid] = sc;
+        var pre = ((rw.querySelector('.apvpre')||{}).value || '').replace(/[^A-Za-z]/g,'').toUpperCase().slice(0,3);
+        var num = ((rw.querySelector('.apvnum')||{}).value || '').replace(/\D/g,'');
+        var ctl = ((rw.querySelector('.apvctl')||{}).value || '').replace(/\D/g,'');
+        if (num && num.length < 6) num = ('000000' + num).slice(-6);
+        var left = pre + num; var val = ctl ? (left + '|' + ctl) : left; if (val) jnMap[pid] = val;
+      });
+      window.__apvHidden = new Set(hidden); window.__apvScope = scope; window.__apvJN = jnMap;
+      var sv = root.getElementById('apvsave'); sv.textContent = 'Saving…'; sv.disabled = true;
+      var iso = new Date().toISOString();
+      Promise.all([
+        apvSave(APV_HID, { hidden: hidden, updated: iso }),
+        apvSave(APV_SCOPE, { scope: scope, updated: iso }),
+        apvSave(APV_JN, { jn: jnMap, updated: iso })
+      ]).then(function(oks){
+        var newScope = apvScopeFor(CFG.projectId);
+        apvRenderDropdown();
+        panel.remove();
+        if (newScope !== CFG.docScope){ CFG.docScope = newScope; S.allRows = []; fetchData(); } else { renderAll(); }
+        if (oks.indexOf(false) >= 0) toast('Saved locally, but the team copy on GitHub did not update; check Team Sync.');
+        else toast('Project settings saved for the team.');
+      });
+    };
+    setTimeout(function(){ function away(e){ var p = root.getElementById('apvpanel'); if (!p) { root.removeEventListener('mousedown', away, true); return; } if (!p.contains(e.target) && e.target !== btn){ p.remove(); root.removeEventListener('mousedown', away, true); } } root.addEventListener('mousedown', away, true); }, 0);
+  }
+
+  function boot(){ensureShell();host.style.display='block';if(!window.__apvRfiBooted){window.__apvRfiBooted=true;apvBoot();}else{if(!S.allRows.length&&!S.loading)fetchRFIsLive();else renderAll();}}
   function maybeAutoCrosscheck(){try{if(__xSyncing)return;var pid=S.xProjectId||detectProjectId();if(!pid)return;var c=loadXCache();var hasX=false;try{hasX=!!localStorage.getItem('mps_aconex_rfi_xdata_73409');}catch(e){}if(hasX&&c&&c.ts&&(Date.now()-c.ts)<7200000)return;setTimeout(function(){crosscheckMail(null);},700);}catch(e){}}
   function close(){if(host)host.style.display='none';}
   window.__MPS_ACONEX_RFI={__live:true,boot:boot,close:close,_state:S,_cfg:CFG,buildXlsx:buildXlsx,crosscheck:crosscheckMail};
