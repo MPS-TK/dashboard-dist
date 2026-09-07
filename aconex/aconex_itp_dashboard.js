@@ -16,7 +16,7 @@
   if (window.__MPS_ACONEX && window.__MPS_ACONEX.__live) { window.__MPS_ACONEX.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.25', BUILD_DATE='7 Sep 2026';
+  var VERSION='v12.26', BUILD_DATE='7 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -859,7 +859,7 @@
       var r=24,cx=30,cy=30,sw=9,CC=2*Math.PI*r,off=0;
       var svg=svgEl('svg',{width:Math.round(62*sc),height:Math.round(62*sc),viewBox:'0 0 60 60'});
       if(!pie){
-        var gap=(total>0&&keys.length>1)?3:0;
+        var gap=(total>0&&keys.length>1)?0.75:0;
         svg.appendChild(svgEl('circle',{cx:cx,cy:cy,r:r,fill:'none',stroke:ringBg,'stroke-width':sw}));
         keys.forEach(function(k){var frac=total?counts[k]/total:0;var seg=svgEl('circle',{cx:cx,cy:cy,r:r,fill:'none',stroke:fieldColor(k),'stroke-width':sw,'stroke-dasharray':Math.max(0.01,frac*CC-gap)+' '+CC,transform:'rotate(-90 '+cx+' '+cy+')','stroke-dashoffset':CC});seg.style.transition='stroke-dashoffset 1s ease';seg.style.cursor='pointer';var tt=svgEl('title',{});tt.textContent=k+': '+counts[k];seg.appendChild(tt);seg.onclick=function(){toggleFieldFilter(k);};svg.appendChild(seg);if(isInfoWhite(k)){[r+sw/2-0.5,r-sw/2+0.5].forEach(function(rr){var CE=2*Math.PI*rr;svg.appendChild(svgEl('circle',{cx:cx,cy:cy,r:rr,fill:'none',stroke:CHART_GREEN,'stroke-width':'0.9','stroke-dasharray':Math.max(0.01,frac*CE-gap)+' '+CE,transform:'rotate(-90 '+cx+' '+cy+')','stroke-dashoffset':(-off*CE)}));});}(function(so,o){requestAnimationFrame(function(){requestAnimationFrame(function(){so.setAttribute('stroke-dashoffset',(-o*CC));});});})(seg,off);off+=frac;});
         var lt=svgEl('text',{x:cx,y:cy+4,'text-anchor':'middle','font-size':'13','font-weight':'700',fill:ctrInk});lt.textContent=String(total);svg.appendChild(lt);
