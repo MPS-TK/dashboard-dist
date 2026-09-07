@@ -16,19 +16,19 @@
   if (window.__MPS_ACONEX && window.__MPS_ACONEX.__live) { window.__MPS_ACONEX.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.24', BUILD_DATE='7 Sep 2026';
+  var VERSION='v12.25', BUILD_DATE='7 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
   // Status background colours (lowercase key). Text colour + fallbacks handled in statusFg().
-  var STATUS_COLORS={'reviewed':'#2b6cb0','submitted':'#1e7e34','reviewed with comments':'#e0a800','revise and resubmit':'#e05a1c','superseded':'#8a939b','obsolete':'#39424d','information only':'#ffffff'};
+  var STATUS_COLORS={'reviewed':'#2b6cb0','submitted':'#1e7e34','reviewed with comments':'#e0a800','revise and resubmit':'#e05a1c','superseded':'#6b7280','obsolete':'#39424d','information only':'#cbd5e1'};
   // Logical workflow order for charts/legends (unknowns sort to the end).
   var STATUS_ORDER=['information only','submitted','under review','reviewed with comments','revise and resubmit','reviewed','approved','for review','for approval','superseded','obsolete'];
   // Shortened display labels to save column width.
   var STATUS_DISPLAY={'revise and resubmit':'Revise & Resubmit','reviewed with comments':'Reviewed w/Comment'};
   // Lifecycle Status (Aconex Attribute2) colours + logical workflow order.
   // Workflow: For Review (orange) > For Approval (green) > For Use (blue).
-  var LIFECYCLE_COLORS={'for information':'#ffffff','for review':'#e05a1c','for approval':'#1e7e34','for use':'#2b6cb0','for construction':'#2b6cb0','superseded':'#8a939b','obsolete':'#39424d','void':'#39424d'};
+  var LIFECYCLE_COLORS={'for information':'#cbd5e1','for review':'#e05a1c','for approval':'#1e7e34','for use':'#2b6cb0','for construction':'#2b6cb0','superseded':'#6b7280','obsolete':'#39424d','void':'#39424d'};
   var LIFECYCLE_ORDER=['for information','for review','for approval','for use','for construction','superseded','obsolete','void'];
   // To Action colours (editable text column). Default: Approved = blue.
   var TOACTION_COLORS={'approved':'#2b6cb0'};
@@ -785,7 +785,7 @@
     if(!S.barExpanded){
       var row=el('div',{class:'chartsrow'});var shown=0;
       S.phases.forEach(function(p){if(S.hiddenDonuts.indexOf(p.id)>=0)return;var prows=S.filtered.filter(function(r){return r.phase===p.id;});if(!prows.length)return;shown++;row.appendChild(phaseChart(p,groupCounts(prows),prows.length));});
-      if(!shown)row.appendChild(el('div',{class:'muted',style:'padding:6px'},['No phase data in view — set the Phase column to populate these charts.']));
+      if(!shown)row.appendChild(phaseChart({id:'__all',label:(chartField()==='lifecycleStatus'?'By Lifecycle Status':'By Status')},groupCounts(S.filtered),S.filtered.length));
       box.appendChild(row);
     } else {
       // expanded: only the aggregate status bar graph, filling the width
