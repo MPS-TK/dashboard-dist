@@ -16,7 +16,7 @@
   if (window.__MPS_ACONEX && window.__MPS_ACONEX.__live) { window.__MPS_ACONEX.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.27', BUILD_DATE='7 Sep 2026';
+  var VERSION='v12.28', BUILD_DATE='7 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -118,7 +118,7 @@
 
   function factoryCfg(){
     var cols={}; FACTORY_ORDER.forEach(function(k){cols[k]={show:!!FACTORY_SHOW[k],w:COLDEF[k].w};});
-    return {order:FACTORY_ORDER.slice(),cols:cols,fontSize:12,rowPad:0,wrap:false,phases:DEFAULT_PHASES.map(function(p){return {id:p.id,label:p.label};}),chartType:'donut',hiddenDonuts:[],selFilters:{},selKnown:{},chartScale:1,colorSchemes:{status:{},lifecycleStatus:{},phase:{},toAction:{},dateRequired:{}},fontFamily:'',baseFont:DEF_BASEPX,darkMode:false,collapsed:{},barExpanded:false,chartDataField:'status',fontScale:100,padScale:20,hpadScale:100,hdrFontSize:null,hdrMaxLines:2,colPri:{},colDefW:{},colNames:{},packageSel:null,packageText:{},fltDate:{from:'',to:'',preset:''},fltRef:'',hiddenRows:[]};
+    return {order:FACTORY_ORDER.slice(),cols:cols,fontSize:12,rowPad:0,wrap:false,phases:DEFAULT_PHASES.map(function(p){return {id:p.id,label:p.label};}),chartType:'donut',hiddenDonuts:[],selFilters:{},selKnown:{},chartScale:1,colorSchemes:{status:{},lifecycleStatus:{},phase:{},toAction:{},dateRequired:{}},fontFamily:'',baseFont:DEF_BASEPX,darkMode:false,collapsed:{},barExpanded:false,chartDataField:'status',fontScale:100,padScale:20,hpadScale:100,hdrFontSize:null,hdrMaxLines:2,colPri:{},colDefW:{},colNames:{},packageSel:null,packageText:{},fltDate:{from:'',to:'',preset:''},fltRef:'',hiddenRows:[],seriesOrder:{}};
   }
   var LKEY='mps_aconex_cfg_'+CFG.projectId, DKEY='mps_aconex_defcfg_'+CFG.projectId;
   function loadCfg(){
@@ -126,15 +126,15 @@
     try{var d=localStorage.getItem(DKEY);if(d)return mergeCfg(JSON.parse(d));}catch(e){}
     return factoryCfg();
   }
-  function mergeCfg(saved){var f=factoryCfg();var o=(saved.order||f.order).filter(function(k){return COLDEF[k];});FACTORY_ORDER.forEach(function(k){if(o.indexOf(k)<0)o.push(k);});o=o.filter(function(k){return k!=='rowNo';});o.unshift('rowNo');var cols={};o.forEach(function(k){var s=(saved.cols||{})[k]||{};cols[k]={show:s.show!=null?!!s.show:!!FACTORY_SHOW[k],w:s.w||COLDEF[k].w};});if(cols.rowNo&&cols.rowNo.w<80)cols.rowNo.w=80;return {order:o,cols:cols,fontSize:saved.fontSize||12,rowPad:(saved.rowPad!=null?saved.rowPad:0),wrap:!!saved.wrap,phases:(saved.phases&&saved.phases.length?saved.phases:f.phases),chartType:saved.chartType||'donut',hiddenDonuts:saved.hiddenDonuts||[],selFilters:saved.selFilters||{},selKnown:saved.selKnown||{},chartScale:saved.chartScale||1,colorSchemes:normSchemes(saved.colorSchemes),fontFamily:saved.fontFamily||'',baseFont:saved.baseFont||DEF_BASEPX,darkMode:!!saved.darkMode,collapsed:saved.collapsed||{},barExpanded:!!saved.barExpanded,chartDataField:saved.chartDataField||'status',fontScale:saved.fontScale||(saved.baseFont?Math.round(saved.baseFont/DEF_BASEPX*100):100),padScale:(saved.padScale!=null?saved.padScale:20),hpadScale:saved.hpadScale||100,hdrFontSize:(saved.hdrFontSize!=null?saved.hdrFontSize:null),hdrMaxLines:saved.hdrMaxLines||2,colPri:saved.colPri||{},colDefW:saved.colDefW||{},colNames:saved.colNames||{},packageSel:(saved.packageSel!=null?saved.packageSel:null),packageText:saved.packageText||{},fltDate:(saved.fltDate&&typeof saved.fltDate==='object')?{from:saved.fltDate.from||'',to:saved.fltDate.to||'',preset:saved.fltDate.preset||''}:{from:'',to:'',preset:''},fltRef:saved.fltRef||'',hiddenRows:(saved.hiddenRows&&saved.hiddenRows.length?saved.hiddenRows.slice():[])};}
+  function mergeCfg(saved){var f=factoryCfg();var o=(saved.order||f.order).filter(function(k){return COLDEF[k];});FACTORY_ORDER.forEach(function(k){if(o.indexOf(k)<0)o.push(k);});o=o.filter(function(k){return k!=='rowNo';});o.unshift('rowNo');var cols={};o.forEach(function(k){var s=(saved.cols||{})[k]||{};cols[k]={show:s.show!=null?!!s.show:!!FACTORY_SHOW[k],w:s.w||COLDEF[k].w};});if(cols.rowNo&&cols.rowNo.w<80)cols.rowNo.w=80;return {order:o,cols:cols,fontSize:saved.fontSize||12,rowPad:(saved.rowPad!=null?saved.rowPad:0),wrap:!!saved.wrap,phases:(saved.phases&&saved.phases.length?saved.phases:f.phases),chartType:saved.chartType||'donut',hiddenDonuts:saved.hiddenDonuts||[],selFilters:saved.selFilters||{},selKnown:saved.selKnown||{},chartScale:saved.chartScale||1,colorSchemes:normSchemes(saved.colorSchemes),fontFamily:saved.fontFamily||'',baseFont:saved.baseFont||DEF_BASEPX,darkMode:!!saved.darkMode,collapsed:saved.collapsed||{},barExpanded:!!saved.barExpanded,chartDataField:saved.chartDataField||'status',fontScale:saved.fontScale||(saved.baseFont?Math.round(saved.baseFont/DEF_BASEPX*100):100),padScale:(saved.padScale!=null?saved.padScale:20),hpadScale:saved.hpadScale||100,hdrFontSize:(saved.hdrFontSize!=null?saved.hdrFontSize:null),hdrMaxLines:saved.hdrMaxLines||2,colPri:saved.colPri||{},colDefW:saved.colDefW||{},colNames:saved.colNames||{},packageSel:(saved.packageSel!=null?saved.packageSel:null),packageText:saved.packageText||{},fltDate:(saved.fltDate&&typeof saved.fltDate==='object')?{from:saved.fltDate.from||'',to:saved.fltDate.to||'',preset:saved.fltDate.preset||''}:{from:'',to:'',preset:''},fltRef:saved.fltRef||'',hiddenRows:(saved.hiddenRows&&saved.hiddenRows.length?saved.hiddenRows.slice():[]),seriesOrder:(saved.seriesOrder&&typeof saved.seriesOrder==='object'?saved.seriesOrder:{})};}
   function normSchemes(cs){cs=cs||{};return {status:cs.status||{},lifecycleStatus:cs.lifecycleStatus||{},phase:cs.phase||{},toAction:cs.toAction||{},dateRequired:cs.dateRequired||{}};}
-  function saveCfg(){try{localStorage.setItem(LKEY,JSON.stringify({order:S.order,cols:S.cols,fontSize:S.fontSize,rowPad:S.rowPad,wrap:S.wrap,phases:S.phases,chartType:S.chartType,hiddenDonuts:S.hiddenDonuts,selFilters:S.selFilters,selKnown:S.selKnown,chartScale:S.chartScale,colorSchemes:S.colorSchemes,fontFamily:S.fontFamily,baseFont:S.baseFont,darkMode:S.darkMode,collapsed:S.collapsed,barExpanded:S.barExpanded,chartDataField:S.chartDataField,fontScale:S.fontScale,padScale:S.padScale,hpadScale:S.hpadScale,hdrFontSize:S.hdrFontSize,hdrMaxLines:S.hdrMaxLines,colPri:S.colPri,colDefW:S.colDefW,colNames:S.colNames,packageSel:S.packageSel,packageText:S.packageText,fltDate:S.fltDate,fltRef:S.fltRef,hiddenRows:S.hiddenRows}));}catch(e){}}
+  function saveCfg(){try{localStorage.setItem(LKEY,JSON.stringify({order:S.order,cols:S.cols,fontSize:S.fontSize,rowPad:S.rowPad,wrap:S.wrap,phases:S.phases,chartType:S.chartType,hiddenDonuts:S.hiddenDonuts,selFilters:S.selFilters,selKnown:S.selKnown,chartScale:S.chartScale,colorSchemes:S.colorSchemes,fontFamily:S.fontFamily,baseFont:S.baseFont,darkMode:S.darkMode,collapsed:S.collapsed,barExpanded:S.barExpanded,chartDataField:S.chartDataField,fontScale:S.fontScale,padScale:S.padScale,hpadScale:S.hpadScale,hdrFontSize:S.hdrFontSize,hdrMaxLines:S.hdrMaxLines,colPri:S.colPri,colDefW:S.colDefW,colNames:S.colNames,packageSel:S.packageSel,packageText:S.packageText,fltDate:S.fltDate,fltRef:S.fltRef,hiddenRows:S.hiddenRows,seriesOrder:S.seriesOrder}));}catch(e){}}
 
   function dtDefKey(){return 'mps_aconex_dtdef_'+CFG.projectId;}
   function loadDtDef(){try{return localStorage.getItem(dtDefKey())||'__ALL__';}catch(e){return '__ALL__';}}
   function saveDtDef(v){try{localStorage.setItem(dtDefKey(),v);}catch(e){}}
   var C=loadCfg();
-  var S={allRows:[],rows:[],filtered:[],loading:false,error:'',deliverableType:'__ALL__',deliverableTypes:[],
+  var S={allRows:[],rows:[],filtered:[],loading:false,error:'',deliverableType:'__ALL__',deliverableTypes:[],seriesOrder:(C.seriesOrder||{}),
          globalSearch:'',colFilters:{},sortKey:'',sortDir:1,
          order:C.order,cols:C.cols,fontSize:C.fontSize,rowPad:C.rowPad,wrap:C.wrap,
          phases:C.phases,chartType:C.chartType,hiddenDonuts:C.hiddenDonuts,selFilters:C.selFilters,selKnown:C.selKnown||{},chartScale:C.chartScale,colorSchemes:C.colorSchemes,
@@ -377,8 +377,8 @@
   function schemeGet(kind,key){var m=S.colorSchemes&&S.colorSchemes[kind];return (m&&m[key])?m[key]:null;}
   function lumFg(hex){hex=(hex||'').replace('#','');if(hex.length===3)hex=hex.replace(/(.)/g,'$1$1');var r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16);return (0.299*r+0.587*g+0.114*b)>150?'#1f2d3d':'#ffffff';}
   function toHex6(h){h=(h||'').trim();if(/^#[0-9a-fA-F]{6}$/.test(h))return h.toLowerCase();if(/^#[0-9a-fA-F]{3}$/.test(h))return '#'+h.slice(1).replace(/(.)/g,'$1$1').toLowerCase();return '#ffffff';}
-  function statusColor(v){var k=(v||'').toLowerCase();return schemeGet('status',k)||STATUS_COLORS[k]||'#ffffff';}
-  function statusFg(v){var k=(v||'').toLowerCase();var c=schemeGet('status',k);if(c)return lumFg(c);if(k==='information only')return lumFg(STATUS_COLORS[k]||'#cbd5e1');if(STATUS_COLORS[k])return '#ffffff';return '#c0392b';}
+  function statusColor(v){var k=(v||'').toLowerCase();return schemeGet('status',k)||STATUS_COLORS[k]||'#c0392b';}
+  function statusFg(v){var k=(v||'').toLowerCase();var c=schemeGet('status',k);if(c)return lumFg(c);if(k==='information only')return lumFg(STATUS_COLORS[k]||'#cbd5e1');if(STATUS_COLORS[k])return '#ffffff';return '#ffffff';}
   function statusDisp(v){var k=(v||'').toLowerCase();return STATUS_DISPLAY[k]||(v||'');}
   function statusRank(v){var i=STATUS_ORDER.indexOf((v||'').toLowerCase());return i<0?99:i;}
   function statusKeySort(a,b){var ra=statusRank(a),rb=statusRank(b);return ra!==rb?ra-rb:(a<b?-1:a>b?1:0);}
@@ -760,7 +760,7 @@
   var BLANK_SUB='(Blank)';
   function colAlpha(i){var s='';i++;while(i>0){var m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=Math.floor((i-1)/26);}return s;}
   function lifeRank(v){var i=LIFECYCLE_ORDER.indexOf((v||'').toLowerCase());return i<0?99:i;}
-  function chartKeySort(a,b){if(chartField()==='lifecycleStatus'){var ra=lifeRank(a),rb=lifeRank(b);return ra!==rb?ra-rb:(a<b?-1:a>b?1:0);}return statusKeySort(a,b);}
+  function chartKeySort(a,b){var ord=S.seriesOrder&&S.seriesOrder[chartField()];if(ord&&ord.length){var ia=ord.indexOf(a),ib=ord.indexOf(b);ia=ia<0?9999:ia;ib=ib<0?9999:ib;if(ia!==ib)return ia-ib;}if(chartField()==='lifecycleStatus'){var ra=lifeRank(a),rb=lifeRank(b);return ra!==rb?ra-rb:(a<b?-1:a>b?1:0);}return statusKeySort(a,b);}
   function toggleFieldFilter(k){var f=chartField(),v=(k==='—'?'':k);var cur=S.selFilters[f];if(cur&&cur.length===1&&cur[0]===v){S.selFilters[f]=null;}else{S.selFilters[f]=[v];}applyFilters();renderCharts();renderTable();saveCfg();}
   var CT_NEXT={donut:'bar',bar:'pie',pie:'donut'};
   var CT_LABEL={donut:'Bars',bar:'Pie Charts',pie:'Donuts'};
@@ -772,6 +772,7 @@
       var nextLbl=CT_LABEL[S.chartType]||'Bars';
       ctl.appendChild(btn(nextLbl,'Switch the phase charts to '+nextLbl+' (cycles Donuts → Bars → Pie Charts)', function(){S.chartType=CT_NEXT[S.chartType]||'donut';saveCfg();renderCharts();},'chart'));
       ctl.appendChild(btn('Charts','Show or hide individual phase charts', function(){toggleDonutPanel();},'chart pnltrig'));
+      ctl.appendChild(btn('Order','Choose the order the '+(chartField()==='lifecycleStatus'?'Lifecycle Status':'Status')+' segments appear in the charts', function(){toggleOrderPanel();},'chart pnltrig'));
       ctl.appendChild(btn(S.barExpanded?'Show Phase Charts':'Show Bar Graph', S.barExpanded?'Return to the phase charts':'Hide the phase charts and expand the status bar graph to fill the space', function(){S.barExpanded=!S.barExpanded;saveCfg();renderChartsBody();renderCharts();},'chart'));
       ctl.appendChild(btn('✎ Phases','Rename or add project phases (reflected in the Phase column and charts)', function(){togglePhasePanel();},'chorange'));
       ctl.appendChild(el('span',{class:'muted',style:'font-size:11px;margin-left:4px'},['Size']));
@@ -908,6 +909,46 @@
   }
   function statusLegend(){var counts={};S.rows.forEach(function(r){var k=r.status||'—';counts[k]=(counts[k]||0)+1;});var keys=Object.keys(counts).sort();var lg=el('div',{class:'slegend',title:'Status colours (click to filter)'});keys.forEach(function(k){var d=el('div',{title:'Filter Status = '+k,onclick:function(){toggleStatusFilter(k);}});var i=el('i');i.style.background=statusColor(k);d.appendChild(i);d.appendChild(document.createTextNode(k+' '+counts[k]));lg.appendChild(d);});return lg;}
   function toggleStatusFilter(k){var v=(k==='—'?'':k);var cur=S.selFilters.status;if(cur&&cur.length===1&&cur[0]===v){S.selFilters.status=null;}else{S.selFilters.status=[v];}applyFilters();renderCharts();renderTable();saveCfg();}
+  // ---- chart series ordering (Order dialog) ----
+  function _hex2rgb(h){h=(h||'').replace('#','');if(h.length===3)h=h.replace(/(.)/g,'$1$1');return [parseInt(h.slice(0,2),16)||0,parseInt(h.slice(2,4),16)||0,parseInt(h.slice(4,6),16)||0];}
+  function _hue(h){var c=_hex2rgb(h),r=c[0]/255,g=c[1]/255,b=c[2]/255,mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn,hh=0;if(d===0)hh=-1;else if(mx===r)hh=((g-b)/d)%6;else if(mx===g)hh=(b-r)/d+2;else hh=(r-g)/d+4;if(hh>=0){hh*=60;if(hh<0)hh+=360;}return {h:hh,l:(0.299*c[0]+0.587*c[1]+0.114*c[2])};}
+  function _cdist(h1,h2){var a=_hex2rgb(h1),b=_hex2rgb(h2);return Math.sqrt(Math.pow(a[0]-b[0],2)+Math.pow(a[1]-b[1],2)+Math.pow(a[2]-b[2],2));}
+  function orderByColour(keys){return keys.slice().sort(function(a,b){var ca=_hue(fieldColor(a)),cb=_hue(fieldColor(b));if(ca.h!==cb.h)return ca.h-cb.h;return ca.l-cb.l;});}
+  function orderGreedy(keys,maxc){keys=keys.slice();if(keys.length<=2)return keys;var out=[keys.shift()];while(keys.length){var last=fieldColor(out[out.length-1]),bi=0,bd=maxc?-1:Infinity;for(var i=0;i<keys.length;i++){var d=_cdist(last,fieldColor(keys[i]));if(maxc?(d>bd):(d<bd)){bd=d;bi=i;}}out.push(keys.splice(bi,1)[0]);}return out;}
+  function seriesDefKey(){return 'mps_aconex_seriesdef_'+CFG.projectId;}
+  function saveSeriesDef(){try{localStorage.setItem(seriesDefKey(),JSON.stringify(S.seriesOrder||{}));}catch(e){}toast('Chart order saved as your default');}
+  function restoreSeriesDef(){var d=null;try{d=JSON.parse(localStorage.getItem(seriesDefKey())||'null');}catch(e){}S.seriesOrder=(d&&typeof d==='object')?d:{};saveCfg();renderCharts();renderOrderPanel();toast(d?'Restored your saved chart order':'Reset to the built-in order');}
+  function applySeriesOrder(keys){S.seriesOrder=S.seriesOrder||{};S.seriesOrder[chartField()]=keys.slice();saveCfg();renderCharts();renderOrderPanel();}
+  function toggleOrderPanel(){var ex=root.getElementById('orderpanel');if(ex){ex.remove();return;}renderOrderPanel();}
+  function renderOrderPanel(){
+    var old=root.getElementById('orderpanel');if(old)old.remove();
+    var fieldLbl=chartField()==='lifecycleStatus'?'Lifecycle Status':'Status';
+    var counts=groupCounts(S.filtered);
+    var keys=Object.keys(counts).sort(chartKeySort);
+    var panel=el('div',{id:'orderpanel',class:'panel',style:'left:12px;top:150px;min-width:290px;max-height:70vh;overflow:auto'},[
+      el('h4',{},['Chart order · '+fieldLbl]),
+      el('div',{class:'muted',style:'font-size:11px;margin-bottom:6px'},['Set the order the '+fieldLbl+' segments appear in the charts. Use the arrows to move a series, or auto-order by colour or contrast. “By Colour” groups similar hues; “Max Contrast” makes neighbours as different as possible; “Min Contrast” keeps similar colours together.'])
+    ]);
+    keys.forEach(function(k,idx){
+      var sw=el('i',{style:'width:11px;height:11px;border-radius:2px;display:inline-block;border:1px solid #cfd8e3;flex:0 0 auto;background:'+fieldColor(k)});
+      var nm=el('span',{class:'cn',style:'flex:1'},[fieldDisp(k)]);
+      var cnt=el('b',{style:'color:'+NAVY+';font-size:11px;flex:0 0 auto'},[String(counts[k])]);
+      var up=el('button',{class:'mini',title:'Move up',onclick:function(){if(idx<=0)return;var a=keys.slice(),t=a[idx-1];a[idx-1]=a[idx];a[idx]=t;applySeriesOrder(a);}},['↑']);if(idx===0)up.setAttribute('disabled','disabled');
+      var dn=el('button',{class:'mini',title:'Move down',onclick:function(){if(idx>=keys.length-1)return;var a=keys.slice(),t=a[idx+1];a[idx+1]=a[idx];a[idx]=t;applySeriesOrder(a);}},['↓']);if(idx===keys.length-1)dn.setAttribute('disabled','disabled');
+      panel.appendChild(el('div',{class:'crow'},[sw,nm,cnt,up,dn]));
+    });
+    panel.appendChild(el('div',{class:'crow',style:'margin-top:8px;gap:4px;flex-wrap:wrap'},[
+      el('button',{class:'btn',title:'Order the segments by their colour (hue)',onclick:function(){applySeriesOrder(orderByColour(keys));}},['By Colour']),
+      el('button',{class:'btn',title:'Order so adjacent segments contrast as much as possible',onclick:function(){applySeriesOrder(orderGreedy(keys,true));}},['Max Contrast']),
+      el('button',{class:'btn',title:'Order so adjacent segments are as similar as possible',onclick:function(){applySeriesOrder(orderGreedy(keys,false));}},['Min Contrast'])
+    ]));
+    panel.appendChild(el('div',{class:'crow',style:'margin-top:8px;gap:6px'},[
+      el('button',{class:'btn alt',title:'Save this order as your default for this project',onclick:saveSeriesDef},['Set as Default']),
+      el('button',{class:'btn',title:'Restore your saved default order (or the built-in order if none saved)',onclick:restoreSeriesDef},['Restore Defaults']),
+      el('button',{class:'btn',onclick:function(){var p=root.getElementById('orderpanel');if(p)p.remove();}},['Close'])
+    ]));
+    collapsiblePanel(panel);root.getElementById('wrap').appendChild(panel);
+  }
   function toggleDonutPanel(){var ex=root.getElementById('donutpanel');if(ex){ex.remove();return;}var panel=el('div',{id:'donutpanel',class:'panel',style:'left:12px;top:150px'},[el('h4',{},['Show / Hide Phase Charts'])]);
     var mk=function(id,label){var cb=el('input',{type:'checkbox'});cb.checked=S.hiddenDonuts.indexOf(id)<0;cb.onchange=function(){var i=S.hiddenDonuts.indexOf(id);if(cb.checked){if(i>=0)S.hiddenDonuts.splice(i,1);}else if(i<0)S.hiddenDonuts.push(id);saveCfg();renderCharts();};panel.appendChild(el('label',{class:'crow'},[cb,el('span',{class:'cn'},[label])]));};
     S.phases.forEach(function(p){mk(p.id,p.label);});mk('__un','Unassigned');
