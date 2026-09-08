@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.33', BUILD_DATE='8 Sep 2026';
+  var VERSION='v12.34', BUILD_DATE='8 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -411,8 +411,8 @@
     +'.apvsrch{margin-left:auto;font-size:11px;padding:4px 8px;border:1px solid #D1D5DB;border-radius:5px;width:130px;outline:none}'
     +'.apvlist{overflow-y:auto;flex:1 1 auto;min-height:60px}'
     +'.apvrow{display:flex;align-items:center;gap:5px;height:30px;padding:0 12px;border-bottom:1px solid #F3F4F6}.apvrow.na{opacity:.5}'
-    +'.apvpre,.apvnum,.apvctl{flex-shrink:0;font-size:11px;font-family:"Consolas",monospace;padding:3px 5px;border:1px solid #D1D5DB;border-radius:4px;outline:none;color:'+NAVY+'}'
-    +'.apvpre{width:44px;text-transform:uppercase}.apvnum{width:54px}.apvctl{width:38px}'
+    +'.apvpre,.apvnum,.apvctl,.apvxid{flex-shrink:0;font-size:11px;font-family:"Consolas",monospace;padding:3px 5px;border:1px solid #D1D5DB;border-radius:4px;outline:none;color:'+NAVY+'}'
+    +'.apvpre{width:44px;text-transform:uppercase}.apvnum{width:54px}.apvctl{width:38px}.apvxid{width:74px}'
     +'.apvbar{color:#9CA3AF;font-family:monospace;font-size:12px;flex-shrink:0;width:6px;text-align:center}'
     +'.apvidx{width:20px;flex-shrink:0;font-size:10px;color:#9BA3AF;text-align:right;font-variant-numeric:tabular-nums}'
     +'.apvlab{display:flex;align-items:center;gap:6px;flex:1;min-width:0;cursor:pointer;margin-left:3px}.apvlab input{width:14px;height:14px;flex-shrink:0;cursor:pointer;accent-color:'+NAVY+'}'
@@ -1620,9 +1620,10 @@ async function fullScan(){
     return '';
   }
   function apvName(id){ return window.__apvRegistry[id] || window.__apvAccessNames[id] || String(id); }
-  function apvJnParse(id){ var raw = (window.__apvJN && window.__apvJN[id]) || ''; var pm = raw.split('|'); var left = pm[0] || ''; var ctl = pm[1] || ''; var mm = left.match(/^([A-Za-z]{0,3})(.*)$/); var pre = (mm && mm[1] ? mm[1].toUpperCase() : ''); var num = (mm ? mm[2] : left) || ''; return { pre: pre, num: num, ctl: ctl }; }
+  function apvJnParse(id){ var raw = (window.__apvJN && window.__apvJN[id]) || ''; var pm = raw.split('|'); var left = pm[0] || ''; var ctl = pm[1] || ''; var ext = pm[2] || ''; var mm = left.match(/^([A-Za-z]{0,3})(.*)$/); var pre = (mm && mm[1] ? mm[1].toUpperCase() : ''); var num = (mm ? mm[2] : left) || ''; return { pre: pre, num: num, ctl: ctl, ext: ext }; }
   function apvJobNo(id){ var p = apvJnParse(id); if (!p.num) return ''; var n = parseInt(p.num, 10); return isNaN(n) ? '' : String(n); }
-  function apvLabel(id){ var jn = apvJobNo(id); var nm = apvName(id); return jn ? (jn + ' ' + nm) : nm; }
+  function apvIdOf(id){ return apvJnParse(id).ext || ''; }
+  function apvLabel(id){ var jn = apvJobNo(id), xid = apvIdOf(id), nm = apvName(id); var p = []; if (jn) p.push(jn); if (xid) p.push('(' + xid + ')'); p.push(nm); return p.join(' '); }
   function apvGhUrl(path){ return 'https://api.github.com/repos/' + GH.repo + '/contents/' + path; }
   function apvLoad(path){
     if (!ghToken()) return Promise.resolve(undefined);
@@ -1830,9 +1831,10 @@ async function fullScan(){
       var preIn = el('input', { class: 'apvpre', list: 'apvprelist', maxlength: '3', placeholder: 'Pfx', title: 'MPS Ref prefix; pick from the list or type up to 3 letters', value: jp.pre }); if (na) preIn.disabled = true;
       var numIn = el('input', { class: 'apvnum', maxlength: '7', placeholder: 'Job No', title: 'Job number (padded to 6 digits on save)', value: jp.num }); if (na) numIn.disabled = true;
       var ctlIn = el('input', { class: 'apvctl', maxlength: '4', placeholder: 'Ctrl', title: 'MPS control number', value: jp.ctl }); if (na) ctlIn.disabled = true;
+      var idIn = el('input', { class: 'apvxid', maxlength: '16', placeholder: 'ID', title: 'Project ID shown in brackets in the dropdown (e.g. 1203062 or ODM10603)', value: jp.ext }); if (na) idIn.disabled = true;
       row.appendChild(preIn); row.appendChild(numIn);
       row.appendChild(el('span', { class: 'apvbar' }, ['|']));
-      row.appendChild(ctlIn);
+      row.appendChild(ctlIn); row.appendChild(idIn);
       var lab = el('label', { class: 'apvlab' });
       var cb = el('input', { type: 'checkbox', 'data-pid': id }); if (checked) cb.checked = true; if (na) cb.disabled = true;
       lab.appendChild(cb);
@@ -1855,7 +1857,7 @@ async function fullScan(){
     function upd(){ var n = panel.querySelectorAll('.apvlist input[type=checkbox]:checked').length; var cc = root.getElementById('apvcount'); if (cc) cc.textContent = n + ' of ' + ids.length + ' shown'; panel.querySelectorAll('.apvrow').forEach(function(rw){ var c = rw.querySelector('input[type=checkbox]'); var off = c && !c.checked; rw.style.opacity = (off || rw.classList.contains('na')) ? '0.5' : '1'; }); }
     upd();
     panel.querySelectorAll('.apvlist input[type=checkbox]').forEach(function(c){ c.addEventListener('change', upd); });
-    root.getElementById('apvsrch').oninput = function(){ var v = this.value.toLowerCase(); panel.querySelectorAll('.apvrow').forEach(function(rw){ var sc = (rw.querySelector('.apvscope')||{}).value || ''; var pr = (rw.querySelector('.apvpre')||{}).value || ''; var nu = (rw.querySelector('.apvnum')||{}).value || ''; rw.style.display = (rw.textContent + ' ' + sc + ' ' + pr + ' ' + nu).toLowerCase().indexOf(v) > -1 ? '' : 'none'; }); };
+    root.getElementById('apvsrch').oninput = function(){ var v = this.value.toLowerCase(); panel.querySelectorAll('.apvrow').forEach(function(rw){ var sc = (rw.querySelector('.apvscope')||{}).value || ''; var pr = (rw.querySelector('.apvpre')||{}).value || ''; var nu = (rw.querySelector('.apvnum')||{}).value || ''; var xi = (rw.querySelector('.apvxid')||{}).value || ''; rw.style.display = (rw.textContent + ' ' + sc + ' ' + pr + ' ' + nu + ' ' + xi).toLowerCase().indexOf(v) > -1 ? '' : 'none'; }); };
     function bulk(isShow){
       if (!confirm((isShow ? 'Show' : 'Hide') + ' EVERY project in the dropdown for all users?')) return;
       panel.querySelectorAll('.apvlist input[type=checkbox]').forEach(function(c){ if (!c.disabled) c.checked = isShow; });
@@ -1873,8 +1875,9 @@ async function fullScan(){
         var pre = ((rw.querySelector('.apvpre')||{}).value || '').replace(/[^A-Za-z]/g,'').toUpperCase().slice(0,3);
         var num = ((rw.querySelector('.apvnum')||{}).value || '').replace(/\D/g,'');
         var ctl = ((rw.querySelector('.apvctl')||{}).value || '').replace(/\D/g,'');
+        var ext = ((rw.querySelector('.apvxid')||{}).value || '').replace(/[^A-Za-z0-9\-_]/g,'').slice(0,16);
         if (num && num.length < 6) num = ('000000' + num).slice(-6);
-        var left = pre + num; var val = ctl ? (left + '|' + ctl) : left; if (val) jnMap[pid] = val;
+        var left = pre + num; var parts = [left]; if (ctl || ext) parts.push(ctl); if (ext) parts.push(ext); var val = parts.join('|'); if (val) jnMap[pid] = val;
       });
       window.__apvHidden = new Set(hidden); window.__apvScope = scope; window.__apvJN = jnMap;
       var sv = root.getElementById('apvsave'); sv.textContent = 'Saving…'; sv.disabled = true;
