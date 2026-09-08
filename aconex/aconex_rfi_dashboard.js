@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.40', BUILD_DATE='8 Sep 2026';
+  var VERSION='v12.41', BUILD_DATE='8 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -429,8 +429,8 @@
     });}
     if(S.projects){render(S.projects);}else{listWrap.appendChild(el('div',{class:'muted',style:'font-size:11px;padding:4px'},['Loading projects…']));fetchProjects().then(function(list){S.projects=list;render(list);}).catch(function(e){listWrap.innerHTML='';listWrap.appendChild(el('div',{class:'err',style:'font-size:11px;padding:4px'},['Could not load projects: '+(e&&e.message||e)]));});}
     wrapEl.appendChild(panel);
-    var ar=anchor.getBoundingClientRect(),wr=wrapEl.getBoundingClientRect();
-    panel.style.left=Math.min(Math.max(4,wr.width-470),Math.max(4,ar.left-wr.left))+'px';panel.style.top=(ar.bottom-wr.top+4)+'px';
+    var ar=anchor.getBoundingClientRect();var pw=panel.offsetWidth||Math.round(window.innerWidth*0.5);
+    panel.style.left=Math.max(4,Math.min(ar.left,window.innerWidth-pw-8))+'px';panel.style.top=(ar.bottom+2)+'px';
   }
 
   // ---- dom helpers ----
@@ -1520,7 +1520,7 @@ async function fullScan(){
   function rfiDescMod(r){var o=S.overrides[rowKey(r)]||{};return (o.description!=null)?o.description:'';}
   function toggleDescDD(anchor){
     var wrapEl=root.getElementById('wrap');var ex=root.getElementById('descdd');if(ex){ex.remove();return;}
-    var panel=el('div',{id:'descdd',class:'panel',style:'width:min(46vw,720px);max-height:70vh;overflow:hidden;display:flex;flex-direction:column'});
+    var panel=el('div',{id:'descdd',class:'panel',style:'position:fixed;width:50vw;min-width:480px;max-width:50vw;max-height:78vh;overflow:hidden;display:flex;flex-direction:column'});
     panel.appendChild(el('h4',{style:'white-space:normal'},['Descriptions \u2014 visible RFIs/TQs']));
     panel.appendChild(el('div',{class:'muted',style:'font-size:11px;margin-bottom:6px;white-space:normal'},['Edit the Modified description on the right \u2014 it shows in the Description column and syncs to everyone. Leave blank to keep the Original. Only the '+S.filtered.length+' rows currently shown are listed.']));
     var list=el('div',{style:'flex:1 1 auto;overflow:auto;min-height:80px'});
@@ -1528,12 +1528,12 @@ async function fullScan(){
       list.innerHTML='';
       var rows=S.filtered.slice();
       if(!rows.length){list.appendChild(el('div',{class:'muted',style:'font-size:11px;padding:6px'},['No rows in the current view.']));return;}
-      list.appendChild(el('div',{style:'display:flex;gap:8px;font-weight:700;font-size:10.5px;color:'+NAVY+';padding:2px 4px;position:sticky;top:0;background:#fff'},[el('span',{style:'flex:0 0 118px'},['RFI/TQ']),el('span',{style:'flex:1'},['Original']),el('span',{style:'flex:1'},['Modified (shown in col D)'])]));
+      list.appendChild(el('div',{style:'display:flex;gap:8px;font-weight:700;font-size:10.5px;color:'+NAVY+';padding:2px 4px;position:sticky;top:0;background:#fff'},[el('span',{style:'flex:0 0 auto;min-width:52px;white-space:nowrap'},['RFI/TQ']),el('span',{style:'flex:1'},['Original']),el('span',{style:'flex:1'},['Modified (shown in col D)'])]));
       rows.forEach(function(r){
         var orig=rfiDescOrig(r);
         var inp=el('input',{type:'text',value:rfiDescMod(r),placeholder:orig,title:'Modified description (blank = use the original)',style:'flex:1;font-size:11px;padding:2px 5px;border:1px solid #cfd8e3;border-radius:4px'});
         inp.onchange=function(){var v=(inp.value||'').trim();var o=S.overrides[rowKey(r)]||(S.overrides[rowKey(r)]={});if(v){o.description=v;r.description=v;}else{delete o.description;r.description=rfiDescOrig(r);}saveOverrides();ghPush();applyFilters();renderBody();};
-        list.appendChild(el('div',{style:'display:flex;gap:8px;align-items:center;padding:2px 4px;border-bottom:1px solid #f0f3f7'},[el('span',{style:'flex:0 0 118px;font-size:10.5px;color:'+NAVY,title:(r.aconexRef||'')},[(r.type||'RFI')+' '+(r.rfiNo!=null?r.rfiNo:'')]),el('span',{style:'flex:1;font-size:11px;color:#5b6674;white-space:normal;overflow-wrap:anywhere'},[orig]),inp]));
+        list.appendChild(el('div',{style:'display:flex;gap:8px;align-items:center;padding:2px 4px;border-bottom:1px solid #f0f3f7'},[el('span',{style:'flex:0 0 auto;min-width:52px;white-space:nowrap;font-size:10.5px;color:'+NAVY,title:(r.aconexRef||'')},[(r.type||'RFI')+' '+(r.rfiNo!=null?r.rfiNo:'')]),el('span',{style:'flex:1;font-size:11px;color:#5b6674;white-space:normal;overflow-wrap:anywhere'},[orig]),inp]));
       });
     }
     build();panel.appendChild(list);
