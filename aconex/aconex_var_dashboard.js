@@ -21,7 +21,7 @@
   if (window.__MPS_ACONEX_VAR && window.__MPS_ACONEX_VAR.__live) { window.__MPS_ACONEX_VAR.boot(); return; }
 
   var NAVY = '#0B2A4A', NAVY2 = '#123a63', ACCENT = '#F26522', LINE = '#dfe4ea', INK = '#1f2d3d';
-  var VERSION = 'v12.42', BUILD_DATE = '8 Sep 2026';
+  var VERSION = 'v12.43', BUILD_DATE = '8 Sep 2026';
   var UI_FONTS = ['Segoe UI', 'Arial', 'Calibri', 'Helvetica', 'Roboto', 'Verdana', 'Tahoma', 'Trebuchet MS', 'Georgia', 'Times New Roman', 'Courier New', 'system-ui'];
   var DEF_FONT = '"Segoe UI",Arial,sans-serif', DEF_BASEPX = 13;
   function fontStack(f) { return f ? ('"' + f + '","Segoe UI",Arial,sans-serif') : DEF_FONT; }
@@ -147,6 +147,13 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
   function snapCfg() { var o = {}; CFGKEYS.forEach(function (k) { o[k] = S[k]; }); return o; }
   function saveCfg() { try { localStorage.setItem(LKEY, JSON.stringify(snapCfg())); } catch (e) { } }
   function setAsDefault() { try { localStorage.setItem(DKEY, JSON.stringify(snapCfg())); } catch (e) { } toast('Saved as your default view'); }
+  function resetGlobalDefaults(){
+    try{localStorage.removeItem(DKEY);}catch(e){}
+    setGdefApplied(0);
+    try{resetCols();}catch(e){}
+    var done=function(){try{applyScope();}catch(e){}renderAll();toast('Reset to the team Global Defaults');};
+    if(ghToken()){gdefLoad().then(done);}else{try{gdefApplyNew();}catch(e){}done();}
+  }
 
   /* ---- state ---- */
   var C = loadCfg();
@@ -1075,7 +1082,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     +'.plegend{display:flex;flex-flow:row wrap;justify-content:center;gap:1px 10px;font-size:11px;margin-top:6px;max-width:260px}.plegend div{display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap}.plegend i{width:10px;height:10px;border-radius:2px;flex:0 0 auto;display:inline-block;border:1px solid rgba(0,0,0,.18)}.plegend b{font-weight:700;margin-left:2px}'
     +'.pal{cursor:pointer;margin-left:3px;font-size:11px;opacity:.85;white-space:nowrap;display:inline-block}.pal:hover{opacity:1}'
     +'.mfbtn{display:flex;align-items:center;justify-content:space-between;gap:4px;width:100%;box-sizing:border-box;border:1px solid #d7dee6;border-radius:4px;padding:1px 4px;font-size:11px;background:#fff;cursor:pointer;color:'+INK+';overflow:hidden;white-space:nowrap}.mfbtn:hover{background:#eef3f8}.mfbtn .cv{overflow:hidden;text-overflow:ellipsis}'
-    +'.mfpanel{position:absolute;background:#fff;border:1px solid #cfd8e3;border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:6px;z-index:15;max-height:300px;overflow:auto;min-width:170px}.mfpanel .mfrow{display:flex;align-items:center;gap:6px;padding:2px 3px;font-size:12px;white-space:nowrap;cursor:pointer;border-radius:3px}.mfpanel .mfrow:hover{background:#eef3f8}.mfpanel .mfhd{display:flex;gap:6px;padding:2px 3px 5px;border-bottom:1px solid '+LINE+';margin-bottom:4px}.mfpanel .mfhd a{font-size:11px;color:'+NAVY+';cursor:pointer;font-weight:700;text-decoration:underline}'
+    +'.mfpanel{position:fixed;background:#fff;border:1px solid #cfd8e3;border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:6px;z-index:15;max-height:calc(100vh - 96px);overflow:auto;min-width:170px}.mfpanel .mfrow{display:flex;align-items:center;gap:6px;padding:2px 3px;font-size:12px;white-space:nowrap;cursor:pointer;border-radius:3px}.mfpanel .mfrow:hover{background:#eef3f8}.mfpanel .mfhd{display:flex;gap:6px;padding:2px 3px 5px;border-bottom:1px solid '+LINE+';margin-bottom:4px}.mfpanel .mfhd a{font-size:11px;color:'+NAVY+';cursor:pointer;font-weight:700;text-decoration:underline}'
     +'.tile{border:1px solid '+LINE+';border-radius:7px;padding:calc(5px*var(--ps,1)) 11px;min-width:66px}.tile b{display:block;font-size:17px;color:'+NAVY+'}.tile small{color:#6b7b8c;font-size:11px}'
     +'.chip{border:1px solid #cfd8e3;border-radius:14px;padding:2px 9px;font-size:11px;cursor:pointer;background:#fff}.chip.active{background:'+NAVY+';color:#fff;border-color:'+NAVY+'}'
     +'.tablewrap{overflow:auto;background:#fff;max-height:70vh}table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%}'
@@ -1093,7 +1100,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     +'tr.f td{background:#fbfcfe;position:sticky;z-index:1;padding:2px 4px}tr.f input,tr.f .mfbtn{width:100%;box-sizing:border-box;border:1px solid #d7dee6;border-radius:4px;padding:0 6px;font-size:11px;height:24px;line-height:22px}'
     +'tbody tr:hover td{background:#f2f7fd}td.edit{background:#fffdf5}td.edit input,td.edit select{width:100%;box-sizing:border-box;border:1px solid #e3e0cf;border-radius:3px;padding:0 3px;font-size:inherit;background:transparent}'
     +'.pill{display:inline-block;padding:0 7px;border-radius:10px;color:#fff;font-weight:600;border:1px solid rgba(0,0,0,.15)}.mps-h{background:#0e335a!important}'
-    +'.panel{position:absolute;right:12px;top:120px;background:#fff;border:1px solid #cfd8e3;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,.18);padding:10px;max-height:60vh;overflow:auto;z-index:9;min-width:0;width:max-content;max-width:340px}.panel h4{margin:2px 0 8px;color:#55637a;font-weight:700;letter-spacing:.5px;font-size:11px;text-transform:uppercase;display:flex;align-items:center;gap:6px;cursor:pointer}.panel h4 .pchev{color:#8894a6;font-size:11px;flex:0 0 auto}.panel.coll>*:not(h4){display:none}'
+    +'.panel{position:fixed;right:12px;top:120px;background:#fff;border:1px solid #cfd8e3;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,.18);padding:10px;max-height:calc(100vh - 96px);overflow:auto;z-index:9;min-width:0;width:max-content;max-width:340px}.panel h4{margin:2px 0 8px;color:#55637a;font-weight:700;letter-spacing:.5px;font-size:11px;text-transform:uppercase;display:flex;align-items:center;gap:6px;cursor:pointer}.panel h4 .pchev{color:#8894a6;font-size:11px;flex:0 0 auto}.panel.coll>*:not(h4){display:none}'
     +'.sldgrp{margin-left:auto;display:inline-flex;align-items:center;gap:4px}.sldgrp .rng{width:120px}.fpct{min-width:40px;text-align:right;font-weight:600;color:'+NAVY+';font-size:12px}.dark .fpct{color:#9fb0c4}#fontpanel .fontrow{display:flex;align-items:center;gap:8px;margin-bottom:6px}#fontpanel .fontrow>label{min-width:52px}#fontpanel select{flex:1}'
     +'.colletrow th.colc{background:#eef3f9;color:#7a8aa0;font-size:9px;font-weight:700;letter-spacing:.5px;padding:1px 4px;text-align:center;border-bottom:1px solid '+LINE+';top:0}.dark .colletrow th.colc{background:#0a1a2c;color:#7f92aa;border-bottom-color:#28374a}'
     +'td.edit select.mps-sel{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-repeat:no-repeat;background-position:right 3px center;background-size:8px 6px;padding-right:15px;background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%278%27 height=%276%27%3E%3Cpath d=%27M0 0l4 5 4-5z%27 fill=%27%23888888%27/%3E%3C/svg%3E")}'
@@ -2254,7 +2261,8 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     });
     panel.appendChild(list);
     panel.appendChild(el('div', { style: 'margin-top:8px;display:flex;gap:6px;flex:0 0 auto' }, [
-      el('button', { class: 'btn', title: 'Restore every column setting — order, visibility, names, widths, default widths and Fit priorities', onclick: function () { resetCols(); } }, ['Reset Defaults']),
+      el('button', { class: 'btn', title: 'Restore YOUR saved default view — order, visibility, names, widths, default widths and Fit priorities', onclick: function () { resetCols(); } }, ['Restore Defaults']),
+      el('button', { class: 'btn', title: 'Discard your personal defaults and restore the TEAM Global Defaults (set via the Global Defaults panel). Your saved defaults persist until you press this.', onclick: function () { resetGlobalDefaults(); } }, ['Reset Global Defaults']),
       el('button', { class: 'btn', title: 'Reset ONLY the column widths back to their default widths. Order, visibility, names and Fit priorities are left alone.', onclick: function () { resetColWidths(); } }, ['Reset Col Widths']),
       el('button', { class: 'btn', title: 'Close', onclick: function () { var p = root.getElementById('colpanel'); if (p) p.remove(); } }, ['Close'])
     ]));

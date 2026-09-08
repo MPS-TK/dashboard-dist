@@ -16,7 +16,7 @@
   if (window.__MPS_ACONEX && window.__MPS_ACONEX.__live) { window.__MPS_ACONEX.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.42', BUILD_DATE='8 Sep 2026';
+  var VERSION='v12.43', BUILD_DATE='8 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -678,7 +678,7 @@
     +'.pal{cursor:pointer;margin-left:3px;font-size:11px;opacity:.85;white-space:nowrap;display:inline-block}.pal:hover{opacity:1}'
     +'.slegend{display:flex;flex-wrap:wrap;gap:3px 10px;font-size:11px;max-width:360px}.slegend div{display:flex;align-items:center;gap:4px;cursor:pointer}.slegend i{width:9px;height:9px;border-radius:2px;display:inline-block}'
     +'.mfbtn{display:flex;align-items:center;justify-content:space-between;gap:4px;width:100%;box-sizing:border-box;border:1px solid #d7dee6;border-radius:4px;padding:1px 4px;font-size:11px;background:#fff;cursor:pointer;color:'+INK+';overflow:hidden;white-space:nowrap}.mfbtn:hover{background:#eef3f8}.mfbtn .cv{overflow:hidden;text-overflow:ellipsis}'
-    +'.mfpanel{position:absolute;background:#fff;border:1px solid #cfd8e3;border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:6px;z-index:15;max-height:300px;overflow:auto;min-width:170px}.mfpanel .mfrow{display:flex;align-items:center;gap:6px;padding:2px 3px;font-size:12px;white-space:nowrap;cursor:pointer;border-radius:3px}.mfpanel .mfrow:hover{background:#eef3f8}.mfpanel .mfhd{display:flex;gap:6px;padding:2px 3px 5px;border-bottom:1px solid '+LINE+';margin-bottom:4px}.mfpanel .mfhd a{font-size:11px;color:'+NAVY+';cursor:pointer;font-weight:700;text-decoration:underline}'
+    +'.mfpanel{position:fixed;background:#fff;border:1px solid #cfd8e3;border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:6px;z-index:15;max-height:calc(100vh - 96px);overflow:auto;min-width:170px}.mfpanel .mfrow{display:flex;align-items:center;gap:6px;padding:2px 3px;font-size:12px;white-space:nowrap;cursor:pointer;border-radius:3px}.mfpanel .mfrow:hover{background:#eef3f8}.mfpanel .mfhd{display:flex;gap:6px;padding:2px 3px 5px;border-bottom:1px solid '+LINE+';margin-bottom:4px}.mfpanel .mfhd a{font-size:11px;color:'+NAVY+';cursor:pointer;font-weight:700;text-decoration:underline}'
     +'.tile{border:1px solid '+LINE+';border-radius:7px;padding:calc(5px*var(--ps,1)) 11px;min-width:66px}.tile b{display:block;font-size:17px;color:'+NAVY+'}.tile small{color:#6b7b8c;font-size:11px}'
     +'.legend{display:flex;flex-direction:column;gap:2px;font-size:11px}.legend div{display:flex;align-items:center;gap:5px;cursor:pointer}.legend i{width:9px;height:9px;border-radius:2px;display:inline-block}'
     +'.chip{border:1px solid #cfd8e3;border-radius:14px;padding:2px 9px;font-size:11px;cursor:pointer;background:#fff}.chip.active{background:'+NAVY+';color:#fff;border-color:'+NAVY+'}'
@@ -695,7 +695,7 @@
     +'tr.f td{background:#fbfcfe;position:sticky;z-index:1;padding:2px 4px}tr.f input,tr.f .mfbtn{width:100%;box-sizing:border-box;border:1px solid #d7dee6;border-radius:4px;padding:0 6px;font-size:11px;height:24px;line-height:22px}'
     +'tbody tr:hover td{background:#f2f7fd}td.edit{background:#fffdf5}td.edit input,td.edit select{width:100%;box-sizing:border-box;border:1px solid #e3e0cf;border-radius:3px;padding:0 3px;font-size:inherit;background:transparent}'
     +'.pill{display:inline-block;padding:0 7px;border-radius:10px;color:#fff;font-weight:600;border:1px solid rgba(0,0,0,.15)}.mps-h{background:#0e335a!important}'
-    +'.panel{position:absolute;right:12px;top:120px;background:#fff;border:1px solid #cfd8e3;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,.18);padding:10px;max-height:60vh;overflow:auto;z-index:9;min-width:0;width:max-content;max-width:340px}.panel h4{margin:2px 0 8px;color:#55637a;font-weight:700;letter-spacing:.5px;font-size:11px;text-transform:uppercase;display:flex;align-items:center;gap:6px;cursor:pointer}.panel h4 .pchev{color:#8894a6;font-size:11px;flex:0 0 auto}.panel.coll>*:not(h4){display:none}'
+    +'.panel{position:fixed;right:12px;top:120px;background:#fff;border:1px solid #cfd8e3;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,.18);padding:10px;max-height:calc(100vh - 96px);overflow:auto;z-index:9;min-width:0;width:max-content;max-width:340px}.panel h4{margin:2px 0 8px;color:#55637a;font-weight:700;letter-spacing:.5px;font-size:11px;text-transform:uppercase;display:flex;align-items:center;gap:6px;cursor:pointer}.panel h4 .pchev{color:#8894a6;font-size:11px;flex:0 0 auto}.panel.coll>*:not(h4){display:none}'
     +'#donutpanel .crow .cn,#phasepanel .crow .cn{flex:0 1 auto;white-space:nowrap}#syncpanel,#fontpanel{width:auto;min-width:250px}'
     +'.sldgrp{margin-left:auto;display:inline-flex;align-items:center;gap:4px}.sldgrp .rng{width:120px}.fpct{min-width:40px;text-align:right;font-weight:600;color:'+NAVY+';font-size:12px}.dark .fpct{color:#9fb0c4}#fontpanel .fontrow{display:flex;align-items:center;gap:8px;margin-bottom:6px}#fontpanel .fontrow>label{min-width:52px}#fontpanel select{flex:1}'
     +'.colletrow th.colc{background:#eef3f9;color:#7a8aa0;font-size:9px;font-weight:700;letter-spacing:.5px;padding:1px 4px;text-align:center;border-bottom:1px solid '+LINE+';top:0}.dark .colletrow th.colc{background:#0a1a2c;color:#7f92aa;border-bottom-color:#28374a}'
@@ -1546,7 +1546,7 @@
       list.appendChild(rowEl);
     });
     panel.appendChild(list);
-    panel.appendChild(el('div',{style:'margin-top:8px;display:flex;gap:6px;flex:0 0 auto'},[el('button',{class:'btn',title:'Restore every column setting — order, visibility, names, widths, default widths and Fit priorities',onclick:function(){resetCols();}},['Reset Defaults']),el('button',{class:'btn',title:'Reset ONLY the column widths back to their default widths. Order, visibility, names and Fit priorities are left alone.',onclick:function(){resetColWidths();}},['Reset Col Widths']),el('button',{class:'btn',title:'Close',onclick:function(){var p=root.getElementById('colpanel');if(p)p.remove();}},['Close'])]));
+    panel.appendChild(el('div',{style:'margin-top:8px;display:flex;gap:6px;flex:0 0 auto'},[el('button',{class:'btn',title:'Restore every column setting — order, visibility, names, widths, default widths and Fit priorities',onclick:function(){resetCols();}},['Restore Defaults']),el('button',{class:'btn',title:'Discard your personal defaults and restore the TEAM Global Defaults (set via the Global Defaults panel). Your saved defaults persist until you press this.',onclick:function(){resetGlobalDefaults();}},['Reset Global Defaults']),el('button',{class:'btn',title:'Reset ONLY the column widths back to their default widths. Order, visibility, names and Fit priorities are left alone.',onclick:function(){resetColWidths();}},['Reset Col Widths']),el('button',{class:'btn',title:'Close',onclick:function(){var p=root.getElementById('colpanel');if(p)p.remove();}},['Close'])]));
     // width = widest column title + controls + mirrored padding (A1)
     var probe=document.createElement('span');probe.style.cssText='position:absolute;visibility:hidden;white-space:nowrap;font:'+(S.baseFont||DEF_BASEPX)+'px '+fontStack(S.fontFamily);root.appendChild(probe);
     var maxw=54;S.order.forEach(function(k){probe.textContent=COLDEF[k].label;if(probe.offsetWidth>maxw)maxw=probe.offsetWidth;});probe.remove();
@@ -1642,6 +1642,13 @@
 
   function resetCols(){var b;try{var d=localStorage.getItem(DKEY);if(d)b=mergeCfg(JSON.parse(d));}catch(e){}if(!b)b=factoryCfg();S.order=b.order;S.cols=b.cols;S.colPri=b.colPri||{};S.colDefW=b.colDefW||{};S.fontSize=b.fontSize;S.rowPad=b.rowPad;S.wrap=b.wrap;S.phases=b.phases;S.chartType=b.chartType;S.hiddenDonuts=b.hiddenDonuts;if(b.selFilters)S.selFilters=b.selFilters;S.chartScale=b.chartScale||1;if(b.colorSchemes)S.colorSchemes=normSchemes(b.colorSchemes);if(b.fgSchemes)S.fgSchemes=normFgSchemes(b.fgSchemes);if(b.collapsed)S.collapsed=b.collapsed;S.barExpanded=!!b.barExpanded;S.chartDataField=b.chartDataField||'status';S.fontScale=b.fontScale||100;S.padScale=b.padScale||100;S.hpadScale=b.hpadScale||100;S.hdrFontSize=(b.hdrFontSize!=null?b.hdrFontSize:null);S.hdrMaxLines=b.hdrMaxLines||2;S.colNames=b.colNames||{};S.packageSel=(b.packageSel!=null?b.packageSel:null);S.packageText=b.packageText||{};applyScope();saveCfg();renderAll();}
   function setAsDefault(){try{localStorage.setItem(DKEY,JSON.stringify({order:S.order,cols:S.cols,fontSize:S.fontSize,rowPad:S.rowPad,wrap:S.wrap,phases:S.phases,chartType:S.chartType,hiddenDonuts:S.hiddenDonuts,selFilters:S.selFilters,selKnown:S.selKnown,chartScale:S.chartScale,colorSchemes:S.colorSchemes,fgSchemes:S.fgSchemes,fontFamily:S.fontFamily,baseFont:S.baseFont,darkMode:S.darkMode,collapsed:S.collapsed,barExpanded:S.barExpanded,chartDataField:S.chartDataField,fontScale:S.fontScale,padScale:S.padScale,hpadScale:S.hpadScale,hdrFontSize:S.hdrFontSize,hdrMaxLines:S.hdrMaxLines,colPri:S.colPri,colDefW:S.colDefW,colNames:S.colNames,packageSel:S.packageSel,packageText:S.packageText}));}catch(e){}toast('Saved as your default view');}
+  function resetGlobalDefaults(){
+    try{localStorage.removeItem(DKEY);}catch(e){}
+    setGdefApplied(0);
+    try{resetCols();}catch(e){}
+    var done=function(){try{applyScope();}catch(e){}renderAll();toast('Reset to the team Global Defaults');};
+    if(ghToken()){gdefLoad().then(done);}else{try{gdefApplyNew();}catch(e){}done();}
+  }
   // Toast: stays 10s, can be dismissed with the x, and pauses while the pointer is over
   // it so a long message can actually be read. Only one at a time — a second message
   // replaces the first instead of stacking on the same spot. If the persistent Open
