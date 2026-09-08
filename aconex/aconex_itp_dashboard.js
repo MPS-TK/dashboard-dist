@@ -16,7 +16,7 @@
   if (window.__MPS_ACONEX && window.__MPS_ACONEX.__live) { window.__MPS_ACONEX.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.39', BUILD_DATE='8 Sep 2026';
+  var VERSION='v12.40', BUILD_DATE='8 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -363,11 +363,12 @@
   function gdefLastText(){var ps=GDEF.patches||[];if(!ps.length)return 'No global changes recorded yet.';var p=ps[0];return 'Last change: '+(p.by||'?')+' · '+gdefWhen(p.ts);}
   function gdefRepaint(){var p=root.getElementById('gdefpanel');if(!p)return;var od=p.querySelector('.gdefbody');if(od)od.remove();p.appendChild(gdefBody());}
   function toggleGdefPanel(anchor){
-    var wrapEl=root.getElementById('wrap');var ex=root.getElementById('gdefpanel');if(ex){ex.remove();return;}
-    var panel=el('div',{id:'gdefpanel',class:'panel',style:'width:max-content;min-width:320px;max-width:33vw'});
-    panel.appendChild(el('div',{class:'mfhd'},[el('span',{style:'font-weight:700;color:'+NAVY+';font-size:11px'},['Global Defaults (team)']),el('a',{title:'Close',style:'margin-left:auto',onclick:function(){var p=root.getElementById('gdefpanel');if(p)p.remove();}},['\u2715'])]));
+    var wrapEl=root.getElementById('wrap');var ex=root.getElementById('gdefpanel');if(ex){try{clearInterval(S._gdefTimer);}catch(e){}ex.remove();return;}
+    var panel=el('div',{id:'gdefpanel',class:'panel',style:'width:max-content;min-width:320px;max-width:33vw;position:absolute'});
+    panel.appendChild(el('a',{title:'Close',style:'position:absolute;top:6px;right:9px;cursor:pointer;font-weight:700;color:#8894a6;text-decoration:none;z-index:2',onclick:function(){try{clearInterval(S._gdefTimer);}catch(e){}var p=root.getElementById('gdefpanel');if(p)p.remove();}},['✕']));
+    panel.appendChild(el('div',{style:'font-weight:700;color:'+NAVY+';font-size:11px;margin:0 22px 6px 0'},['Global Defaults (team)']));
     panel.appendChild(gdefBody());wrapEl.appendChild(panel);
-    if(anchor){var ar=anchor.getBoundingClientRect(),wr=wrapEl.getBoundingClientRect();panel.style.left=Math.min(Math.max(4,wr.width-panel.offsetWidth-8),Math.max(4,ar.left-wr.left))+'px';panel.style.top=(ar.bottom-wr.top+4)+'px';}else{panel.style.left='12px';panel.style.top='120px';}
+    if(anchor){var ar=anchor.getBoundingClientRect(),wr=wrapEl.getBoundingClientRect();panel.style.left=Math.min(Math.max(4,wr.width-panel.offsetWidth-8),Math.max(4,ar.left-wr.left))+'px';panel.style.top='auto';panel.style.bottom=(wr.height-(ar.top-wr.top)+6)+'px';}else{panel.style.left='12px';panel.style.bottom='auto';panel.style.top='120px';}
   }
   function gdefBar(){
     var openv=!!S.gdefOpen;
@@ -382,21 +383,20 @@
   }
   function gdefBody(){
     var b=el('div',{class:'gdefbody'});
-    b.appendChild(el('div',{class:'muted',style:'font-size:11px'},['Sets the starting defaults for EVERYONE on this tab. Click Start editing, adjust colours / fonts / columns / chart settings with the normal controls, then Save. Only the settings you actually change are pushed — everything else stays as each person set it.']));
+    b.appendChild(el('div',{class:'muted',style:'font-size:11px'},['Sets the starting defaults for EVERYONE on this tab. Click Start editing, adjust colours / fonts / row density / columns / chart settings with the normal controls, then Save. Only the settings you actually change are pushed — everything else stays as each person set it.']));
     if(!ghToken()){b.appendChild(el('div',{style:'color:#c0392b;font-size:11px'},['Team sync is not connected on this browser — connect it (the ⚙ sync button) to publish global defaults.']));return b;}
     if(!S.gdefEditing){
-      b.appendChild(el('div',{style:'display:flex;gap:8px;flex-wrap:wrap;align-items:center'},[
-        el('button',{class:'btn',title:'Snapshot the current view, then change settings to stage a global default',onclick:function(){S.gdefBaseline=gdefSnapshot();S.gdefEditing=true;gdefRepaint();}},['Start editing']),
-        el('span',{class:'muted',style:'font-size:11px'},[gdefLastText()])
-      ]));
+      try{clearInterval(S._gdefTimer);}catch(e){}
+      b.appendChild(el('div',{style:'display:flex;gap:8px;flex-wrap:wrap;align-items:center'},[el('button',{class:'btn',title:'Snapshot the current view, then change settings to stage a global default',onclick:function(){S.gdefBaseline=gdefSnapshot();S.gdefEditing=true;gdefRepaint();}},['Start editing']),el('span',{class:'muted',style:'font-size:11px'},[gdefLastText()])]));
     } else {
-      var ch=gdefDiff(S.gdefBaseline||gdefSnapshot());var keys=Object.keys(ch);
-      b.appendChild(el('div',{style:'font-size:11px'},[el('b',{},['Pending changes: '+keys.length]),el('span',{class:'muted'},[keys.length?'  (adjust more with the controls above, or Save)':'  — change a colour, font, column width or chart setting above']) ]));
-      if(keys.length){var ul=el('div',{style:'max-height:120px;overflow:auto;border:1px solid #f0c9b0;border-radius:6px;padding:4px 8px;background:#fff'});keys.slice(0,40).forEach(function(k){ul.appendChild(el('div',{style:'font-size:11px;padding:1px 0;color:#1f2d3d'},[gdefChangeLabel(k,ch[k])]));});b.appendChild(ul);}
-      b.appendChild(el('div',{style:'display:flex;gap:8px;flex-wrap:wrap'},[
-        el('button',{class:'btn',style:'background:#c0392b;border-color:#c0392b;color:#fff',title:'Publish these changes to everyone on this tab',onclick:function(){var c=gdefDiff(S.gdefBaseline||gdefSnapshot());if(!Object.keys(c).length){toast('No changes staged yet');return;}gdefConfirmDialog(c);}},['● Save as Global Default']),
-        el('button',{class:'btn',title:'Stop editing without publishing',onclick:function(){S.gdefEditing=false;S.gdefBaseline=null;gdefRepaint();}},['Cancel'])
-      ]));
+      var pendLbl=el('b',{},['Pending changes: 0']);var pendMuted=el('span',{class:'muted'},['']);var ulWrap=el('div',{});
+      var saveBtn=el('button',{class:'btn',title:'Publish these changes to everyone on this tab',onclick:function(){var c=gdefDiff(S.gdefBaseline||gdefSnapshot());if(!Object.keys(c).length){toast('No changes staged yet');return;}gdefConfirmDialog(c);}},['Save as Global Default']);
+      function gdefRef(){var ch=gdefDiff(S.gdefBaseline||gdefSnapshot());var keys=Object.keys(ch);var red=keys.length>0;pendLbl.textContent='Pending changes: '+keys.length;pendMuted.textContent=keys.length?'  (adjust more, or Save)':'  — change a colour, font, row density, column or chart setting';saveBtn.setAttribute('style',red?'background:#c0392b;border-color:#c0392b;color:#fff':'background:#fff;border-color:#c0392b;color:#c0392b');saveBtn.textContent=(red?'● ':'')+'Save as Global Default';ulWrap.innerHTML='';if(keys.length){var ul=el('div',{style:'max-height:120px;overflow:auto;border:1px solid #f0c9b0;border-radius:6px;padding:4px 8px;background:#fff'});keys.slice(0,40).forEach(function(k){ul.appendChild(el('div',{style:'font-size:11px;padding:1px 0;color:#1f2d3d'},[gdefChangeLabel(k,ch[k])]));});ulWrap.appendChild(ul);}}
+      gdefRef();
+      b.appendChild(el('div',{style:'font-size:11px'},[pendLbl,pendMuted]));b.appendChild(ulWrap);
+      b.appendChild(el('div',{style:'display:flex;gap:8px;flex-wrap:wrap'},[saveBtn,el('button',{class:'btn',title:'Stop editing without publishing',onclick:function(){S.gdefEditing=false;S.gdefBaseline=null;gdefRepaint();}},['Cancel'])]));
+      try{clearInterval(S._gdefTimer);}catch(e){}
+      S._gdefTimer=setInterval(function(){if(!root.getElementById('gdefpanel')||!S.gdefEditing){try{clearInterval(S._gdefTimer);}catch(e){}return;}gdefRef();},700);
     }
     return b;
   }
@@ -603,7 +603,7 @@
   // Close any open dropdown/panel when the user clicks away from it (unless the click is on its trigger, which toggles it).
   function installOutsideClose(){
     root.addEventListener('mousedown',function(e){
-      var open=Array.prototype.slice.call(root.querySelectorAll('#colpanel,#hdrpanel,#mfpanel,#cspanel,#pkpanel,#dlvpanel,#gdefpanel,#subfmtdd,#fontpanel,#syncpanel,#donutpanel,#datepanel,#rowspanel'));
+      var open=Array.prototype.slice.call(root.querySelectorAll('#colpanel,#hdrpanel,#mfpanel,#cspanel,#pkpanel,#dlvpanel,#subfmtdd,#fontpanel,#syncpanel,#donutpanel,#datepanel,#rowspanel'));
       if(!open.length)return;
       var path=e.composedPath?e.composedPath():[e.target];
       for(var i=0;i<open.length;i++){if(path.indexOf(open[i])>=0)return;}
