@@ -21,7 +21,7 @@
   if (window.__MPS_ACONEX_VAR && window.__MPS_ACONEX_VAR.__live) { window.__MPS_ACONEX_VAR.boot(); return; }
 
   var NAVY = '#0B2A4A', NAVY2 = '#123a63', ACCENT = '#F26522', LINE = '#dfe4ea', INK = '#1f2d3d';
-  var VERSION = 'v12.46', BUILD_DATE = '8 Sep 2026';
+  var VERSION = 'v12.47', BUILD_DATE = '8 Sep 2026';
   var UI_FONTS = ['Segoe UI', 'Arial', 'Calibri', 'Helvetica', 'Roboto', 'Verdana', 'Tahoma', 'Trebuchet MS', 'Georgia', 'Times New Roman', 'Courier New', 'system-ui'];
   var DEF_FONT = '"Segoe UI",Arial,sans-serif', DEF_BASEPX = 13;
   function fontStack(f) { return f ? ('"' + f + '","Segoe UI",Arial,sans-serif') : DEF_FONT; }
@@ -1064,7 +1064,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     +'.top{display:flex;align-items:center;gap:10px;background:'+NAVY+';color:#fff;padding:calc(7px*var(--ps,1)) 12px}'
     +'.brand{font-weight:800;letter-spacing:.5px}.brand span{color:'+ACCENT+'}.title{font-weight:600}.muted{opacity:.72;font-size:12px}.spacer{flex:1}'
     +'.btn{background:#fff;color:'+NAVY+';border:1px solid #cfd8e3;border-radius:5px;padding:4px 9px;font-size:12px;cursor:pointer;font-weight:600}.btn:hover{background:#eef3f8}'
-    +'.btn.primary{background:'+ACCENT+';color:#fff;border-color:'+ACCENT+'}.btn.ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.4)}.btn.sq{padding:4px 8px;font-weight:700}'
+    +'.btn.primary{background:'+ACCENT+';color:#fff;border-color:'+ACCENT+'}.btn.ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.4)}.btn.sq{padding:4px 8px;font-weight:700}.btn.grn{background:#1e7e34;border-color:#1e7e34;color:#fff}.btn.grn:hover{background:#19692c;border-color:#19692c}'
     +'.btn.alt{background:'+NAVY+';color:#fff;border-color:'+NAVY+'}.btn.alt:hover{background:'+NAVY2+'}'
     +'.badge{background:'+ACCENT+';color:#fff;border-radius:12px;padding:2px 9px;font-size:11px;font-weight:700}'
     +'.tabs{display:flex;gap:4px;background:'+NAVY2+';padding:0 10px}.tab{padding:calc(7px*var(--ps,1)) 15px;color:#cdd8e6;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;font-size:12px}.tab.active{color:#fff;border-color:'+ACCENT+'}.tab.disabled{opacity:.4;cursor:not-allowed}.tab.link:hover{color:#fff;background:rgba(255,255,255,.06)}'
@@ -1544,9 +1544,9 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
       btn('Reset Cols', 'Restore columns to the saved default (or factory) order, widths and visibility', function () { resetCols(); }),
       btn('Expand All', 'Comfortable rows with word-wrap — show full cell content', function () { S.wrap = true; S.rowPad = 6; saveCfg(); renderTable(); renderSheetGrid(); }),
       btn('Collapse All', 'Pack rows as tightly as possible', function () { S.wrap = false; S.rowPad = 0; saveCfg(); renderTable(); renderSheetGrid(); }),
-      btn('Optimise Widths', 'Auto-size every visible column to fit its content', function () { optimiseWidths(); }),
-      btn('Fit to 1 Page', 'Shrink every visible column so they all fit across the page width', function () { fitOnePage(); }),
-      (function () { return btn((S.wrap ? '☑' : '☐') + ' Wrap', 'Toggle word-wrapping of cell text. With wrap ON the RFI/Correspondence Ref column gives each reference its own line; with it OFF each cell collapses to a single line.', function () { S.wrap = !S.wrap; saveCfg(); renderTable(); renderSheetGrid(); }); })(),
+      (function () { var b = btn('Optimise Widths', 'Auto-size every visible column to fit its content', function () { optimiseWidths(); }); b.id = 'optbtn'; if (S._widthMode === 'opt') b.classList.add('grn'); return b; })(),
+      (function () { var b = btn('Fit to 1 Page', 'Shrink every visible column so they all fit across the page width', function () { fitOnePage(); }); b.id = 'fitbtn'; if (S._widthMode === 'fit') b.classList.add('grn'); return b; })(),
+      (function () { var b = btn((S.wrap ? '☑' : '☐') + ' Wrap', 'Toggle word-wrapping of cell text. With wrap ON the RFI/Correspondence Ref column gives each reference its own line; with it OFF each cell collapses to a single line.', function () { S.wrap = !S.wrap; saveCfg(); renderTable(); renderSheetGrid(); b.textContent = (S.wrap ? '☑' : '☐') + ' Wrap'; paintWidthBtns(); }); b.id = 'wrapbtn'; if (S.wrap) b.classList.add('grn'); return b; })(),
       fontGroup,
       el('span', { class: 'muted', title: 'Row height' }, ['Row Density']), rng,
       el('span', { class: 'dtlbl', style: 'color:' + ACCENT, title: 'Filter the whole register by status' }, ['STATUS']), ssel,
@@ -2231,7 +2231,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
   function setColPri(k, v) { S.colPri = S.colPri || {}; v = parseInt(v, 10); if (isNaN(v) || v < 1) delete S.colPri[k]; else S.colPri[k] = v; saveCfg(); }
   function colDefW(k) { var v = (S.colDefW || {})[k]; v = parseInt(v, 10); return (isNaN(v) || v < 8) ? COLDEF[k].w : v; }
   function setColDefW(k, v) { S.colDefW = S.colDefW || {}; v = parseInt(v, 10); if (isNaN(v) || v === COLDEF[k].w) delete S.colDefW[k]; else S.colDefW[k] = Math.max(8, v); saveCfg(); }
-  function resetColWidths() {
+  function resetColWidths() {S._widthMode=null;paintWidthBtns();
     S.order.forEach(function (k) { delete S.cols[k].userW; S.cols[k].w = isDateCol(k) ? dateColW() : colDefW(k); });
     saveCfg(); renderTable(); if (root.getElementById('colpanel')) renderColPanel();
   }
@@ -2270,7 +2270,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
       dw.disabled = isDateCol(k);
       dw.onchange = function () { setColDefW(k, dw.value); dw.value = String(colDefW(k)); };
       var cw = el('input', { type: 'number', min: '8', step: '1', class: 'cwid', title: 'Current width of ' + colLabel(k) + ' in px', value: String(S.cols[k].w) });
-      cw.onchange = function () { var v = parseInt(cw.value, 10); if (isNaN(v) || v < 8) { cw.value = String(S.cols[k].w); return; } S.cols[k].w = v; S.cols[k].userW = true; saveCfg(); renderTable(); };
+      cw.onchange = function () { var v = parseInt(cw.value, 10); if (isNaN(v) || v < 8) { cw.value = String(S.cols[k].w); return; } S.cols[k].w = v; S.cols[k].userW = true; saveCfg(); renderTable(); S._widthMode = null; paintWidthBtns(); };
       list.appendChild(el('div', { class: 'crow' }, [el('span', { style: 'flex:0 0 auto;display:inline-flex;gap:3px' }, [up, dn]), cb, pri, inp, dw, cw]));
     });
     panel.appendChild(list);
@@ -2290,7 +2290,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
       e.preventDefault(); e.stopPropagation();
       var sx = e.clientX, sw = th.offsetWidth;
       function mv(ev) { var w = Math.max(hardMinW(), sw + (ev.clientX - sx)); S.cols[k].w = w; th.style.width = w + 'px'; th.style.minWidth = w + 'px'; }
-      function up() { document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); S.cols[k].userW = true; saveCfg(); renderTable(); }
+      function up() { document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); S.cols[k].userW = true; saveCfg(); renderTable(); S._widthMode = null; paintWidthBtns(); }
       document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up);
     };
     handle.ondblclick = function (e) { e.preventDefault(); e.stopPropagation(); autofitCol(k); };
@@ -2314,7 +2314,8 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
   function mkProbe() { var probe = document.createElement('span'); probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;font:' + S.fontSize + 'px ' + fontStack(S.fontFamily); root.appendChild(probe); return probe; }
   /* Date columns keep their measured width — Optimise and Fit never squeeze or
      stretch them, so the full date and its picker always fit exactly. (item 5) */
-  function optimiseWidths() {
+  function paintWidthBtns(){try{var o=root.getElementById('optbtn');if(o)o.classList.toggle('grn',S._widthMode==='opt');var f=root.getElementById('fitbtn');if(f)f.classList.toggle('grn',S._widthMode==='fit');var w=root.getElementById('wrapbtn');if(w)w.classList.toggle('grn',!!S.wrap);}catch(e){}}
+  function optimiseWidths() {S._widthMode='opt';paintWidthBtns();
     var probe = mkProbe();
     visKeys().forEach(function (k) {
       if (isDateCol(k)) { delete S.cols[k].userW; S.cols[k].w = dateColW(); return; }
@@ -2322,7 +2323,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     });
     probe.remove(); saveCfg(); renderTable();
   }
-  function fitOnePage() {
+  function fitOnePage() {S._widthMode='fit';paintWidthBtns();
     var tw = root.getElementById('regwrap'); if (!tw) return;
     var keys = visKeys(); if (!keys.length) return;
     var PAD_OH = 13, avail = Math.max(240, tw.clientWidth - 40 - keys.length * PAD_OH);
@@ -2368,7 +2369,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     }
     saveCfg(); renderTable();
   }
-  function resetCols() {
+  function resetCols() {S._widthMode=null;
     var b; try { var d = localStorage.getItem(DKEY); if (d) b = mergeCfg(JSON.parse(d)); } catch (e) { }
     if (!b) b = factoryCfg();
     CFGKEYS.forEach(function (k) { if (b[k] != null) S[k] = b[k]; });

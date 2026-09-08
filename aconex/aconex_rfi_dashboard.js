@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.46', BUILD_DATE='8 Sep 2026';
+  var VERSION='v12.47', BUILD_DATE='8 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -550,7 +550,7 @@
     +'.top{display:flex;align-items:center;gap:10px;background:'+NAVY+';color:#fff;padding:calc(7px*var(--ps,1)) 12px}'
     +'.brand{font-weight:800;letter-spacing:.5px}.brand span{color:'+ACCENT+'}.title{font-weight:600}.muted{opacity:.72;font-size:12px}.spacer{flex:1}'
     +'.btn{background:#fff;color:'+NAVY+';border:1px solid #cfd8e3;border-radius:5px;padding:4px 9px;font-size:12px;cursor:pointer;font-weight:600}.btn:hover{background:#eef3f8}'
-    +'.btn.primary{background:'+ACCENT+';color:#fff;border-color:'+ACCENT+'}.btn.ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.4)}.btn.sq{padding:4px 8px;font-weight:700}'
+    +'.btn.primary{background:'+ACCENT+';color:#fff;border-color:'+ACCENT+'}.btn.ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.4)}.btn.sq{padding:4px 8px;font-weight:700}.btn.grn{background:#1e7e34;border-color:#1e7e34;color:#fff}.btn.grn:hover{background:#19692c;border-color:#19692c}'
     +'.btn.alt{background:'+NAVY+';color:#fff;border-color:'+NAVY+'}.btn.alt:hover{background:'+NAVY2+'}'
     +'.badge{background:'+ACCENT+';color:#fff;border-radius:12px;padding:2px 9px;font-size:11px;font-weight:700}'
     +'.tabs{display:flex;gap:4px;background:'+NAVY2+';padding:0 10px}.tab{padding:calc(7px*var(--ps,1)) 15px;color:#cdd8e6;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;font-size:12px}.tab.active{color:#fff;border-color:'+ACCENT+'}.tab.disabled{opacity:.4;cursor:not-allowed}.tab.link:hover{color:#fff;background:rgba(255,255,255,.06)}'
@@ -851,9 +851,9 @@
       btn('Reset Cols','Restore columns to the saved default (or factory) order, widths and visibility',function(){resetCols();}),
       btn('Expand All','Comfortable rows with word-wrap — show full cell content',function(){S.wrap=true;S.rowPad=6;saveCfg();renderTable();}),
       btn('Collapse All','Pack rows as tightly as possible',function(){S.wrap=false;S.rowPad=0;saveCfg();renderTable();}),
-      btn('Optimise Widths','Auto-size every visible column to fit its content',function(){optimiseWidths();}),
-      btn('Fit to 1 Page','Shrink every visible column so they all fit across the page width (still keeping headers to max 2 lines)',function(){fitOnePage();}),
-      (function(){return btn((S.wrap?'☑':'☐')+' Wrap','Toggle word-wrapping of cell text',function(){S.wrap=!S.wrap;saveCfg();renderTable();});})(),
+      (function(){var b=btn('Optimise Widths','Auto-size every visible column to fit its content',function(){optimiseWidths();});b.id='optbtn';if(S._widthMode==='opt')b.classList.add('grn');return b;})(),
+      (function(){var b=btn('Fit to 1 Page','Shrink every visible column so they all fit across the page width (still keeping headers to max 2 lines)',function(){fitOnePage();});b.id='fitbtn';if(S._widthMode==='fit')b.classList.add('grn');return b;})(),
+      (function(){var b=btn((S.wrap?'☑':'☐')+' Wrap','Toggle word-wrapping of cell text',function(){S.wrap=!S.wrap;saveCfg();renderTable();b.textContent=(S.wrap?'☑':'☐')+' Wrap';paintWidthBtns();});b.id='wrapbtn';if(S.wrap)b.classList.add('grn');return b;})(),
       fontGroup,
       el('span',{class:'muted',title:'Row height — drag the slider to pack rows tighter or looser'},['Row Density']),rng,
       el('span',{class:'dtlbl',style:'color:#0a84ff',title:'Filter by RFI or Technical Query'},['TYPE']),
@@ -1684,7 +1684,7 @@ async function fullScan(){
   }
   // Excel-style: double-click the divider on a header's right edge to autofit the column to its left to its content.
   function autofitCol(k){var probe=document.createElement('span');probe.style.cssText='position:absolute;visibility:hidden;white-space:nowrap;font:'+S.fontSize+'px "Segoe UI",Arial';root.appendChild(probe);var w=isDateCol(k)?dateColW():Math.min(460,Math.max(minHW(k),dataMinW(k,probe)));probe.remove();S.cols[k].w=w;if(isDateCol(k))delete S.cols[k].userW;else S.cols[k].userW=true;saveCfg();renderTable();}
-  function makeResizable(handle,th,k){handle.onmousedown=function(e){e.preventDefault();e.stopPropagation();var sx=e.clientX,sw=th.offsetWidth;function mv(ev){var w=Math.max(minHW(k),sw+(ev.clientX-sx));S.cols[k].w=w;th.style.width=w+'px';th.style.minWidth=w+'px';}function up(){document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);S.cols[k].userW=true;saveCfg();renderBody();var frow=root.querySelector('tr.f');if(frow){var i=visKeys().indexOf(k);var td=frow.querySelectorAll('td')[i];if(td)td.style.width=S.cols[k].w+'px';}}document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);};handle.ondblclick=function(e){e.preventDefault();e.stopPropagation();autofitCol(k);};handle.title='Drag to resize · double-click to autofit to contents';}
+  function makeResizable(handle,th,k){handle.onmousedown=function(e){e.preventDefault();e.stopPropagation();var sx=e.clientX,sw=th.offsetWidth;function mv(ev){var w=Math.max(minHW(k),sw+(ev.clientX-sx));S.cols[k].w=w;th.style.width=w+'px';th.style.minWidth=w+'px';}function up(){document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);S.cols[k].userW=true;saveCfg();renderBody();S._widthMode=null;paintWidthBtns();var frow=root.querySelector('tr.f');if(frow){var i=visKeys().indexOf(k);var td=frow.querySelectorAll('td')[i];if(td)td.style.width=S.cols[k].w+'px';}}document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);};handle.ondblclick=function(e){e.preventDefault();e.stopPropagation();autofitCol(k);};handle.title='Drag to resize · double-click to autofit to contents';}
   // Width the DATA cell needs (widget-aware): editable date pickers and selects need room for their control,
   // read-only/text cells only need their measured text. Header minimum is handled separately by minHW.
 
@@ -1710,7 +1710,7 @@ async function fullScan(){
   function setColPri(k,v){S.colPri=S.colPri||{};v=parseInt(v,10);if(isNaN(v)||v<1)delete S.colPri[k];else S.colPri[k]=v;saveCfg();}
   function colDefW(k){var v=(S.colDefW||{})[k];v=parseInt(v,10);return (isNaN(v)||v<8)?(COLDEF[k]?COLDEF[k].w:80):v;}
   function setColDefW(k,v){S.colDefW=S.colDefW||{};v=parseInt(v,10);if(isNaN(v)||v===(COLDEF[k]?COLDEF[k].w:80))delete S.colDefW[k];else S.colDefW[k]=Math.max(8,v);saveCfg();}
-  function resetColWidths(){visKeys().forEach(function(k){delete S.cols[k].userW;S.cols[k].w=isDateCol(k)?dateColW():colDefW(k);});S.order.forEach(function(k){if(!S.cols[k].show){delete S.cols[k].userW;S.cols[k].w=isDateCol(k)?dateColW():colDefW(k);}});saveCfg();renderTable();if(root.getElementById('colpanel'))renderColPanel();}
+  function resetColWidths(){S._widthMode=null;paintWidthBtns();visKeys().forEach(function(k){delete S.cols[k].userW;S.cols[k].w=isDateCol(k)?dateColW():colDefW(k);});S.order.forEach(function(k){if(!S.cols[k].show){delete S.cols[k].userW;S.cols[k].w=isDateCol(k)?dateColW():colDefW(k);}});saveCfg();renderTable();if(root.getElementById('colpanel'))renderColPanel();}
   function dataMinW(k,probe){
     var ed=COLDEF[k]&&COLDEF[k].edit;
     if(ed==='date')return dateColW();                               // native date-picker widget
@@ -1723,7 +1723,8 @@ async function fullScan(){
   }
   // Optimise = each column hugs the greater of its 2-line header minimum and its (widget-aware) content width.
   /* Date columns hold their measured width; every other column hugs its content. */
-  function optimiseWidths(){
+  function paintWidthBtns(){try{var o=root.getElementById('optbtn');if(o)o.classList.toggle('grn',S._widthMode==='opt');var f=root.getElementById('fitbtn');if(f)f.classList.toggle('grn',S._widthMode==='fit');var w=root.getElementById('wrapbtn');if(w)w.classList.toggle('grn',!!S.wrap);}catch(e){}}
+  function optimiseWidths(){S._widthMode='opt';paintWidthBtns();
     var probe=document.createElement('span');probe.style.cssText='position:absolute;visibility:hidden;white-space:nowrap;font:'+S.fontSize+'px "Segoe UI",Arial';root.appendChild(probe);
     visKeys().forEach(function(k){
       if(isDateCol(k)){delete S.cols[k].userW;S.cols[k].w=dateColW();return;}
@@ -1737,7 +1738,7 @@ async function fullScan(){
      part in the fit; everything else shares what is left, and a column given a
      Fit priority in the Columns panel is topped up to its content width first,
      lowest number first. Blank priorities rank equally, after the numbered ones. */
-  function fitOnePage(){
+  function fitOnePage(){S._widthMode='fit';paintWidthBtns();
     var tw=root.querySelector('.tablewrap');if(!tw)return;
     var keys=visKeys();if(!keys.length)return;
     var PAD_OH=13;
@@ -1783,7 +1784,7 @@ async function fullScan(){
     saveCfg();renderTable();
   }
 
-  function resetCols(){var b;try{var d=localStorage.getItem(DKEY);if(d)b=mergeCfg(JSON.parse(d));}catch(e){}if(!b)b=factoryCfg();S.order=b.order;S.cols=b.cols;S.colPri=b.colPri||{};S.colDefW=b.colDefW||{};S.fontSize=b.fontSize;S.rowPad=b.rowPad;S.wrap=b.wrap;S.chartType=b.chartType;if(b.selFilters)S.selFilters=b.selFilters;S.chartScale=b.chartScale||1;S.chartSplit=(b.chartSplit!=null?+b.chartSplit:0.5);if(b.colorSchemes)S.colorSchemes=normSchemes(b.colorSchemes);if(b.collapsed)S.collapsed=b.collapsed;S.fontScale=b.fontScale||100;S.padScale=b.padScale||100;S.statusSel=b.statusSel||'__ALL__';S.typeSel=(b.typeSel!=null?b.typeSel:null);S.colNames=b.colNames||{};S.statusList=(b.statusList&&b.statusList.length?b.statusList:STATUS_WORKFLOW.slice());S.doScale=b.doScale||1;S.doHideClosed=!!b.doHideClosed;S.doHide=(b.doHide&&b.doHide.length?b.doHide.slice():[]);S.chartAutoFit=b.chartAutoFit!==false;S.sortKey=b.sortKey||'';S.sortDir=(b.sortDir===-1?-1:1);S.colFilters=(b.colFilters&&typeof b.colFilters==='object'?b.colFilters:{});S.globalSearch=b.globalSearch||'';applyScope();saveCfg();renderAll();}
+  function resetCols(){S._widthMode=null;var b;try{var d=localStorage.getItem(DKEY);if(d)b=mergeCfg(JSON.parse(d));}catch(e){}if(!b)b=factoryCfg();S.order=b.order;S.cols=b.cols;S.colPri=b.colPri||{};S.colDefW=b.colDefW||{};S.fontSize=b.fontSize;S.rowPad=b.rowPad;S.wrap=b.wrap;S.chartType=b.chartType;if(b.selFilters)S.selFilters=b.selFilters;S.chartScale=b.chartScale||1;S.chartSplit=(b.chartSplit!=null?+b.chartSplit:0.5);if(b.colorSchemes)S.colorSchemes=normSchemes(b.colorSchemes);if(b.collapsed)S.collapsed=b.collapsed;S.fontScale=b.fontScale||100;S.padScale=b.padScale||100;S.statusSel=b.statusSel||'__ALL__';S.typeSel=(b.typeSel!=null?b.typeSel:null);S.colNames=b.colNames||{};S.statusList=(b.statusList&&b.statusList.length?b.statusList:STATUS_WORKFLOW.slice());S.doScale=b.doScale||1;S.doHideClosed=!!b.doHideClosed;S.doHide=(b.doHide&&b.doHide.length?b.doHide.slice():[]);S.chartAutoFit=b.chartAutoFit!==false;S.sortKey=b.sortKey||'';S.sortDir=(b.sortDir===-1?-1:1);S.colFilters=(b.colFilters&&typeof b.colFilters==='object'?b.colFilters:{});S.globalSearch=b.globalSearch||'';applyScope();saveCfg();renderAll();}
   function setAsDefault(){try{localStorage.setItem(DKEY,JSON.stringify({order:S.order,cols:S.cols,fontSize:S.fontSize,rowPad:S.rowPad,wrap:S.wrap,chartType:S.chartType,selFilters:S.selFilters,chartSplit:S.chartSplit,chartScale:S.chartScale,colorSchemes:S.colorSchemes,fontFamily:S.fontFamily,baseFont:S.baseFont,darkMode:S.darkMode,collapsed:S.collapsed,fontScale:S.fontScale,padScale:S.padScale,hpadScale:S.hpadScale,hdrFontSize:S.hdrFontSize,hdrMaxLines:S.hdrMaxLines,statusSel:S.statusSel,typeSel:S.typeSel,colPri:S.colPri,colDefW:S.colDefW,colNames:S.colNames,statusList:S.statusList,doScale:S.doScale,doStat:S.doStat,doHideClosed:S.doHideClosed,chartAutoFit:S.chartAutoFit,doHide:S.doHide,sortKey:S.sortKey,sortDir:S.sortDir,colFilters:S.colFilters,globalSearch:S.globalSearch}));}catch(e){}toast('Saved as your default view');}
   function resetGlobalDefaults(){
     try{localStorage.removeItem(DKEY);}catch(e){}
