@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.43', BUILD_DATE='8 Sep 2026';
+  var VERSION='v12.44', BUILD_DATE='8 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -137,6 +137,7 @@
     return true;
   }
   function gdefSnapshot(){return JSON.parse(JSON.stringify({colorSchemes:S.colorSchemes,fgSchemes:S.fgSchemes,cols:S.cols,order:S.order,fontScale:S.fontScale,padScale:S.padScale,hdrFontSize:S.hdrFontSize,hdrMaxLines:S.hdrMaxLines,chartType:S.chartType,chartDataField:S.chartDataField,fontSize:S.fontSize,rowPad:S.rowPad,wrap:S.wrap,baseFont:S.baseFont}));}
+  function gdefFactorySnap(){var sn=gdefSnapshot();var f=factoryCfg();sn.cols=JSON.parse(JSON.stringify(f.cols));sn.order=f.order.slice();sn.colorSchemes=normSchemes(f.colorSchemes);sn.fontScale=(f.fontScale!=null?f.fontScale:100);sn.padScale=(f.padScale!=null?f.padScale:20);sn.hdrFontSize=(f.hdrFontSize!=null?f.hdrFontSize:null);sn.hdrMaxLines=(f.hdrMaxLines||2);sn.fontSize=(f.fontSize||12);sn.rowPad=(f.rowPad!=null?f.rowPad:0);sn.wrap=!!f.wrap;sn.baseFont=(f.baseFont||DEF_BASEPX);sn.chartType=(f.chartType||'donut');return JSON.parse(JSON.stringify(sn));}
   function gdefDiff(base){
     base=base||{};var ch={};
     ['colorSchemes','fgSchemes'].forEach(function(rk){var cur=S[rk]||{},old=base[rk]||{};Object.keys(cur).forEach(function(kind){var cm=cur[kind]||{},om=old[kind]||{};Object.keys(cm).forEach(function(v){if(cm[v]!==om[v])ch[rk+'.'+kind+'.'+v]=cm[v];});});});
@@ -206,14 +207,14 @@
     if(!ghToken()){b.appendChild(el('div',{style:'color:#c0392b;font-size:11px'},['Team sync is not connected on this browser — connect it (the ⚙ sync button) to publish global defaults.']));return b;}
     if(!S.gdefEditing){
       try{clearInterval(S._gdefTimer);}catch(e){}
-      b.appendChild(el('div',{style:'display:flex;gap:8px;flex-wrap:wrap;align-items:center'},[el('button',{class:'btn',title:'Snapshot the current view, then change settings to stage a global default',onclick:function(){S.gdefBaseline=gdefSnapshot();S.gdefEditing=true;gdefRepaint();}},['Start editing']),el('span',{class:'muted',style:'font-size:11px'},[gdefLastText()])]));
+      b.appendChild(el('div',{style:'display:flex;gap:8px;flex-wrap:wrap;align-items:center'},[el('button',{class:'btn',title:'Snapshot the current view, then change settings to stage a global default',onclick:function(){S.gdefBaseline=gdefSnapshot();S.gdefEditing=true;gdefRepaint();}},['Start editing']),el('button',{class:'btn',title:'Publish your CURRENT view (including column widths) as the team default. You will see exactly what changes before it saves.',onclick:function(){var c=gdefDiff(gdefFactorySnap());if(!Object.keys(c).length){toast('Your current view already matches the factory defaults \u2014 nothing to save.');return;}gdefConfirmDialog(c);}},['Save Current']),el('span',{class:'muted',style:'font-size:11px'},[gdefLastText()])]));
     } else {
       var pendLbl=el('b',{},['Pending changes: 0']);var pendMuted=el('span',{class:'muted'},['']);var ulWrap=el('div',{});
       var saveBtn=el('button',{class:'btn',title:'Publish these changes to everyone on this tab',onclick:function(){var c=gdefDiff(S.gdefBaseline||gdefSnapshot());if(!Object.keys(c).length){toast('No changes staged yet');return;}gdefConfirmDialog(c);}},['Save as Global Default']);
       function gdefRef(){var ch=gdefDiff(S.gdefBaseline||gdefSnapshot());var keys=Object.keys(ch);var red=keys.length>0;pendLbl.textContent='Pending changes: '+keys.length;pendMuted.textContent=keys.length?'  (adjust more, or Save)':'  — change a colour, font, row density, column or chart setting';saveBtn.setAttribute('style',red?'background:#c0392b;border-color:#c0392b;color:#fff':'background:#fff;border-color:#c0392b;color:#c0392b');saveBtn.textContent=(red?'● ':'')+'Save as Global Default';ulWrap.innerHTML='';if(keys.length){var ul=el('div',{style:'max-height:120px;overflow:auto;border:1px solid #f0c9b0;border-radius:6px;padding:4px 8px;background:#fff'});keys.slice(0,40).forEach(function(k){ul.appendChild(el('div',{style:'font-size:11px;padding:1px 0;color:#1f2d3d'},[gdefChangeLabel(k,ch[k])]));});ulWrap.appendChild(ul);}}
       gdefRef();
       b.appendChild(el('div',{style:'font-size:11px'},[pendLbl,pendMuted]));b.appendChild(ulWrap);
-      b.appendChild(el('div',{style:'display:flex;gap:8px;flex-wrap:wrap'},[saveBtn,el('button',{class:'btn',title:'Stop editing without publishing',onclick:function(){S.gdefEditing=false;S.gdefBaseline=null;gdefRepaint();}},['Cancel'])]));
+      b.appendChild(el('div',{style:'display:flex;gap:8px;flex-wrap:wrap'},[saveBtn,el('button',{class:'btn',title:'Publish your CURRENT view (including column widths) as the team default. You will see exactly what changes before it saves.',onclick:function(){var c=gdefDiff(gdefFactorySnap());if(!Object.keys(c).length){toast('Your current view already matches the factory defaults \u2014 nothing to save.');return;}gdefConfirmDialog(c);}},['Save Current']),el('button',{class:'btn',title:'Stop editing without publishing',onclick:function(){S.gdefEditing=false;S.gdefBaseline=null;gdefRepaint();}},['Cancel'])]));
       try{clearInterval(S._gdefTimer);}catch(e){}
       S._gdefTimer=setInterval(function(){if(!root.getElementById('gdefpanel')||!S.gdefEditing){try{clearInterval(S._gdefTimer);}catch(e){}return;}gdefRef();},700);
     }
@@ -611,7 +612,7 @@
     +'tr.f td{background:#fbfcfe;position:sticky;z-index:1;padding:2px 4px}tr.f input,tr.f .mfbtn{width:100%;box-sizing:border-box;border:1px solid #d7dee6;border-radius:4px;padding:0 6px;font-size:11px;height:24px;line-height:22px}'
     +'tbody tr:hover td{background:#f2f7fd}td.edit{background:#fffdf5}td.edit input,td.edit select{width:100%;box-sizing:border-box;border:1px solid #e3e0cf;border-radius:3px;padding:0 3px;font-size:inherit;background:transparent}'
     +'.pill{display:inline-block;padding:0 7px;border-radius:10px;color:#fff;font-weight:600;border:1px solid rgba(0,0,0,.15)}.mps-h{background:#0e335a!important}'
-    +'.panel{position:fixed;right:12px;top:120px;background:#fff;border:1px solid #cfd8e3;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,.18);padding:10px;max-height:calc(100vh - 96px);overflow:auto;z-index:9;min-width:0;width:max-content;max-width:340px}.panel h4{margin:2px 0 8px;color:#55637a;font-weight:700;letter-spacing:.5px;font-size:11px;text-transform:uppercase;display:flex;align-items:center;gap:6px;cursor:pointer}.panel h4 .pchev{color:#8894a6;font-size:11px;flex:0 0 auto}.panel.coll>*:not(h4){display:none}'
+    +'.panel{position:fixed;right:12px;top:120px;background:#fff;border:1px solid #cfd8e3;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,.18);padding:10px;max-height:calc(100vh - 96px);overflow:auto;z-index:9;min-width:0;width:max-content;max-width:340px}.mps-x{position:absolute;top:5px;right:5px;width:19px;height:19px;line-height:17px;text-align:center;border:1px solid #cfd8e3;border-radius:4px;background:#fff;color:#5b6674;font-size:12px;font-weight:700;cursor:pointer;z-index:30;box-shadow:0 1px 2px rgba(0,0,0,.08)}.mps-x:hover{background:#f7ece7;color:#c0392b;border-color:#c0392b}.panel h4{margin:2px 0 8px;color:#55637a;font-weight:700;letter-spacing:.5px;font-size:11px;text-transform:uppercase;display:flex;align-items:center;gap:6px;cursor:pointer}.panel h4 .pchev{color:#8894a6;font-size:11px;flex:0 0 auto}.panel.coll>*:not(h4){display:none}'
     +'.sldgrp{margin-left:auto;display:inline-flex;align-items:center;gap:4px}.sldgrp .rng{width:120px}.fpct{min-width:40px;text-align:right;font-weight:600;color:'+NAVY+';font-size:12px}.dark .fpct{color:#9fb0c4}#fontpanel .fontrow{display:flex;align-items:center;gap:8px;margin-bottom:6px}#fontpanel .fontrow>label{min-width:52px}#fontpanel select{flex:1}'
     +'.colletrow th.colc{background:#eef3f9;color:#7a8aa0;font-size:9px;font-weight:700;letter-spacing:.5px;padding:1px 4px;text-align:center;border-bottom:1px solid '+LINE+';top:0}.dark .colletrow th.colc{background:#0a1a2c;color:#7f92aa;border-bottom-color:#28374a}'
     +'td.edit select.mps-sel{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-repeat:no-repeat;background-position:right 3px center;background-size:8px 6px;padding-right:15px;background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%278%27 height=%276%27%3E%3Cpath d=%27M0 0l4 5 4-5z%27 fill=%27%23888888%27/%3E%3C/svg%3E")}'
@@ -733,8 +734,21 @@
      already toggles itself, so a mousedown that lands neither inside a panel nor on a
      trigger closes the lot. Escape does the same. Capture phase, so it runs before the
      click reaches anything that might rebuild the panel. */
+  function mpsDecorPanels(){
+    if(!root||root.__mpsDecor)return;root.__mpsDecor=true;
+    var wrap=root.getElementById('wrap');if(!wrap)return;
+    function deco(n){try{
+      if(!n||n.nodeType!==1||!n.classList)return;
+      if(!(n.classList.contains('panel')||n.classList.contains('mfpanel')))return;
+      if(n.id==='gdefdlg')return;
+      Array.prototype.slice.call(n.querySelectorAll('button,a')).forEach(function(b){var t=(b.textContent||'').trim();if(t==='Close'||b.getAttribute('title')==='Close')b.remove();});
+      if(!n.querySelector('.mps-x')){var x=el('a',{class:'mps-x',title:'Close'},['\u2715']);x.onmousedown=function(ev){ev.stopPropagation();};x.onclick=function(ev){ev.stopPropagation();ev.preventDefault();if(n.parentNode)n.remove();};n.appendChild(x);}
+    }catch(e){}}
+    try{Array.prototype.slice.call(wrap.children).forEach(deco);}catch(e){}
+    try{var mo=new MutationObserver(function(muts){muts.forEach(function(m){Array.prototype.slice.call(m.addedNodes).forEach(deco);});});mo.observe(wrap,{childList:true});}catch(e){}
+  }
   function closeAllPanels(except) {
-    var open = root.querySelectorAll('[id$="panel"]');
+    var open = root.querySelectorAll('.panel,.mfpanel');
     for (var i = 0; i < open.length; i++) if (open[i] !== except) open[i].remove();
   }
   function installOutsideClose() {
@@ -746,12 +760,12 @@
              n.classList.contains('pal') || n.classList.contains('enumtrig');
     }
     function onDown(ev) {
-      var open = root.querySelectorAll('[id$="panel"]'); if (!open.length) return;
+      var open = root.querySelectorAll('.panel,.mfpanel'); if (!open.length) return;
       var path = (ev && ev.composedPath) ? ev.composedPath() : [];
       var hitPanel = null, onTrigger = false;
       for (var j = 0; j < path.length; j++) {
         var n = path[j];
-        if (n && n.id && /panel$/.test(String(n.id))) { hitPanel = n; break; }
+        if (n && n.classList && (n.classList.contains('panel')||n.classList.contains('mfpanel'))) { hitPanel = n; break; }
         if (isTrigger(n)) { onTrigger = true; break; }
       }
       if (onTrigger) return;               // the trigger's own handler toggles it
@@ -759,7 +773,7 @@
     }
     root.addEventListener('mousedown', onDown, true);
     document.addEventListener('mousedown', function (ev) {
-      var open = root.querySelectorAll('[id$="panel"]'); if (!open.length) return;
+      var open = root.querySelectorAll('.panel,.mfpanel'); if (!open.length) return;
       var path = (ev && ev.composedPath) ? ev.composedPath() : [];
       for (var j = 0; j < path.length; j++) if (path[j] === host) return;
       closeAllPanels(null);                // clicked right outside the dashboard
@@ -783,7 +797,7 @@
     } catch (e) {}
   }
   function renderAll(){
-    installOutsideClose(); migrate1219();
+    installOutsideClose(); mpsDecorPanels(); migrate1219();
     ensureShell();var wrap=root.getElementById('wrap');wrap.innerHTML='';
     wrap.appendChild(el('div',{class:'top'},[
       (function(){var b=el('div',{class:'brand'});b.innerHTML='MPS <span>GROUP</span>';return b;})(),
@@ -1075,7 +1089,7 @@
 
   // ---- multi-select persistent column filters (dfilter columns) ----
   function distinctVals(k){var vals={};S.rows.forEach(function(r){var vv=cellVal(r,k);if(vv!=='')vals[vv]=1;});return Object.keys(vals).sort();}
-  function selSummary(k){var d=distinctVals(k);var sel=S.selFilters[k];if(sel==null)return 'All';if(sel.length===0)return 'None';if(sel.length>=d.length)return 'All';return sel.length+'/'+d.length;}
+  function selSummary(k){var d=distinctVals(k);var sel=S.selFilters[k];if(sel==null)return 'All';var t=d.length,p=0;for(var _si=0;_si<t;_si++){if(sel.indexOf(d[_si])>=0)p++;}if(t===0)return 'All';if(p===0)return 'None';if(p>=t)return 'All';return p+'/'+t;}
   function multiFilterBtn(k){var b=el('div',{class:'mfbtn',title:'Filter '+COLDEF[k].label+' — tick the values to show (persists between sessions)'},[el('span',{class:'cv'},[selSummary(k)]),el('span',{},['▾'])]);b.onclick=function(e){e.stopPropagation();openMultiFilter(k,b);};return b;}
   function openMultiFilter(k,anchor){
     var wrapEl=root.getElementById('wrap');
@@ -1639,7 +1653,7 @@ async function fullScan(){
       list.appendChild(el('div',{class:'crow'},[arrows,cb,pri,inp,dw,cw]));
     });
     panel.appendChild(list);
-    panel.appendChild(el('div',{style:'margin-top:8px;display:flex;gap:6px;flex:0 0 auto'},[el('button',{class:'btn',title:'Restore every column setting — order, visibility, names, widths, default widths and Fit priorities',onclick:function(){resetCols();}},['Restore Defaults']),el('button',{class:'btn',title:'Discard your personal defaults and restore the TEAM Global Defaults (set via the Global Defaults panel). Your saved defaults persist until you press this.',onclick:function(){resetGlobalDefaults();}},['Reset Global Defaults']),el('button',{class:'btn',title:'Reset ONLY the column widths back to their default widths. Order, visibility, names and Fit priorities are left alone.',onclick:function(){resetColWidths();}},['Reset Col Widths']),el('button',{class:'btn',title:'Close',onclick:function(){var p=root.getElementById('colpanel');if(p)p.remove();}},['Close'])]));
+    panel.appendChild(el('div',{style:'margin-top:8px;display:flex;gap:6px;flex:0 0 auto'},[el('button',{class:'btn',title:'Restore every column setting — order, visibility, names, widths, default widths and Fit priorities',onclick:function(){resetCols();}},['Restore Defaults']),el('button',{class:'btn',style:'background:#e8871e;border-color:#e8871e;color:#fff',title:'Discard your personal defaults and restore the TEAM Global Defaults (set via the Global Defaults panel). Your saved defaults persist until you press this.',onclick:function(){resetGlobalDefaults();}},['Reset Global Defaults']),el('button',{class:'btn',title:'Reset ONLY the column widths back to their default widths. Order, visibility, names and Fit priorities are left alone.',onclick:function(){resetColWidths();}},['Reset Col Widths']),el('button',{class:'btn',title:'Close',onclick:function(){var p=root.getElementById('colpanel');if(p)p.remove();}},['Close'])]));
     panel.style.width=Math.min(520,nameW+260)+'px';
     collapsiblePanel(panel);
     root.getElementById('wrap').appendChild(panel);var l=panel.querySelector('.clist');if(l)l.scrollTop=sc;
