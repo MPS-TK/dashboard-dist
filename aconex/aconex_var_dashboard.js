@@ -21,7 +21,7 @@
   if (window.__MPS_ACONEX_VAR && window.__MPS_ACONEX_VAR.__live) { window.__MPS_ACONEX_VAR.boot(); return; }
 
   var NAVY = '#0B2A4A', NAVY2 = '#123a63', ACCENT = '#F26522', LINE = '#dfe4ea', INK = '#1f2d3d';
-  var VERSION = 'v12.37', BUILD_DATE = '8 Sep 2026';
+  var VERSION = 'v12.38', BUILD_DATE = '8 Sep 2026';
   var UI_FONTS = ['Segoe UI', 'Arial', 'Calibri', 'Helvetica', 'Roboto', 'Verdana', 'Tahoma', 'Trebuchet MS', 'Georgia', 'Times New Roman', 'Courier New', 'system-ui'];
   var DEF_FONT = '"Segoe UI",Arial,sans-serif', DEF_BASEPX = 13;
   function fontStack(f) { return f ? ('"' + f + '","Segoe UI",Arial,sans-serif') : DEF_FONT; }
@@ -1165,7 +1165,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     panel.appendChild(sldRow('Side Padding', 'Left/right padding of the panels.', function () { return S.hpadScale || 100; }, function (v) { S.hpadScale = v; saveCfg(); applyTheme(); renderTable(); renderSheetGrid(); }, 0, 200));
     panel.appendChild(el('div', { style: 'margin-top:8px;display:flex;gap:6px' }, [
       el('button', { class: 'btn', title: 'Restore default font, size and padding', onclick: function () { S.fontFamily = ''; S.fontScale = 100; S.padScale = 100; S.hpadScale = 100; saveCfg(); applyTheme(); renderTable(); renderSheetGrid(); var fp = root.getElementById('fontpanel'); if (fp) fp.remove(); toggleFontPanel(anchor); } }, ['Restore Default']),
-      el('button', { class: 'btn', title: 'Save the current fonts, size, padding and view as your default', onclick: function () { setAsDefault(); } }, ['★ Set As Default'])
+      el('button', { class: 'btn', title: 'Save the current fonts, size, padding and view as your default', onclick: function () { setAsDefault(); } }, ['★ Set Defaults'])
     ]));
     wrapEl.appendChild(panel);
     if (anchor) { var ar = anchor.getBoundingClientRect(), wr = wrapEl.getBoundingClientRect(); panel.style.left = Math.min(Math.max(4, wr.width - panel.offsetWidth - 8), Math.max(4, ar.left - wr.left)) + 'px'; panel.style.top = (ar.bottom - wr.top + 4) + 'px'; }
@@ -1175,7 +1175,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
     var ex = root.getElementById('hdrpanel'); if (ex) { ex.remove(); return; }
     var wrapEl = root.getElementById('wrap');
     var panel = el('div', { id: 'hdrpanel', class: 'panel', style: 'min-width:236px' }, [el('h4', { style: 'cursor:default' }, ['Header Settings']),
-      el('div', { class: 'muted', style: 'font-size:11px;margin-bottom:8px;white-space:normal' }, ['Adjust the column header row. Saved to your default when you press ★ Set As Default.'])]);
+      el('div', { class: 'muted', style: 'font-size:11px;margin-bottom:8px;white-space:normal' }, ['Adjust the column header row. Saved to your default when you press ★ Set Defaults.'])]);
     var szval = el('span', { class: 'fpct' }, [hdrFont() + 'px']);
     var rng = el('input', { type: 'range', min: '8', max: '22', value: String(hdrFont()), class: 'rng', title: 'Header font size' });
     function setFs(v) { v = Math.max(8, Math.min(22, Math.round(v))); S.hdrFontSize = v; szval.textContent = v + 'px'; rng.value = String(v); saveCfg(); renderTable(); renderSheetGrid(); equalizePanelHeaders(); }
@@ -1381,12 +1381,12 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
       rowsBtn(),
       btn('⚙ Header', 'Adjust the header font size and how many lines (1–3) the headers may use', function (ev) { toggleHdrPanel(ev && ev.currentTarget); }, 'alt pnltrig'),
       btn('Reset Cols', 'Restore columns to the saved default (or factory) order, widths and visibility', function () { resetCols(); }),
-      btn('★ Set As Default', 'Save the current columns, order, widths, font and density as your default', function () { setAsDefault(); }),
+      btn('★ Set Defaults', 'Save the current columns, order, widths, font and density as your default', function () { setAsDefault(); }),
       btn('Expand All', 'Comfortable rows with word-wrap — show full cell content', function () { S.wrap = true; S.rowPad = 6; saveCfg(); renderTable(); renderSheetGrid(); }),
       btn('Collapse All', 'Pack rows as tightly as possible', function () { S.wrap = false; S.rowPad = 0; saveCfg(); renderTable(); renderSheetGrid(); }),
       btn('Optimise Widths', 'Auto-size every visible column to fit its content', function () { optimiseWidths(); }),
       btn('Fit to 1 Page', 'Shrink every visible column so they all fit across the page width', function () { fitOnePage(); }),
-      (function () { return btn((S.wrap ? '☑' : '☐') + ' Wrap Text', 'Toggle word-wrapping of cell text. With wrap ON the RFI/Correspondence Ref column gives each reference its own line; with it OFF each cell collapses to a single line.', function () { S.wrap = !S.wrap; saveCfg(); renderTable(); renderSheetGrid(); }); })(),
+      (function () { return btn((S.wrap ? '☑' : '☐') + ' Wrap', 'Toggle word-wrapping of cell text. With wrap ON the RFI/Correspondence Ref column gives each reference its own line; with it OFF each cell collapses to a single line.', function () { S.wrap = !S.wrap; saveCfg(); renderTable(); renderSheetGrid(); }); })(),
       fontGroup,
       el('span', { class: 'muted', title: 'Row height' }, ['Row Density']), rng,
       el('span', { class: 'dtlbl', style: 'color:' + ACCENT, title: 'Filter the whole register by status' }, ['STATUS']), ssel,
