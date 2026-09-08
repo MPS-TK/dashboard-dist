@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.41', BUILD_DATE='8 Sep 2026';
+  var VERSION='v12.42', BUILD_DATE='8 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -250,9 +250,9 @@
   function rfiAckNew(){S._newBaseline=S.allRows.length;rfiSaveSeen(S.allRows.length);renderAll();}
   function ghToken(){try{return localStorage.getItem('mps_gh_token')||localStorage.getItem('__itr_gh_token__')||'';}catch(e){return '';}}
   function ghHeaders(){return {Authorization:'token '+ghToken(),Accept:'application/vnd.github+json'};}
-  function rowKey(r){return String(r.rfiNo||r.aconexRef||'');}
-  function applyOverridesToRows(){S.allRows.forEach(function(r){if(r._descOrig==null)r._descOrig=(r.description||'');var o=S.overrides[rowKey(r)]||{};MANUAL_FIELDS.forEach(function(k){if(o[k]!=null)r[k]=o[k];});});}
-  function ghLoad(){if(!ghToken())return Promise.resolve(false);setSync('sync');return fetch('https://api.github.com/repos/'+GH.repo+'/contents/'+GH.path+'?ref='+GH.branch,{headers:ghHeaders()}).then(function(r){if(r.status===404){GH.sha=null;return null;}if(!r.ok)throw 0;return r.json();}).then(function(j){if(j){GH.sha=j.sha;var rem={};try{rem=JSON.parse(decodeURIComponent(escape(atob((j.content||'').replace(/\n/g,'')))));}catch(e){}S.overrides=Object.assign({},rem,S.overrides);saveOverrides();applyOverridesToRows();recomputeAuto();}setSync('ok');return true;}).catch(function(){setSync('err');return false;});}
+  function rowKey(r){return String(r.aconexRef||r.rfiNo||'');}
+  function applyOverridesToRows(){S.allRows.forEach(function(r){if(r._descOrig==null)r._descOrig=(r.description||'');if(r._rfiNoOrig==null)r._rfiNoOrig=parseRefNo(r.aconexRef);var o=S.overrides[rowKey(r)]||{};MANUAL_FIELDS.forEach(function(k){if(o[k]!=null)r[k]=o[k];});});}
+  function ghLoad(){if(!ghToken())return Promise.resolve(false);setSync('sync');return fetch('https://api.github.com/repos/'+GH.repo+'/contents/'+GH.path+'?ref='+GH.branch,{headers:ghHeaders()}).then(function(r){if(r.status===404){GH.sha=null;return null;}if(!r.ok)throw 0;return r.json();}).then(function(j){if(j){GH.sha=j.sha;var rem={};try{rem=JSON.parse(decodeURIComponent(escape(atob((j.content||'').replace(/\n/g,'')))));}catch(e){}S.overrides=Object.assign({},rem,S.overrides);saveOverrides();migrateOverrideKeys();applyOverridesToRows();recomputeAuto();}setSync('ok');return true;}).catch(function(){setSync('err');return false;});}
   function ghPush(){if(!ghToken())return;setSync('save');clearTimeout(GH.timer);GH.timer=setTimeout(function(){var content=btoa(unescape(encodeURIComponent(JSON.stringify(S.overrides))));var body={message:'Aconex RFI/TQ overrides ('+CFG.projectName+')',content:content,branch:GH.branch};if(GH.sha)body.sha=GH.sha;fetch('https://api.github.com/repos/'+GH.repo+'/contents/'+GH.path,{method:'PUT',headers:ghHeaders(),body:JSON.stringify(body)}).then(function(r){return r.json();}).then(function(j){if(j&&j.content)GH.sha=j.content.sha;setSync(j&&j.content?'ok':'err');}).catch(function(){setSync('err');});},1200);}
   function setSync(st){GH.state=st;var b=root&&root.getElementById('syncbtn');if(b)b.textContent=syncLabel();}
   function syncLabel(){if(!ghToken())return '🔒 Connect Sync';return ({sync:'⟳ Syncing…',save:'⟳ Saving…',ok:'✓ Synced',err:'⚠ Sync Error'})[GH.state]||'✓ Team Sync';}
@@ -260,12 +260,28 @@
 
   // ---- rows: build from seed + overrides, then compute auto columns ----
   function refType(ref){var s=(ref||'').toUpperCase();if(/TECHQ|-TQ-|\bTQ\b|TECHNICAL/.test(s))return 'TQ';if(/RFI/.test(s))return 'RFI';return '';}
+  // v12.42 — Col A RFI/TQ number: parse the trailing numeric group of the Aconex
+  // Reference No. (e.g. MPSBE-RFI-000006 -> 6, BHPCSAMP-TECHQ-000059 -> 59). Leading
+  // zeros dropped. This is only the starting value in col A; a manual entry (team-synced
+  // override) takes precedence. Duplicates within the same type are allowed & flagged.
+  function parseRefNo(ref){var m=String(ref||'').match(/(\d+)\s*$/);return m?String(parseInt(m[1],10)):'';}
+  function rfiNoOrig(r){return (r._rfiNoOrig!=null)?r._rfiNoOrig:parseRefNo(r.aconexRef);}
+  function rfiNoMod(r){var o=S.overrides[rowKey(r)]||{};return (o.rfiNo!=null)?o.rfiNo:'';}
+  function setRfiNoMod(row,v){v=String(v==null?'':v).trim();var o=S.overrides[rowKey(row)]||(S.overrides[rowKey(row)]={});if(v===''||v===rfiNoOrig(row)){delete o.rfiNo;row.rfiNo=rfiNoOrig(row);}else{o.rfiNo=v;row.rfiNo=v;}saveOverrides();ghPush();}
+  // Rows in the current view whose (type,number) collides with another of the SAME type.
+  // RFI vs RFI and TQ vs TQ collide; an RFI and a TQ sharing a number do NOT.
+  function dupNumSet(){var cnt={},dup={};S.filtered.forEach(function(r){var n=String(r.rfiNo==null?'':r.rfiNo).trim();if(!n)return;var key=(r.type||'RFI')+'|'+n;cnt[key]=(cnt[key]||0)+1;});Object.keys(cnt).forEach(function(k){if(cnt[k]>1)dup[k]=true;});return dup;}
+  function isDupNo(row,dups){var n=String(row.rfiNo==null?'':row.rfiNo).trim();if(!n||!dups)return false;return !!dups[(row.type||'RFI')+'|'+n];}
+  // Overrides used to be keyed by the old sequential rfiNo (1..N). From v12.42 they are
+  // keyed by the stable, unique Aconex Reference No. Remap any legacy numeric keys once so
+  // existing team-synced edits (e.g. Description) are preserved, not orphaned.
+  function migrateOverrideKeys(){var byOld={};try{SEED.forEach(function(d){if(d&&d.rfiNo!=null&&d.aconexRef)byOld[String(d.rfiNo)]=d.aconexRef;});}catch(e){}var ch=false;Object.keys(S.overrides||{}).forEach(function(k){if(/^\d+$/.test(k)&&byOld[k]&&!S.overrides[byOld[k]]){S.overrides[byOld[k]]=S.overrides[k];delete S.overrides[k];ch=true;}});if(ch)saveOverrides();}
   function restoreXData(){try{var m=JSON.parse(localStorage.getItem('mps_aconex_rfi_xdata_73409')||'null');if(!m)return;delete m.__full;S.allRows.forEach(function(r){var d=m[normRef(r.aconexRef)];if(!d)return;r._mpsMails=d.mps||[];r._bhpMails=d.bhp||[];r._autoFu1=d.fu1||'';r._autoFu2=d.fu2||'';r._refMailId=d.rid||'';r._refMailbox=d.rbox||'';r._refPid=d.pid||'';if(d.p&&!r.mailNo)r.mailNo=d.p;if(d.q&&!r.respMailNo)r.respMailNo=d.q;});}catch(e){}}
   function initRows(){
-    S.allRows=SEED.map(function(d){var r={};MANUAL_FIELDS.forEach(function(k){r[k]=(d[k]!=null?d[k]:'');});r.mailNo='';r.respMailNo='';r.type=refType(r.aconexRef);return r;});
+    S.allRows=SEED.map(function(d){var r={};MANUAL_FIELDS.forEach(function(k){r[k]=(d[k]!=null?d[k]:'');});r.mailNo='';r.respMailNo='';r.type=refType(r.aconexRef);r.rfiNo=parseRefNo(r.aconexRef);r._rfiNoOrig=r.rfiNo;return r;});
     // migrate seed Closed Y/N -> workflow Status (Yes->Closed, No/blank->Open)
     S.allRows.forEach(function(r){var c=String(r.closed||'').toLowerCase();if(c==='yes')r.closed='Closed';else if(c==='no'||c==='')r.closed='Open';});
-    applyOverridesToRows();S.allRows.forEach(function(r){['eot','costVar'].forEach(function(k){var v=String(r[k]||'').trim().toLowerCase();if(v!==''&&v!=='yes'&&v!=='no')r[k]='';});});restoreXData();recomputeAuto();backfillClosedDates();
+    migrateOverrideKeys();applyOverridesToRows();S.allRows.forEach(function(r){['eot','costVar'].forEach(function(k){var v=String(r[k]||'').trim().toLowerCase();if(v!==''&&v!=='yes'&&v!=='no')r[k]='';});});restoreXData();recomputeAuto();backfillClosedDates();
   }
   function daysBetween(iso){var t=parseISODay(iso);if(t==null)return null;return Math.round((todayDay()-t)/86400000);}
   // Days Open = calendar days from Date Sent to Date Closed (or today if still open). Same-day open/close counts as 0 (best possible response time).
@@ -851,7 +867,7 @@
 
   function renderStats(){
     var box=root.getElementById('stats');if(!box)return;box.innerHTML='';
-    var rows=S.rows,total=rows.length;
+    var rows=S.filtered,total=rows.length;
     function cnt(fn){var c=0;rows.forEach(function(r){if(fn(r))c++;});return c;}
     var closed=cnt(isClosed), open=total-closed;
     var overdue=cnt(function(r){if(isClosed(r))return false;var t=parseISODay(r.dateRespReq);return t!=null&&t<todayDay();});
@@ -975,7 +991,7 @@
     (function(){var b=root.getElementById('chart');if(!b)return;var p=b;while(p&&!(p.classList&&p.classList.contains('cpanel')))p=p.parentNode;if(p&&p.__setTitle)p.__setTitle(chartPanelTitle(),chartPanelTitle());})();
     var ctl=root.getElementById('chartctl');
     if(ctl){ctl.innerHTML='';
-      ctl.appendChild(el('span',{class:'ccount',title:'Entries in the current view'},[String(S.rows.length)+' · RFI / TQ']));
+      ctl.appendChild(el('span',{class:'ccount',title:'Entries in the current view'},[String(S.filtered.length)+' · RFI / TQ']));
       var nextLbl=CT_LABEL[S.chartType]||'Bars';
       ctl.appendChild(btn(nextLbl,'Switch the chart to '+nextLbl+' (cycles Donut → Bars → Pie)',function(){S.chartType=CT_NEXT[S.chartType]||'donut';saveCfg();renderChart();},'chart'));
       ctl.appendChild(el('span',{class:'muted',style:'font-size:11px;margin-left:4px'},['Size']));
@@ -1308,6 +1324,7 @@
       if(!cd.nosort){var srt=el('span',{class:'srt',title:'Sort by '+lab},[S.sortKey===k?(S.sortDir>0?'▲':'▼'):'↕']);srt.onclick=function(ev){ev.stopPropagation();if(S.sortKey===k)S.sortDir*=-1;else{S.sortKey=k;S.sortDir=1;}applyFilters();renderTable();};hicons.push(srt);}
       if(hdrHasPal(k)){var pal=el('span',{class:'pal',title:'Change the '+lab+' colour scheme'},['🎨']);pal.onclick=function(ev){ev.stopPropagation();colorSchemePanel(k,pal);};hicons.push(pal);}
       if(k==='description'){var dm=el('span',{class:'pal',title:'View / edit descriptions for the visible rows'},['\u270e']);dm.onclick=function(ev){ev.stopPropagation();toggleDescDD(dm);};hicons.push(dm);}
+      if(k==='rfiNo'){var nm=el('span',{class:'pal',title:'View / edit the RFI/TQ numbers for the visible rows'},['\u270e']);nm.onclick=function(ev){ev.stopPropagation();toggleNumDD(nm);};hicons.push(nm);}
       if(hicons.length){thKids.push(el('span',{class:'hicons'},hicons));}
       var _fa=((k==='dateSent'&&dateFilterActive())||(k==='aconexRef'&&refFilterActive()));
       var th=el('th',{'data-k':k,style:'width:'+w+'px;min-width:'+Math.max(w,minHW(k))+'px;padding:1px 2px;font-size:'+hdrFont()+'px;line-height:1.15'+(_fa?';background:#fff7f2;box-shadow:inset 0 -3px 0 '+ACCENT+';color:'+ACCENT:''),class:(COLDEF[k].edit?'mps-h':''),title:cd.tip},thKids);
@@ -1438,6 +1455,7 @@ async function fullScan(){
     var tb=root.getElementById('tbody');if(!tb)return;tb.innerHTML='';
     var cl=root.getElementById('countlbl');if(cl)cl.textContent=S.filtered.length+' of '+S.rows.length;
     var pad=Math.max(0,Math.round(S.rowPad*(S.padScale||100)/100)),ws=S.wrap?'normal':'nowrap',ov=S.wrap?'visible':'hidden';
+    var dups=dupNumSet();
     S.filtered.forEach(function(row){
       var tr=el('tr');
       if(isRowSel(row))tr.classList.add('mps-selrow');
@@ -1445,12 +1463,13 @@ async function fullScan(){
       visKeys().forEach(function(k){
         var td,w=S.cols[k].w;
         var base='width:'+w+'px;max-width:'+w+'px;padding:'+pad+'px 6px;white-space:'+ws+';overflow:'+ov+';text-overflow:ellipsis';
-        if(COLDEF[k].edit){td=editCell(row,k,base);}
+        if(k==='rfiNo'){td=rfiNoCell(row,base,dups);}
+        else if(COLDEF[k].edit){td=editCell(row,k,base);}
         else if(k==='closed'){var cv=row.closed||'';td=el('td',{style:base,title:cv},[cv?el('span',{class:'pill',style:'background:'+closedColor(cv)+';color:'+lumFg(closedColor(cv))},[closedDisp(cv)]):cv]);}
         else if(k==='sender'){var sv=row.sender||'';td=el('td',{style:base,title:sv},[sv?el('span',{class:'pill',style:'background:'+senderColor(sv)+';color:#fff'},[sv]):sv]);}
         else if(k==='eot'||k==='costVar'){var yv=row[k]||'';var yc=yesnoColor(k,yv);td=el('td',{style:base,title:yv},[yv?el('span',{class:'pill',style:'background:'+(yc||'#8a939b')+';color:#fff'},[yv]):yv]);}
         else if(k==='aconexRef'){var av=cellVal(row,k);if(row._refMailId){td=el('td',{style:base,title:'Open '+av+' in Aconex mail'},[el('a',{class:'doclink',href:refUrl(row),target:'_blank',rel:'noopener'},[av])]);}else{td=el('td',{style:base,title:av},[av]);}}else if(k==='bhpFlag'){var bn=(row._bhpMails?row._bhpMails.length:0);td=el('td',{style:base+';text-align:center'},bn>2?[el('span',{class:'bhpflag',title:bn+' BHP responses on this RFI/TQ \u2014 more than 2'},['\u2691 '+bn])]:[]);}else if(k==='mpsCorr'||k==='bhpCorr'){td=corrCell(row,k,base);}else if(k==='totalCorr'){var tn=String(row.totalCorr||'0');td=el('td',{style:base+';text-align:center'+((tn==='0'||tn==='')?';color:#c2c9d2':'')},[tn||'0']);}else if(k==='daysSinceSub'||k==='daysSinceResp'){var dv=cellVal(row,k);var clc=(k==='daysSinceResp'&&isClosed(row));var late=(k==='daysSinceResp'&&!isClosed(row)&&dv!=='—'&&(+dv)>=7);td=el('td',{style:base+(clc?';color:#8a939b':(late?';color:#c0392b;font-weight:700':'')),title:cd0(k,row)},[dv]);}
-        else if(k==='description'){td=el('td',{style:base,title:cellVal(row,k)},[cellVal(row,k)]);}
+        else if(k==='description'){td=descCell(row,base);}
         else{td=el('td',{style:base,title:cellVal(row,k)},[cellVal(row,k)]);}
         tr.appendChild(td);
       });
@@ -1542,6 +1561,48 @@ async function fullScan(){
     if(anchor){var ar=anchor.getBoundingClientRect(),wr=wrapEl.getBoundingClientRect();panel.style.left=Math.min(Math.max(4,wr.width-panel.offsetWidth-8),Math.max(4,ar.left-wr.left))+'px';panel.style.top=(ar.bottom-wr.top+4)+'px';}else{panel.style.left='12px';panel.style.top='120px';}
   }
   function setOverride(row,key,val){row[key]=val;var o=S.overrides[rowKey(row)]||(S.overrides[rowKey(row)]={});o[key]=val;saveOverrides();ghPush();if(key==='closed'||key==='dateClosed')applyScope();}
+  var DUP_BG='#ffe1a8';
+  // Col A cell: editable RFI/TQ number, amber when it duplicates another of the same type.
+  function rfiNoCell(row,base,dups){
+    var td=el('td',{class:'edit',style:base});var dup=isDupNo(row,dups);
+    var inp=el('input',{type:'text',title:(COLDEF.rfiNo.tip||'')+(dup?(' \u00b7 Duplicate '+(row.type||'RFI')+' number in the current view'):''),value:(row.rfiNo==null?'':row.rfiNo)});
+    if(dup){td.style.background=DUP_BG;inp.style.background=DUP_BG;inp.style.fontWeight='700';}
+    inp.onchange=function(){setRfiNoMod(row,inp.value);applyFilters();renderBody();};
+    td.appendChild(inp);return td;
+  }
+  // Col D cell: editable Description. Editing here writes the team-synced Modified value,
+  // which the Description dropdown also reads (register <-> dropdown stay in sync).
+  function descCell(row,base){
+    var td=el('td',{class:'edit',style:base});
+    var inp=el('input',{type:'text',title:(row.description==null?'':String(row.description)),value:(row.description==null?'':row.description)});
+    inp.onchange=function(){var v=(inp.value||'').trim();var o=S.overrides[rowKey(row)]||(S.overrides[rowKey(row)]={});if(v===''||v===rfiDescOrig(row)){delete o.description;row.description=rfiDescOrig(row);}else{o.description=v;row.description=v;}saveOverrides();ghPush();applyFilters();renderBody();};
+    td.appendChild(inp);return td;
+  }
+  // Col A header dropdown — mirrors the Description dropdown: Original (parsed) vs Modified.
+  function toggleNumDD(anchor){
+    var wrapEl=root.getElementById('wrap');var ex=root.getElementById('numdd');if(ex){ex.remove();return;}
+    var panel=el('div',{id:'numdd',class:'panel',style:'position:fixed;width:50vw;min-width:460px;max-width:50vw;max-height:78vh;overflow:hidden;display:flex;flex-direction:column'});
+    panel.appendChild(el('h4',{style:'white-space:normal'},['RFI/TQ Numbers \u2014 visible RFIs/TQs']));
+    panel.appendChild(el('div',{class:'muted',style:'font-size:11px;margin-bottom:6px;white-space:normal'},['Edit the Modified number on the right \u2014 it shows in column A and syncs to everyone. Leave blank to keep the Original (parsed from the Aconex Reference). Only the '+S.filtered.length+' rows currently shown are listed.']));
+    var list=el('div',{style:'flex:1 1 auto;overflow:auto;min-height:80px'});
+    function build(){
+      list.innerHTML='';
+      var rows=S.filtered.slice();
+      if(!rows.length){list.appendChild(el('div',{class:'muted',style:'font-size:11px;padding:6px'},['No rows in the current view.']));return;}
+      var dups=dupNumSet();
+      list.appendChild(el('div',{style:'display:flex;gap:8px;font-weight:700;font-size:10.5px;color:'+NAVY+';padding:2px 4px;position:sticky;top:0;background:#fff'},[el('span',{style:'flex:0 0 auto;min-width:150px;white-space:nowrap'},['Aconex Reference']),el('span',{style:'flex:0 0 70px'},['Original']),el('span',{style:'flex:0 0 90px'},['Modified (col A)'])]));
+      rows.forEach(function(r){
+        var orig=rfiNoOrig(r);var dup=isDupNo(r,dups);
+        var inp=el('input',{type:'text',value:rfiNoMod(r),placeholder:orig,title:'Modified number (blank = use the parsed original)',style:'flex:0 0 90px;font-size:11px;padding:2px 5px;border:1px solid #cfd8e3;border-radius:4px'+(dup?';background:'+DUP_BG+';font-weight:700':'')});
+        inp.onchange=function(){setRfiNoMod(r,inp.value);applyFilters();renderBody();build();};
+        list.appendChild(el('div',{style:'display:flex;gap:8px;align-items:center;padding:2px 4px;border-bottom:1px solid #f0f3f7'},[el('span',{style:'flex:0 0 auto;min-width:150px;white-space:nowrap;font-size:10.5px;color:'+NAVY,title:(r.aconexRef||'')},[(r.aconexRef||'')]),el('span',{style:'flex:0 0 70px;font-size:11px;color:#5b6674'},[orig]),inp]));
+      });
+    }
+    build();panel.appendChild(list);
+    panel.appendChild(el('div',{style:'margin-top:8px;display:flex;gap:6px;flex:0 0 auto'},[el('button',{class:'btn',title:'Clear the modified number on every visible row \u2014 revert them to the parsed original',onclick:function(){var rows=S.filtered.slice();rows.forEach(function(r){var o=S.overrides[rowKey(r)];if(o&&o.rfiNo!=null)delete o.rfiNo;r.rfiNo=rfiNoOrig(r);});saveOverrides();ghPush();applyFilters();renderBody();build();toast('Restored '+rows.length+' visible row'+(rows.length===1?'':'s')+' to the parsed number');}},['Restore all visible to original']),el('button',{class:'btn',title:'Close',onclick:function(){var p=root.getElementById('numdd');if(p)p.remove();}},['Close'])]));
+    wrapEl.appendChild(panel);
+    if(anchor){var ar=anchor.getBoundingClientRect();var pw=panel.offsetWidth||Math.round(window.innerWidth*0.5);panel.style.left=Math.max(4,Math.min(ar.left,window.innerWidth-pw-8))+'px';panel.style.top=(ar.bottom+2)+'px';}else{panel.style.left='12px';panel.style.top='120px';}
+  }
 
   // ---- column ops ----
   function reorder(from,to){var o=S.order.slice();var fi=o.indexOf(from),ti=o.indexOf(to);if(fi<0||ti<0)return;o.splice(fi,1);ti=o.indexOf(to);o.splice(ti,0,from);S.order=o;saveCfg();renderTable();if(root.getElementById('colpanel'))renderColPanel();}
@@ -1954,7 +2015,7 @@ async function fullScan(){
         var r = {}; MANUAL_FIELDS.forEach(function(k){ r[k] = ''; });
         var resps = respBy[ns(m.subj)] || [];
         var last = resps.map(function(x){ return iso(x.sent); }).sort().slice(-1)[0] || '';
-        r.rfiNo = i + 1; r.aconexRef = m.no; r.sender = sndr(m.no);
+        r.rfiNo = parseRefNo(m.no); r._rfiNoOrig = r.rfiNo; r.aconexRef = m.no; r.sender = sndr(m.no);
         r.dateSent = iso(m.sent); r.dateRespReq = iso(m.rrq); r.dateRespRecd = last;
         r.closed = (resps.length ? 'Closed' : 'Open'); r.description = m.subj;
         r.mailNo = ''; r.respMailNo = ''; r.type = refType(m.no) || (RFI_T[m.ct] === 'tq' ? 'TQ' : 'RFI');
