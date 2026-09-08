@@ -16,7 +16,7 @@
   if (window.__MPS_ACONEX && window.__MPS_ACONEX.__live) { window.__MPS_ACONEX.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.31', BUILD_DATE='7 Sep 2026';
+  var VERSION='v12.32', BUILD_DATE='8 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -32,7 +32,7 @@
   // Semantic defaults for the 'issued for' status families used on projects that don't use
   // the CNPI review-status set (e.g. Orepass: For Construction / For Review / For Use). Gives
   // each a distinct, readable colour out of the box instead of everything falling to red.
-  var ISSUE_COLORS={'for information':'#64748b','for review':'#e05a1c','for approval':'#1e7e34','for use':'#0d9488','for construction':'#2b6cb0','issued for construction':'#2b6cb0','issued for use':'#0d9488','issued for review':'#e05a1c','issued for approval':'#1e7e34','issued for information':'#64748b','for tender':'#8250df','for comment':'#b7791f','for coordination':'#0891b2','for acceptance':'#1e7e34','approved':'#1e7e34','accepted':'#1e7e34','rejected':'#c0392b','draft':'#94a3b8','preliminary':'#b7791f','reserved':'#be123c','for construction & use':'#2b6cb0','for construction/use':'#2b6cb0'};
+  var ISSUE_COLORS={'for information':'#64748b','for review':'#e05a1c','for approval':'#1e7e34','for use':'#0d9488','for construction':'#2b6cb0','issued for construction':'#2b6cb0','issued for use':'#0d9488','issued for review':'#e05a1c','issued for approval':'#1e7e34','issued for information':'#64748b','for tender':'#8250df','for comment':'#b7791f','for coordination':'#0891b2','for acceptance':'#1e7e34','approved':'#1e7e34','accepted':'#1e7e34','rejected':'#c0392b','draft':'#94a3b8','preliminary':'#b7791f','reserved':'#c0392b','cancelled':'#111827','for construction & use':'#2b6cb0','for construction/use':'#2b6cb0'};
   // Any status/lifecycle value with no configured or semantic colour gets a stable colour
   // from this categorical palette (deterministic by the value text), so distinct values are
   // never rendered in the same colour. lumFg() picks readable text over whichever is chosen.
@@ -1037,7 +1037,7 @@
   function schemeItems(kind){
     if(kind==='phase')return S.phases.map(function(p){return {key:p.id,label:p.label,hex:phaseColor(p.id)};});
     if(kind==='dateRequired')return DATEREQ_STATES.map(function(s){return {key:s.key,label:s.label,hex:dateReqColor(s.key)};});
-    return distinctVals(kind).map(function(v){return {key:v.toLowerCase(),label:v,hex:(kind==='status'?statusColor(v):kind==='toAction'?(toActionColor(v)||'#1f2d3d'):lifeColor(v))};});
+    return distinctVals(kind).map(function(v){return {key:v.toLowerCase(),label:(kind==='status'?statusDisp(v):v),hex:(kind==='status'?statusColor(v):kind==='toAction'?(toActionColor(v)||'#1f2d3d'):lifeColor(v))};});
   }
   // kinds where the user can pre-add a value + colour that isn't in the data yet ("add to the list")
   function canAddScheme(kind){return kind==='status'||kind==='lifecycleStatus'||kind==='toAction';}
@@ -1051,13 +1051,25 @@
       // custom-added values (not present in current data) so they persist in the list
       if(canAddScheme(kind)){var have={};items.forEach(function(it){have[it.key]=1;});Object.keys(S.colorSchemes[kind]||{}).forEach(function(key){if(!have[key])items.push({key:key,label:key,hex:S.colorSchemes[kind][key]});});}
       if(!items.length){bodyEl.appendChild(el('div',{class:'muted',style:'font-size:11px;padding:4px'},['No values in view yet — add one below.']));}
-      items.forEach(function(it){var sw=el('input',{type:'color',value:toHex6(it.hex),title:'Fill colour',style:'width:28px;height:20px;border:1px solid #cfd8e3;border-radius:3px;background:none;cursor:pointer;padding:0'});sw.onchange=function(){S.colorSchemes[kind][it.key]=sw.value;saveCfg();renderBody();renderCharts();};
-        var row=[sw,el('span',{style:'flex:1'},[it.label])];
+      items.forEach(function(it){var sw=el('input',{type:'color',value:toHex6(it.hex),title:'Fill colour',style:'width:28px;height:20px;border:1px solid #cfd8e3;border-radius:3px;background:none;cursor:pointer;padding:0'});sw.onchange=function(){S.colorSchemes[kind]=S.colorSchemes[kind]||{};S.colorSchemes[kind][it.key]=sw.value;saveCfg();renderBody();renderCharts();};
+        var labelEl;
+        if(kind==='phase'){labelEl=el('input',{type:'text',value:it.label,title:'Rename this phase',style:'flex:1;min-width:60px;font-size:11px;padding:2px 5px;border:1px solid #cfd8e3;border-radius:4px'});labelEl.onchange=function(){var nm=(labelEl.value||'').trim()||it.key;for(var pi=0;pi<S.phases.length;pi++){if(S.phases[pi].id===it.key){S.phases[pi].label=nm;break;}}saveCfg();renderTable();renderCharts();};}
+        else{labelEl=el('span',{style:'flex:1'},[it.label]);}
+        var row=[sw,labelEl];
         if(kind==='status'||kind==='lifecycleStatus'){var curFg=(kind==='status'?statusFg(it.key):lifeFg(it.key));var tw=el('input',{type:'color',value:toHex6(curFg),title:'Text colour',style:'width:28px;height:20px;border:1px solid #cfd8e3;border-radius:3px;background:none;cursor:pointer;padding:0'});tw.onchange=function(){S.fgSchemes[kind]=S.fgSchemes[kind]||{};S.fgSchemes[kind][it.key]=tw.value;saveCfg();renderBody();renderCharts();};row.push(el('span',{style:'font-size:10px;font-weight:700;color:#8894a6',title:'Text colour'},['A']));row.push(tw);}
-        if(canAddScheme(kind)&&((S.colorSchemes[kind]&&S.colorSchemes[kind][it.key]!=null)||(S.fgSchemes[kind]&&S.fgSchemes[kind][it.key]!=null))){row.push(el('a',{title:'Remove this value / reset its colours',style:'color:#c0392b;font-size:12px;text-decoration:none',onclick:function(ev){ev.preventDefault();if(S.colorSchemes[kind])delete S.colorSchemes[kind][it.key];if(S.fgSchemes[kind])delete S.fgSchemes[kind][it.key];saveCfg();renderBody();renderCharts();build();}},['✕']));}
-        bodyEl.appendChild(el('label',{class:'mfrow'},row));});
+        if(kind==='phase'){row.push(el('a',{title:'Remove this phase',style:'color:#c0392b;font-size:12px;text-decoration:none',onclick:function(ev){ev.preventDefault();S.phases=S.phases.filter(function(x){return x.id!==it.key;});if(S.colorSchemes.phase)delete S.colorSchemes.phase[it.key];saveCfg();renderTable();renderCharts();build();}},['✕']));}
+        else if(canAddScheme(kind)&&((S.colorSchemes[kind]&&S.colorSchemes[kind][it.key]!=null)||(S.fgSchemes[kind]&&S.fgSchemes[kind][it.key]!=null))){row.push(el('a',{title:'Remove this value / reset its colours',style:'color:#c0392b;font-size:12px;text-decoration:none',onclick:function(ev){ev.preventDefault();if(S.colorSchemes[kind])delete S.colorSchemes[kind][it.key];if(S.fgSchemes[kind])delete S.fgSchemes[kind][it.key];saveCfg();renderBody();renderCharts();build();}},['✕']));}
+        bodyEl.appendChild(el(kind==='phase'?'div':'label',{class:'mfrow'},row));});
       if(kind==='dateRequired'){bodyEl.appendChild(el('div',{class:'muted',style:'font-size:10.5px;padding:2px 4px'},['Colours the Date Required cells by how overdue they are.']));}
-      if(canAddScheme(kind)){var nv=el('input',{type:'text',placeholder:'add a value…',style:'flex:1;min-width:70px;font-size:11px;padding:2px 5px;border:1px solid #cfd8e3;border-radius:4px'});var nc=el('input',{type:'color',value:'#1f6feb',style:'width:28px;height:20px;border:1px solid #cfd8e3;border-radius:3px;background:none;cursor:pointer;padding:0'});
+      if(kind==='phase'){var pnv=el('input',{type:'text',placeholder:'add a phase…',style:'flex:1;min-width:70px;font-size:11px;padding:2px 5px;border:1px solid #cfd8e3;border-radius:4px'});var pnc=el('input',{type:'color',value:'#1f6feb',style:'width:28px;height:20px;border:1px solid #cfd8e3;border-radius:3px;background:none;cursor:pointer;padding:0'});
+        var pAdd=el('a',{title:'Add this phase',style:'font-weight:700;color:'+NAVY,onclick:function(ev){ev.preventDefault();var v=(pnv.value||'').trim();if(!v)return;var id='p_'+Date.now().toString(36)+'_'+S.phases.length;S.phases.push({id:id,label:v});S.colorSchemes.phase=S.colorSchemes.phase||{};S.colorSchemes.phase[id]=pnc.value;saveCfg();renderTable();renderCharts();build();}},['+ Add']);
+        bodyEl.appendChild(el('div',{class:'mfrow',style:'border-top:1px solid #e3e9f0;margin-top:4px;padding-top:5px'},[pnc,pnv,pAdd]));}
+      else if(kind==='status'||kind==='lifecycleStatus'){var lockNote=(kind==='status'?"Status values come from Aconex, so you can't add your own here (kept for legacy / future use). The list fills in automatically whenever Aconex returns a status that isn't already shown. Note: “Reviewed w/Comment” and “Revise & Resubmit” are shortened display labels for the Aconex values “Reviewed with comments” and “Revise and resubmit”, and still pull that Aconex data.":"Lifecycle Status values come from Aconex, so you can't add your own here (kept for legacy / future use). The list fills in automatically whenever Aconex returns a value that isn't already shown.");
+        var dnc=el('input',{type:'color',value:'#1f6feb',disabled:'disabled',title:lockNote,style:'width:28px;height:20px;border:1px solid #cfd8e3;border-radius:3px;background:none;padding:0;opacity:.45;cursor:not-allowed'});
+        var dnv=el('input',{type:'text',placeholder:'add a value…',disabled:'disabled',title:lockNote,style:'flex:1;min-width:70px;font-size:11px;padding:2px 5px;border:1px solid #cfd8e3;border-radius:4px;opacity:.45;cursor:not-allowed'});
+        var dAdd=el('span',{title:lockNote,style:'font-weight:700;color:#9aa6b2;cursor:not-allowed'},['+ Add']);
+        bodyEl.appendChild(el('div',{class:'mfrow',title:lockNote,style:'border-top:1px solid #e3e9f0;margin-top:4px;padding-top:5px'},[dnc,dnv,dAdd]));}
+      else if(canAddScheme(kind)){var nv=el('input',{type:'text',placeholder:'add a value…',style:'flex:1;min-width:70px;font-size:11px;padding:2px 5px;border:1px solid #cfd8e3;border-radius:4px'});var nc=el('input',{type:'color',value:'#1f6feb',style:'width:28px;height:20px;border:1px solid #cfd8e3;border-radius:3px;background:none;cursor:pointer;padding:0'});
         var addBtn=el('a',{title:'Add this value and colour to the list',style:'font-weight:700;color:'+NAVY,onclick:function(ev){ev.preventDefault();var v=(nv.value||'').trim();if(!v)return;S.colorSchemes[kind][v.toLowerCase()]=nc.value;saveCfg();renderBody();renderCharts();build();}},['+ Add']);
         bodyEl.appendChild(el('div',{class:'mfrow',style:'border-top:1px solid #e3e9f0;margin-top:4px;padding-top:5px'},[nc,nv,addBtn]));}
     }
