@@ -21,7 +21,7 @@
   if (window.__MPS_ACONEX_VAR && window.__MPS_ACONEX_VAR.__live) { window.__MPS_ACONEX_VAR.boot(); return; }
 
   var NAVY = '#0B2A4A', NAVY2 = '#123a63', ACCENT = '#F26522', LINE = '#dfe4ea', INK = '#1f2d3d';
-  var VERSION = 'v12.35', BUILD_DATE = '8 Sep 2026';
+  var VERSION = 'v12.36', BUILD_DATE = '8 Sep 2026';
   var UI_FONTS = ['Segoe UI', 'Arial', 'Calibri', 'Helvetica', 'Roboto', 'Verdana', 'Tahoma', 'Trebuchet MS', 'Georgia', 'Times New Roman', 'Courier New', 'system-ui'];
   var DEF_FONT = '"Segoe UI",Arial,sans-serif', DEF_BASEPX = 13;
   function fontStack(f) { return f ? ('"' + f + '","Segoe UI",Arial,sans-serif') : DEF_FONT; }
@@ -456,7 +456,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
   function renderRowsPanel(anchor) {
     var wrapEl = root.getElementById('wrap');
     var old = root.getElementById('rowspanel'); var sc = old ? ((old.querySelector('.rlist') || {}).scrollTop || 0) : 0; if (old) old.remove();
-    var panel = el('div', { id: 'rowspanel', class: 'panel', style: 'left:12px;top:100px;width:420px;max-height:calc(100vh - 128px);overflow:hidden' });
+    var panel = el('div', { id: 'rowspanel', class: 'panel', style: 'left:12px;top:100px;width:max-content;min-width:340px;max-width:33vw;max-height:calc(100vh - 128px);overflow:hidden' });
     panel.appendChild(el('h4', { style: 'white-space:normal' }, ['Hide Rows']));
     panel.appendChild(el('div', { class: 'muted', style: 'font-size:11px;margin-bottom:6px;white-space:normal' }, ['Untick a row to hide it everywhere — table, STATS, charts and totals. Hidden rows persist between sessions. Use this to drop variations that don’t belong to the project you’re isolating.']));
     var srch = el('input', { type: 'search', placeholder: '⌕ Filter rows…', style: 'width:100%;box-sizing:border-box;font-size:11px;padding:3px 6px;border:1px solid #cfd8e3;border-radius:4px;margin-bottom:5px' });
@@ -472,7 +472,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
       shown.forEach(function (r) {
         var key = String(r.id);
         var cb = el('input', { type: 'checkbox', title: 'Ticked = visible. Untick to hide this row everywhere.' }); cb.checked = !isRowHidden(r);
-        var lab = el('span', { style: 'flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap' + (isRowHidden(r) ? ';color:#9aa7b4;text-decoration:line-through' : '') }, [rowLabel(r)]);
+        var lab = el('span', { style: 'flex:1;font-size:12px;white-space:normal;overflow-wrap:anywhere' + (isRowHidden(r) ? ';color:#9aa7b4;text-decoration:line-through' : '') }, [rowLabel(r)]);
         cb.onchange = function () { var i = S.hiddenRows.indexOf(key); if (cb.checked) { if (i >= 0) S.hiddenRows.splice(i, 1); } else { if (i < 0) S.hiddenRows.push(key); } refreshFilters(); var hid = isRowHidden(r); lab.style.color = hid ? '#9aa7b4' : ''; lab.style.textDecoration = hid ? 'line-through' : ''; };
         list.appendChild(el('label', { class: 'mfrow', title: rowLabel(r), style: 'display:flex;align-items:center;gap:6px' }, [cb, lab]));
       });
@@ -1379,7 +1379,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
       btn('⊞ Paste VOs', 'Paste a block of VO rows straight from Excel — the panel lists the exact columns and their order', function (ev) { openPastePanel('register', ev && ev.currentTarget); }, 'pkgbtn pnltrig'),
       btn('⚙ Columns', 'Show, hide and reorder columns (Revision, CONCAT Name and Assessment Sheet are hidden by default)', function () { toggleColPanel(); }, 'alt pnltrig'),
       rowsBtn(),
-      btn('⚙ Header Settings', 'Adjust the header font size and how many lines (1–3) the headers may use', function (ev) { toggleHdrPanel(ev && ev.currentTarget); }, 'alt pnltrig'),
+      btn('⚙ Header', 'Adjust the header font size and how many lines (1–3) the headers may use', function (ev) { toggleHdrPanel(ev && ev.currentTarget); }, 'alt pnltrig'),
       btn('Reset Cols', 'Restore columns to the saved default (or factory) order, widths and visibility', function () { resetCols(); }),
       btn('★ Set As Default', 'Save the current columns, order, widths, font and density as your default', function () { setAsDefault(); }),
       btn('Expand All', 'Comfortable rows with word-wrap — show full cell content', function () { S.wrap = true; S.rowPad = 6; saveCfg(); renderTable(); renderSheetGrid(); }),

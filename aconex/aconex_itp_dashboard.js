@@ -16,7 +16,7 @@
   if (window.__MPS_ACONEX && window.__MPS_ACONEX.__live) { window.__MPS_ACONEX.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.35', BUILD_DATE='8 Sep 2026';
+  var VERSION='v12.36', BUILD_DATE='8 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -361,6 +361,14 @@
     return (nm[p[0]]||p[0])+' → '+val;
   }
   function gdefLastText(){var ps=GDEF.patches||[];if(!ps.length)return 'No global changes recorded yet.';var p=ps[0];return 'Last change: '+(p.by||'?')+' · '+gdefWhen(p.ts);}
+  function gdefRepaint(){var p=root.getElementById('gdefpanel');if(!p)return;var od=p.querySelector('.gdefbody');if(od)od.remove();p.appendChild(gdefBody());}
+  function toggleGdefPanel(anchor){
+    var wrapEl=root.getElementById('wrap');var ex=root.getElementById('gdefpanel');if(ex){ex.remove();return;}
+    var panel=el('div',{id:'gdefpanel',class:'panel',style:'width:max-content;min-width:320px;max-width:33vw'});
+    panel.appendChild(el('div',{class:'mfhd'},[el('span',{style:'font-weight:700;color:'+NAVY+';font-size:11px'},['Global Defaults (team)']),el('a',{title:'Close',style:'margin-left:auto',onclick:function(){var p=root.getElementById('gdefpanel');if(p)p.remove();}},['\u2715'])]));
+    panel.appendChild(gdefBody());wrapEl.appendChild(panel);
+    if(anchor){var ar=anchor.getBoundingClientRect(),wr=wrapEl.getBoundingClientRect();panel.style.left=Math.min(Math.max(4,wr.width-panel.offsetWidth-8),Math.max(4,ar.left-wr.left))+'px';panel.style.top=(ar.bottom-wr.top+4)+'px';}else{panel.style.left='12px';panel.style.top='120px';}
+  }
   function gdefBar(){
     var openv=!!S.gdefOpen;
     var bar=el('div',{class:'gdefbar'});
@@ -378,7 +386,7 @@
     if(!ghToken()){b.appendChild(el('div',{style:'color:#c0392b;font-size:11px'},['Team sync is not connected on this browser — connect it (the ⚙ sync button) to publish global defaults.']));return b;}
     if(!S.gdefEditing){
       b.appendChild(el('div',{style:'display:flex;gap:8px;flex-wrap:wrap;align-items:center'},[
-        el('button',{class:'btn',title:'Snapshot the current view, then change settings to stage a global default',onclick:function(){S.gdefBaseline=gdefSnapshot();S.gdefEditing=true;renderAll();}},['Start editing']),
+        el('button',{class:'btn',title:'Snapshot the current view, then change settings to stage a global default',onclick:function(){S.gdefBaseline=gdefSnapshot();S.gdefEditing=true;gdefRepaint();}},['Start editing']),
         el('span',{class:'muted',style:'font-size:11px'},[gdefLastText()])
       ]));
     } else {
@@ -387,7 +395,7 @@
       if(keys.length){var ul=el('div',{style:'max-height:120px;overflow:auto;border:1px solid #f0c9b0;border-radius:6px;padding:4px 8px;background:#fff'});keys.slice(0,40).forEach(function(k){ul.appendChild(el('div',{style:'font-size:11px;padding:1px 0;color:#1f2d3d'},[gdefChangeLabel(k,ch[k])]));});b.appendChild(ul);}
       b.appendChild(el('div',{style:'display:flex;gap:8px;flex-wrap:wrap'},[
         el('button',{class:'btn',style:'background:#c0392b;border-color:#c0392b;color:#fff',title:'Publish these changes to everyone on this tab',onclick:function(){var c=gdefDiff(S.gdefBaseline||gdefSnapshot());if(!Object.keys(c).length){toast('No changes staged yet');return;}gdefConfirmDialog(c);}},['● Save as Global Default']),
-        el('button',{class:'btn',title:'Stop editing without publishing',onclick:function(){S.gdefEditing=false;S.gdefBaseline=null;renderAll();}},['Cancel'])
+        el('button',{class:'btn',title:'Stop editing without publishing',onclick:function(){S.gdefEditing=false;S.gdefBaseline=null;gdefRepaint();}},['Cancel'])
       ]));
     }
     return b;
@@ -508,7 +516,7 @@
   function renderRowsPanel(anchor){
     var wrapEl=root.getElementById('wrap');
     var old=root.getElementById('rowspanel');var sc=old?((old.querySelector('.rlist')||{}).scrollTop||0):0;if(old)old.remove();
-    var panel=el('div',{id:'rowspanel',class:'panel',style:'left:12px;top:100px;width:420px;max-height:calc(100vh - 128px);overflow:hidden'});
+    var panel=el('div',{id:'rowspanel',class:'panel',style:'left:12px;top:100px;width:max-content;min-width:340px;max-width:33vw;max-height:calc(100vh - 128px);overflow:hidden'});
     panel.appendChild(el('h4',{style:'white-space:normal'},['Hide Rows']));
     panel.appendChild(el('div',{class:'muted',style:'font-size:11px;margin-bottom:6px;white-space:normal'},['Untick a row to hide it everywhere — table, STATS, charts and export. Hidden rows persist between sessions. Use this to drop documents that don’t belong to the project you’re isolating.']));
     var srch=el('input',{type:'search',placeholder:'⌕ Filter rows…',style:'width:100%;box-sizing:border-box;font-size:11px;padding:3px 6px;border:1px solid #cfd8e3;border-radius:4px;margin-bottom:5px'});
@@ -524,7 +532,7 @@
       shown.forEach(function(r){
         var key=selKeyOf(r);
         var cb=el('input',{type:'checkbox',title:'Ticked = visible. Untick to hide this row everywhere.'});cb.checked=!isRowHidden(r);
-        var lab=el('span',{style:'flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'+(isRowHidden(r)?';color:#9aa7b4;text-decoration:line-through':'')},[rowLabel(r)]);
+        var lab=el('span',{style:'flex:1;font-size:12px;white-space:normal;overflow-wrap:anywhere'+(isRowHidden(r)?';color:#9aa7b4;text-decoration:line-through':'')},[rowLabel(r)]);
         cb.onchange=function(){var i=S.hiddenRows.indexOf(key);if(cb.checked){if(i>=0)S.hiddenRows.splice(i,1);}else{if(i<0)S.hiddenRows.push(key);}refreshFilters();var hid=isRowHidden(r);lab.style.color=hid?'#9aa7b4':'';lab.style.textDecoration=hid?'line-through':'';};
         list.appendChild(el('label',{class:'mfrow',title:rowLabel(r),style:'display:flex;align-items:center;gap:6px'},[cb,lab]));
       });
@@ -580,7 +588,7 @@
   // Close any open dropdown/panel when the user clicks away from it (unless the click is on its trigger, which toggles it).
   function installOutsideClose(){
     root.addEventListener('mousedown',function(e){
-      var open=Array.prototype.slice.call(root.querySelectorAll('#colpanel,#hdrpanel,#mfpanel,#cspanel,#pkpanel,#dlvpanel,#fontpanel,#syncpanel,#donutpanel,#datepanel,#rowspanel'));
+      var open=Array.prototype.slice.call(root.querySelectorAll('#colpanel,#hdrpanel,#mfpanel,#cspanel,#pkpanel,#dlvpanel,#gdefpanel,#fontpanel,#syncpanel,#donutpanel,#datepanel,#rowspanel'));
       if(!open.length)return;
       var path=e.composedPath?e.composedPath():[e.target];
       for(var i=0;i<open.length;i++){if(path.indexOf(open[i])>=0)return;}
@@ -601,7 +609,7 @@
   }
   function CSS(){return '#wrap{position:fixed;inset:0;background:#f4f6f8;color:'+INK+';font:13px/1.4 "Segoe UI",Arial,sans-serif;display:flex;flex-direction:column}'
     +'.content{flex:1;overflow:auto;padding-bottom:10px}'
-    +'.regbody{display:flex;flex-direction:column}.gdefbar{border-bottom:1px solid #f0c9b0;background:#fff8f3}.gdefhd{display:flex;align-items:center;gap:6px;padding:5px 12px;cursor:pointer;color:#8a3b12;font-size:12px;user-select:none}.gdefhd:hover{background:#fdeee3}.gdefarrow{color:#c0562a;font-size:10px}.gdefbody{padding:8px 12px;border-top:1px dashed #f0c9b0;display:flex;flex-direction:column;gap:8px}.gdefdlg-bg{position:absolute;inset:0;background:rgba(11,42,74,.35);display:flex;align-items:center;justify-content:center;z-index:120}.gdefdlg{background:#fff;border:2px solid #c0392b;border-radius:10px;max-width:520px;width:90%;max-height:80%;overflow:auto;box-shadow:0 18px 50px rgba(0,0,0,.3)}.gdefdlg h4{margin:0;padding:12px 16px;background:#c0392b;color:#fff;font-size:14px;border-radius:8px 8px 0 0}.gdefdlg .in{padding:14px 16px;font-size:12px;color:#1f2d3d}.gdefdlg .aud{margin-top:10px;border-top:1px solid #eee;padding-top:8px;font-size:11px;color:#555;max-height:160px;overflow:auto}.dark .gdefbar{background:#2a1d12;border-bottom-color:#5a3d28}.dark .gdefhd{color:#ffd7bf}.dark .gdefhd:hover{background:#3a2717}.dark .gdefbody{border-top-color:#5a3d28}.dark .gdefdlg{background:#1b2430}.dark .gdefdlg .in{color:#e6edf5}.regbody .toolbar{border-top:1px solid '+LINE+'}'
+    +'.regbody{display:flex;flex-direction:column}.gdefbar{border-bottom:1px solid #f0c9b0;background:#fff8f3}.btn.gdefbtn{background:#fff8f3;border-color:#f0c9b0;color:#8a3b12;font-weight:700}.dark .btn.gdefbtn{background:#2a1d12;border-color:#5a3d28;color:#ffd7bf}.gdefhd{display:flex;align-items:center;gap:6px;padding:5px 12px;cursor:pointer;color:#8a3b12;font-size:12px;user-select:none}.gdefhd:hover{background:#fdeee3}.gdefarrow{color:#c0562a;font-size:10px}.gdefbody{padding:8px 12px;border-top:1px dashed #f0c9b0;display:flex;flex-direction:column;gap:8px}.gdefdlg-bg{position:absolute;inset:0;background:rgba(11,42,74,.35);display:flex;align-items:center;justify-content:center;z-index:120}.gdefdlg{background:#fff;border:2px solid #c0392b;border-radius:10px;max-width:520px;width:90%;max-height:80%;overflow:auto;box-shadow:0 18px 50px rgba(0,0,0,.3)}.gdefdlg h4{margin:0;padding:12px 16px;background:#c0392b;color:#fff;font-size:14px;border-radius:8px 8px 0 0}.gdefdlg .in{padding:14px 16px;font-size:12px;color:#1f2d3d}.gdefdlg .aud{margin-top:10px;border-top:1px solid #eee;padding-top:8px;font-size:11px;color:#555;max-height:160px;overflow:auto}.dark .gdefbar{background:#2a1d12;border-bottom-color:#5a3d28}.dark .gdefhd{color:#ffd7bf}.dark .gdefhd:hover{background:#3a2717}.dark .gdefbody{border-top-color:#5a3d28}.dark .gdefdlg{background:#1b2430}.dark .gdefdlg .in{color:#e6edf5}.regbody .toolbar{border-top:1px solid '+LINE+'}'
     +'.top{display:flex;align-items:center;gap:10px;background:'+NAVY+';color:#fff;padding:calc(7px*var(--ps,1)) 12px}'
     +'.brand{font-weight:800;letter-spacing:.5px}.brand span{color:'+ACCENT+'}.title{font-weight:600}.muted{opacity:.72;font-size:12px}.spacer{flex:1}'
     +'.btn{background:#fff;color:'+NAVY+';border:1px solid #cfd8e3;border-radius:5px;padding:4px 9px;font-size:12px;cursor:pointer;font-weight:600}.btn:hover{background:#eef3f8}'
@@ -880,7 +888,8 @@
     var toolbar=el('div',{class:'toolbar'},[
       btn('⚙ Columns','Show, hide and reorder columns',function(){toggleColPanel();},'alt pnltrig'),
       rowsBtn(),
-      btn('⚙ Header Settings','Adjust the header font size and how many lines (1–3) the headers may use',function(ev){toggleHdrPanel(ev&&ev.currentTarget);},'alt pnltrig'),
+      btn('⚙ Header','Adjust the header font size and how many lines (1–3) the headers may use',function(ev){toggleHdrPanel(ev&&ev.currentTarget);},'alt pnltrig'),
+      btn('⚙ GLOBAL DEFAULTS','Publish team-wide defaults for this tab (affects everyone)',function(ev){toggleGdefPanel(ev&&ev.currentTarget);},'gdefbtn pnltrig'),
       btn('Reset Cols','Restore columns to the saved default (or factory) order, widths and visibility',function(){resetCols();}),
       btn('★ Set As Default','Save the current columns, order, widths, font and density as your default',function(){setAsDefault();}),
       btn('Expand All','Comfortable rows with word-wrap — show full cell content',function(){S.wrap=true;S.rowPad=6;saveCfg();renderTable();}),
@@ -908,7 +917,7 @@
     // REGISTER panel — column controls, filters, buttons AND the data grid together (collapsible).
     // The grid has an INNER scrollbar; the content region above is the OUTER scrollbar.
     var regCount=el('span',{class:'ccount',id:'countlbl',style:'margin-left:auto',title:'Rows shown of the total in this Deliverable Type'},[S.filtered.length+' of '+S.rows.length]);
-    var regBody=el('div',{class:'regbody'},[toolbar,gdefBar(),el('div',{class:'tablewrap'},[])]);
+    var regBody=el('div',{class:'regbody'},[toolbar,el('div',{class:'tablewrap'},[])]);
     content.appendChild(makeCPanel('register','REGISTER: '+delivTitle(),regCount,regBody,'The register: column controls, filters, buttons and the full data grid. Click the title to roll this panel up.'));
     wrap.appendChild(content);
     applyTheme();renderStats();renderCharts();renderTable();equalizeChartHeaders();fitRegisterHeight();
