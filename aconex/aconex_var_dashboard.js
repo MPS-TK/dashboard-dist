@@ -21,7 +21,7 @@
   if (window.__MPS_ACONEX_VAR && window.__MPS_ACONEX_VAR.__live) { window.__MPS_ACONEX_VAR.boot(); return; }
 
   var NAVY = '#0B2A4A', NAVY2 = '#123a63', ACCENT = '#F26522', LINE = '#dfe4ea', INK = '#1f2d3d';
-  var VERSION = 'v12.45', BUILD_DATE = '8 Sep 2026';
+  var VERSION = 'v12.46', BUILD_DATE = '8 Sep 2026';
   var UI_FONTS = ['Segoe UI', 'Arial', 'Calibri', 'Helvetica', 'Roboto', 'Verdana', 'Tahoma', 'Trebuchet MS', 'Georgia', 'Times New Roman', 'Courier New', 'system-ui'];
   var DEF_FONT = '"Segoe UI",Arial,sans-serif', DEF_BASEPX = 13;
   function fontStack(f) { return f ? ('"' + f + '","Segoe UI",Arial,sans-serif') : DEF_FONT; }
@@ -909,6 +909,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
      at the current font, plus the cell padding and nothing more. Measured, not
      guessed, because the control's width moves with font and platform. (item 5) */
   function dateColW() {
+    return 80; // fixed default width for the (greyed) date column per request
     var key = S.fontSize + '|' + (S.fontFamily || '');
     if (dateColW._k === key && dateColW._v) return dateColW._v;
     var w = 0;
@@ -1059,7 +1060,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
   function CSS(){return '#wrap{position:fixed;inset:0;background:#f4f6f8;color:'+INK+';font:13px/1.4 "Segoe UI",Arial,sans-serif;display:flex;flex-direction:column}'
     +'.content{flex:1;overflow:auto;padding-bottom:10px}'
     +'.regbody{display:flex;flex-direction:column}.regbody .toolbar{border-top:1px solid '+LINE+'}'
-    +'.gdefbody{display:flex;flex-direction:column;gap:8px}.gdefdlg-bg{position:absolute;inset:0;background:rgba(11,42,74,.35);display:flex;align-items:center;justify-content:center;z-index:120}.gdefdlg{background:#fff;border:2px solid #c0392b;border-radius:10px;max-width:520px;width:90%;max-height:80%;overflow:auto;box-shadow:0 18px 50px rgba(0,0,0,.3)}.gdefdlg h4{margin:0;padding:12px 16px;background:#c0392b;color:#fff;font-size:14px;border-radius:8px 8px 0 0}.gdefdlg .in{padding:14px 16px;font-size:12px;color:#1f2d3d}.gdefdlg .aud{margin-top:10px;border-top:1px solid #eee;padding-top:8px;font-size:11px;color:#555;max-height:160px;overflow:auto}.btn.gdefbtn{background:#fff8f3;border-color:#f0c9b0;color:#8a3b12;font-weight:700}.setdefbtn{background:#eef4fc;border-color:#b9d0ea;color:#1e4b7a;font-weight:700}.dark .setdefbtn{background:#122234;border-color:#28405c;color:#bcd6f2}.dark .gdefdlg{background:#1b2430}.dark .gdefdlg .in{color:#e6edf5}.dark .btn.gdefbtn{background:#2a1d12;border-color:#5a3d28;color:#ffd7bf}'
+    +'.gdefbody{display:flex;flex-direction:column;gap:8px}.gdefdlg-bg{position:absolute;inset:0;background:rgba(11,42,74,.35);display:flex;align-items:center;justify-content:center;z-index:120}.gdefdlg{background:#fff;border:2px solid #c0392b;border-radius:10px;max-width:520px;width:90%;max-height:80%;overflow:auto;box-shadow:0 18px 50px rgba(0,0,0,.3)}.gdefdlg h4{margin:0;padding:12px 16px;background:#c0392b;color:#fff;font-size:14px;border-radius:8px 8px 0 0}.gdefdlg .in{padding:14px 16px;font-size:12px;color:#1f2d3d}.gdefdlg .aud{margin-top:10px;border-top:1px solid #eee;padding-top:8px;font-size:11px;color:#555;max-height:160px;overflow:auto}.btn.gdefbtn{background:#fff8f3;border-color:#f0c9b0;color:#8a3b12;font-weight:700}.setdefbtn{background:#eaf3ff;border-color:#0a84ff;color:#0a58c2;font-weight:700}.dark .setdefbtn{background:#0e2438;border-color:#2f8bff;color:#8ec5ff}.dark .gdefdlg{background:#1b2430}.dark .gdefdlg .in{color:#e6edf5}.dark .btn.gdefbtn{background:#2a1d12;border-color:#5a3d28;color:#ffd7bf}'
     +'.top{display:flex;align-items:center;gap:10px;background:'+NAVY+';color:#fff;padding:calc(7px*var(--ps,1)) 12px}'
     +'.brand{font-weight:800;letter-spacing:.5px}.brand span{color:'+ACCENT+'}.title{font-weight:600}.muted{opacity:.72;font-size:12px}.spacer{flex:1}'
     +'.btn{background:#fff;color:'+NAVY+';border:1px solid #cfd8e3;border-radius:5px;padding:4px 9px;font-size:12px;cursor:pointer;font-weight:600}.btn:hover{background:#eef3f8}'

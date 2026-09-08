@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.45', BUILD_DATE='8 Sep 2026';
+  var VERSION='v12.46', BUILD_DATE='8 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -546,7 +546,7 @@
   function CSS(){return '#wrap{position:fixed;inset:0;background:#f4f6f8;color:'+INK+';font:13px/1.4 "Segoe UI",Arial,sans-serif;display:flex;flex-direction:column}'
     +'.content{flex:1;overflow:auto;padding-bottom:10px}'
     +'.regbody{display:flex;flex-direction:column}.regbody .toolbar{border-top:1px solid '+LINE+'}'
-    +'.gdefbody{display:flex;flex-direction:column;gap:8px}.gdefdlg-bg{position:absolute;inset:0;background:rgba(11,42,74,.35);display:flex;align-items:center;justify-content:center;z-index:120}.gdefdlg{background:#fff;border:2px solid #c0392b;border-radius:10px;max-width:520px;width:90%;max-height:80%;overflow:auto;box-shadow:0 18px 50px rgba(0,0,0,.3)}.gdefdlg h4{margin:0;padding:12px 16px;background:#c0392b;color:#fff;font-size:14px;border-radius:8px 8px 0 0}.gdefdlg .in{padding:14px 16px;font-size:12px;color:#1f2d3d}.gdefdlg .aud{margin-top:10px;border-top:1px solid #eee;padding-top:8px;font-size:11px;color:#555;max-height:160px;overflow:auto}.btn.gdefbtn{background:#fff8f3;border-color:#f0c9b0;color:#8a3b12;font-weight:700}.setdefbtn{background:#eef4fc;border-color:#b9d0ea;color:#1e4b7a;font-weight:700}.dark .setdefbtn{background:#122234;border-color:#28405c;color:#bcd6f2}.dark .gdefdlg{background:#1b2430}.dark .gdefdlg .in{color:#e6edf5}.dark .btn.gdefbtn{background:#2a1d12;border-color:#5a3d28;color:#ffd7bf}'
+    +'.gdefbody{display:flex;flex-direction:column;gap:8px}.gdefdlg-bg{position:absolute;inset:0;background:rgba(11,42,74,.35);display:flex;align-items:center;justify-content:center;z-index:120}.gdefdlg{background:#fff;border:2px solid #c0392b;border-radius:10px;max-width:520px;width:90%;max-height:80%;overflow:auto;box-shadow:0 18px 50px rgba(0,0,0,.3)}.gdefdlg h4{margin:0;padding:12px 16px;background:#c0392b;color:#fff;font-size:14px;border-radius:8px 8px 0 0}.gdefdlg .in{padding:14px 16px;font-size:12px;color:#1f2d3d}.gdefdlg .aud{margin-top:10px;border-top:1px solid #eee;padding-top:8px;font-size:11px;color:#555;max-height:160px;overflow:auto}.btn.gdefbtn{background:#fff8f3;border-color:#f0c9b0;color:#8a3b12;font-weight:700}.setdefbtn{background:#eaf3ff;border-color:#0a84ff;color:#0a58c2;font-weight:700}.dark .setdefbtn{background:#0e2438;border-color:#2f8bff;color:#8ec5ff}.dark .gdefdlg{background:#1b2430}.dark .gdefdlg .in{color:#e6edf5}.dark .btn.gdefbtn{background:#2a1d12;border-color:#5a3d28;color:#ffd7bf}'
     +'.top{display:flex;align-items:center;gap:10px;background:'+NAVY+';color:#fff;padding:calc(7px*var(--ps,1)) 12px}'
     +'.brand{font-weight:800;letter-spacing:.5px}.brand span{color:'+ACCENT+'}.title{font-weight:600}.muted{opacity:.72;font-size:12px}.spacer{flex:1}'
     +'.btn{background:#fff;color:'+NAVY+';border:1px solid #cfd8e3;border-radius:5px;padding:4px 9px;font-size:12px;cursor:pointer;font-weight:600}.btn:hover{background:#eef3f8}'
@@ -834,7 +834,7 @@
     ]));
     apvRenderDropdown();apvBindSelSwap();
     // toolbar
-    var search=el('input',{type:'search',class:'search',title:'Search across all columns',placeholder:'⌕ Search RFIs / TQs…',value:S.globalSearch});search.oninput=function(){S.globalSearch=search.value;applyFilters();renderBody();renderStats();renderChart();renderDaysOpen();};
+    var search=el('input',{type:'search',class:'search',title:'Search across all columns',placeholder:'⌕ Search RFIs / TQs…',value:S.globalSearch});search.oninput=function(){S.globalSearch=search.value;applyFilters();renderBody();renderStats();renderChart();renderDaysOpen();saveCfg();};
     var ssel=el('select',{class:'dtsel',title:'Filter the whole register by Open / Closed status'});[['__ALL__','All Statuses'],['__OPEN__','Open only'],['__CLOSED__','Closed only']].forEach(function(p){var o=el('option',{value:p[0]},[p[1]]);if(S.statusSel===p[0])o.selected=true;ssel.appendChild(o);});ssel.onchange=function(){S.statusSel=ssel.value;applyScope();renderAll();};
     var rng=el('input',{type:'range',min:'0',max:'12',value:String(S.rowPad),class:'rng',title:'Row height — drag left to pack rows tightly together'});rng.oninput=function(){S.rowPad=+rng.value;saveCfg();renderBody();};
     var fontGroup=el('span',{style:'display:inline-flex;align-items:center;gap:3px',title:'Table font size'},[
@@ -1357,7 +1357,7 @@
       if(k==='dateSent'){cell=el('td',{style:'width:'+S.cols[k].w+'px'},[dateFilterBtn()]);}
       else if(k==='aconexRef'){cell=el('td',{style:'width:'+S.cols[k].w+'px'},[refFilterInput()]);}
       else if(COLDEF[k].dfilter){cell=el('td',{style:'width:'+S.cols[k].w+'px'},[multiFilterBtn(k)]);}
-      else{var inp=el('input',{type:'text',title:'Filter '+COLDEF[k].label,placeholder:'⌕',value:S.colFilters[k]||''});inp.oninput=function(){S.colFilters[k]=inp.value;applyFilters();renderBody();renderStats();renderChart();renderDaysOpen();};cell=el('td',{style:'width:'+S.cols[k].w+'px'},[inp]);}
+      else{var inp=el('input',{type:'text',title:'Filter '+COLDEF[k].label,placeholder:'⌕',value:S.colFilters[k]||''});inp.oninput=function(){S.colFilters[k]=inp.value;applyFilters();renderBody();renderStats();renderChart();renderDaysOpen();saveCfg();};cell=el('td',{style:'width:'+S.cols[k].w+'px'},[inp]);}
       ftr.appendChild(cell);
     });
     // Filler column: `table{width:max-content;min-width:100%}` means that whenever the
@@ -1694,6 +1694,7 @@ async function fullScan(){
      that, so the full date and its picker fit with no slack. */
   function isDateCol(k){return !!(COLDEF[k]&&COLDEF[k].edit==='date');}
   function dateColW(){
+    return 92; // fixed default width for the (greyed) date columns per request
     var key=S.fontSize+'|'+(S.fontFamily||'');
     if(dateColW._k===key&&dateColW._v)return dateColW._v;
     var w=0;

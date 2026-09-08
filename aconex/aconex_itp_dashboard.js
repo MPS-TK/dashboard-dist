@@ -16,7 +16,7 @@
   if (window.__MPS_ACONEX && window.__MPS_ACONEX.__live) { window.__MPS_ACONEX.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.45', BUILD_DATE='8 Sep 2026';
+  var VERSION='v12.46', BUILD_DATE='8 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -623,7 +623,7 @@
   }
   function CSS(){return '#wrap{position:fixed;inset:0;background:#f4f6f8;color:'+INK+';font:13px/1.4 "Segoe UI",Arial,sans-serif;display:flex;flex-direction:column}'
     +'.content{flex:1;overflow:auto;padding-bottom:10px}'
-    +'.regbody{display:flex;flex-direction:column}.gdefbar{border-bottom:1px solid #f0c9b0;background:#fff8f3}.btn.gdefbtn{background:#fff8f3;border-color:#f0c9b0;color:#8a3b12;font-weight:700}.setdefbtn{background:#eef4fc;border-color:#b9d0ea;color:#1e4b7a;font-weight:700}.dark .setdefbtn{background:#122234;border-color:#28405c;color:#bcd6f2}.dark .btn.gdefbtn{background:#2a1d12;border-color:#5a3d28;color:#ffd7bf}.gdefhd{display:flex;align-items:center;gap:6px;padding:5px 12px;cursor:pointer;color:#8a3b12;font-size:12px;user-select:none}.gdefhd:hover{background:#fdeee3}.gdefarrow{color:#c0562a;font-size:10px}.gdefbody{padding:8px 12px;border-top:1px dashed #f0c9b0;display:flex;flex-direction:column;gap:8px}.gdefdlg-bg{position:absolute;inset:0;background:rgba(11,42,74,.35);display:flex;align-items:center;justify-content:center;z-index:120}.gdefdlg{background:#fff;border:2px solid #c0392b;border-radius:10px;max-width:520px;width:90%;max-height:80%;overflow:auto;box-shadow:0 18px 50px rgba(0,0,0,.3)}.gdefdlg h4{margin:0;padding:12px 16px;background:#c0392b;color:#fff;font-size:14px;border-radius:8px 8px 0 0}.gdefdlg .in{padding:14px 16px;font-size:12px;color:#1f2d3d}.gdefdlg .aud{margin-top:10px;border-top:1px solid #eee;padding-top:8px;font-size:11px;color:#555;max-height:160px;overflow:auto}.dark .gdefbar{background:#2a1d12;border-bottom-color:#5a3d28}.dark .gdefhd{color:#ffd7bf}.dark .gdefhd:hover{background:#3a2717}.dark .gdefbody{border-top-color:#5a3d28}.dark .gdefdlg{background:#1b2430}.dark .gdefdlg .in{color:#e6edf5}.regbody .toolbar{border-top:1px solid '+LINE+'}'
+    +'.regbody{display:flex;flex-direction:column}.gdefbar{border-bottom:1px solid #f0c9b0;background:#fff8f3}.btn.gdefbtn{background:#fff8f3;border-color:#f0c9b0;color:#8a3b12;font-weight:700}.setdefbtn{background:#eaf3ff;border-color:#0a84ff;color:#0a58c2;font-weight:700}.dark .setdefbtn{background:#0e2438;border-color:#2f8bff;color:#8ec5ff}.dark .btn.gdefbtn{background:#2a1d12;border-color:#5a3d28;color:#ffd7bf}.gdefhd{display:flex;align-items:center;gap:6px;padding:5px 12px;cursor:pointer;color:#8a3b12;font-size:12px;user-select:none}.gdefhd:hover{background:#fdeee3}.gdefarrow{color:#c0562a;font-size:10px}.gdefbody{padding:8px 12px;border-top:1px dashed #f0c9b0;display:flex;flex-direction:column;gap:8px}.gdefdlg-bg{position:absolute;inset:0;background:rgba(11,42,74,.35);display:flex;align-items:center;justify-content:center;z-index:120}.gdefdlg{background:#fff;border:2px solid #c0392b;border-radius:10px;max-width:520px;width:90%;max-height:80%;overflow:auto;box-shadow:0 18px 50px rgba(0,0,0,.3)}.gdefdlg h4{margin:0;padding:12px 16px;background:#c0392b;color:#fff;font-size:14px;border-radius:8px 8px 0 0}.gdefdlg .in{padding:14px 16px;font-size:12px;color:#1f2d3d}.gdefdlg .aud{margin-top:10px;border-top:1px solid #eee;padding-top:8px;font-size:11px;color:#555;max-height:160px;overflow:auto}.dark .gdefbar{background:#2a1d12;border-bottom-color:#5a3d28}.dark .gdefhd{color:#ffd7bf}.dark .gdefhd:hover{background:#3a2717}.dark .gdefbody{border-top-color:#5a3d28}.dark .gdefdlg{background:#1b2430}.dark .gdefdlg .in{color:#e6edf5}.regbody .toolbar{border-top:1px solid '+LINE+'}'
     +'.top{display:flex;align-items:center;gap:10px;background:'+NAVY+';color:#fff;padding:calc(7px*var(--ps,1)) 12px}'
     +'.brand{font-weight:800;letter-spacing:.5px}.brand span{color:'+ACCENT+'}.title{font-weight:600}.muted{opacity:.72;font-size:12px}.spacer{flex:1}'
     +'.btn{background:#fff;color:'+NAVY+';border:1px solid #cfd8e3;border-radius:5px;padding:4px 9px;font-size:12px;cursor:pointer;font-weight:600}.btn:hover{background:#eef3f8}'
@@ -904,7 +904,7 @@
     ]));
     apvRenderDropdown();apvBindSelSwap();
     // toolbar
-    var search=el('input',{type:'search',class:'search',title:'Search across all columns',placeholder:'⌕ Search ITPs…',value:S.globalSearch});search.oninput=function(){S.globalSearch=search.value;applyFilters();renderBody();renderCharts();};
+    var search=el('input',{type:'search',class:'search',title:'Search across all columns',placeholder:'⌕ Search ITPs…',value:S.globalSearch});search.oninput=function(){S.globalSearch=search.value;applyFilters();renderBody();renderCharts();saveCfg();};
     var dsel=(function(){var ds=el('span',{id:'dtsum'},[delivSummary()]);var b=el('button',{class:'btn pkgbtn',style:'border-color:'+ACCENT+';color:'+ACCENT,title:'Filter the register by one or more Aconex Deliverable Types',onclick:function(){openDelivPanel(b);}},[ds,el('span',{style:'margin-left:5px;color:'+ACCENT},['\u25be'])]);return b;})();
     var rng=el('input',{type:'range',min:'0',max:'12',value:String(S.rowPad),class:'rng',title:'Row height — drag left to pack rows tightly together'});rng.oninput=function(){S.rowPad=+rng.value;saveCfg();renderBody();};
     var fontGroup=el('span',{style:'display:inline-flex;align-items:center;gap:3px',title:'Table font size'},[
@@ -1424,7 +1424,7 @@
       } else if(COLDEF[k].dfilter){
         cell=el('td',{style:'width:'+S.cols[k].w+'px'},[multiFilterBtn(k)]);
       } else {
-        var inp=el('input',{type:'text',title:'Filter '+COLDEF[k].label,placeholder:'⌕',value:S.colFilters[k]||''});inp.oninput=function(){S.colFilters[k]=inp.value;applyFilters();renderBody();renderCharts();};
+        var inp=el('input',{type:'text',title:'Filter '+COLDEF[k].label,placeholder:'⌕',value:S.colFilters[k]||''});inp.oninput=function(){S.colFilters[k]=inp.value;applyFilters();renderBody();renderCharts();saveCfg();};
         cell=el('td',{style:'width:'+S.cols[k].w+'px'},[inp]);
       }
       ftr.appendChild(cell);
@@ -1576,6 +1576,7 @@
      that, so the full date and its picker fit with no slack. */
   function isDateCol(k){return !!(COLDEF[k]&&COLDEF[k].edit==='date');}
   function dateColW(){
+    return 92; // fixed default width for the (greyed) date columns per request
     var key=S.fontSize+'|'+(S.fontFamily||'');
     if(dateColW._k===key&&dateColW._v)return dateColW._v;
     var w=0;
