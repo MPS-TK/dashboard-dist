@@ -16,7 +16,7 @@
   if (window.__MPS_ACONEX && window.__MPS_ACONEX.__live) { window.__MPS_ACONEX.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.30', BUILD_DATE='7 Sep 2026';
+  var VERSION='v12.31', BUILD_DATE='7 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -29,6 +29,15 @@
   // Lifecycle Status (Aconex Attribute2) colours + logical workflow order.
   // Workflow: For Review (orange) > For Approval (green) > For Use (blue).
   var LIFECYCLE_COLORS={'for information':'#cbd5e1','for review':'#e05a1c','for approval':'#1e7e34','for use':'#2b6cb0','for construction':'#2b6cb0','superseded':'#6b7280','obsolete':'#39424d','void':'#39424d'};
+  // Semantic defaults for the 'issued for' status families used on projects that don't use
+  // the CNPI review-status set (e.g. Orepass: For Construction / For Review / For Use). Gives
+  // each a distinct, readable colour out of the box instead of everything falling to red.
+  var ISSUE_COLORS={'for information':'#64748b','for review':'#e05a1c','for approval':'#1e7e34','for use':'#0d9488','for construction':'#2b6cb0','issued for construction':'#2b6cb0','issued for use':'#0d9488','issued for review':'#e05a1c','issued for approval':'#1e7e34','issued for information':'#64748b','for tender':'#8250df','for comment':'#b7791f','for coordination':'#0891b2','for acceptance':'#1e7e34','approved':'#1e7e34','accepted':'#1e7e34','rejected':'#c0392b','draft':'#94a3b8','preliminary':'#b7791f','reserved':'#be123c','for construction & use':'#2b6cb0','for construction/use':'#2b6cb0'};
+  // Any status/lifecycle value with no configured or semantic colour gets a stable colour
+  // from this categorical palette (deterministic by the value text), so distinct values are
+  // never rendered in the same colour. lumFg() picks readable text over whichever is chosen.
+  var AUTO_PALETTE=['#2b6cb0','#e05a1c','#1e7e34','#8250df','#0d9488','#b7791f','#c2410c','#0891b2','#9333ea','#4d7c0f','#be123c','#334155'];
+  function autoColor(v){var t=String(v||''),h=0;for(var i=0;i<t.length;i++){h=(h*31+t.charCodeAt(i))>>>0;}return AUTO_PALETTE[h%AUTO_PALETTE.length];}
   var LIFECYCLE_ORDER=['for information','for review','for approval','for use','for construction','superseded','obsolete','void'];
   // To Action colours (editable text column). Default: Approved = blue.
   var TOACTION_COLORS={'approved':'#2b6cb0'};
@@ -379,13 +388,13 @@
   function schemeGetFg(kind,key){var m=S.fgSchemes&&S.fgSchemes[kind];return (m&&m[key])?m[key]:null;}
   function lumFg(hex){hex=(hex||'').replace('#','');if(hex.length===3)hex=hex.replace(/(.)/g,'$1$1');var r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16);return (0.299*r+0.587*g+0.114*b)>150?'#1f2d3d':'#ffffff';}
   function toHex6(h){h=(h||'').trim();if(/^#[0-9a-fA-F]{6}$/.test(h))return h.toLowerCase();if(/^#[0-9a-fA-F]{3}$/.test(h))return '#'+h.slice(1).replace(/(.)/g,'$1$1').toLowerCase();return '#ffffff';}
-  function statusColor(v){var k=(v||'').toLowerCase();var c=schemeGet('status',k)||STATUS_COLORS[k]||'#c0392b';var lc=String(c).toLowerCase();return (lc==='#ffffff'||lc==='#fff'||lc==='white')?'#c0392b':c;}
-  function statusFg(v){var k=(v||'').toLowerCase();var fg=schemeGetFg('status',k);if(fg)return fg;var c=schemeGet('status',k);if(c)return lumFg(c);if(k==='information only')return lumFg(STATUS_COLORS[k]||'#cbd5e1');if(STATUS_COLORS[k])return '#ffffff';return '#111827';}
+  function statusColor(v){var k=(v||'').toLowerCase();var c=schemeGet('status',k)||STATUS_COLORS[k]||ISSUE_COLORS[k]||autoColor(k);var lc=String(c).toLowerCase();return (lc==='#ffffff'||lc==='#fff'||lc==='white')?'#c0392b':c;}
+  function statusFg(v){var k=(v||'').toLowerCase();var fg=schemeGetFg('status',k);if(fg)return fg;var c=schemeGet('status',k);if(c)return lumFg(c);if(k==='information only')return lumFg(STATUS_COLORS[k]||'#cbd5e1');if(STATUS_COLORS[k])return '#ffffff';if(ISSUE_COLORS[k])return lumFg(ISSUE_COLORS[k]);return lumFg(autoColor(k));}
   function statusDisp(v){var k=(v||'').toLowerCase();return STATUS_DISPLAY[k]||(v||'');}
   function statusRank(v){var i=STATUS_ORDER.indexOf((v||'').toLowerCase());return i<0?99:i;}
   function statusKeySort(a,b){var ra=statusRank(a),rb=statusRank(b);return ra!==rb?ra-rb:(a<b?-1:a>b?1:0);}
-  function lifeColor(v){var k=(v||'').toLowerCase();var c=schemeGet('lifecycleStatus',k)||LIFECYCLE_COLORS[k]||'#c0392b';var lc=String(c).toLowerCase();return (lc==='#ffffff'||lc==='#fff'||lc==='white')?'#c0392b':c;}
-  function lifeFg(v){var k=(v||'').toLowerCase();var fg=schemeGetFg('lifecycleStatus',k);if(fg)return fg;var c=schemeGet('lifecycleStatus',k);if(c)return lumFg(c);if(k==='for information')return '#1e7e34';if(LIFECYCLE_COLORS[k])return '#ffffff';return '#111827';}
+  function lifeColor(v){var k=(v||'').toLowerCase();var c=schemeGet('lifecycleStatus',k)||LIFECYCLE_COLORS[k]||ISSUE_COLORS[k]||autoColor(k);var lc=String(c).toLowerCase();return (lc==='#ffffff'||lc==='#fff'||lc==='white')?'#c0392b':c;}
+  function lifeFg(v){var k=(v||'').toLowerCase();var fg=schemeGetFg('lifecycleStatus',k);if(fg)return fg;var c=schemeGet('lifecycleStatus',k);if(c)return lumFg(c);if(k==='for information')return '#1e7e34';if(LIFECYCLE_COLORS[k])return lumFg(LIFECYCLE_COLORS[k]);if(ISSUE_COLORS[k])return lumFg(ISSUE_COLORS[k]);return lumFg(autoColor(k));}
   function toActionColor(v){var k=(v||'').toLowerCase();return schemeGet('toAction',k)||TOACTION_COLORS[k]||'';}
   function pluralize(w){if(!w)return w;if(/[sxz]$/i.test(w)||/(ch|sh)$/i.test(w))return w+'es';if(/[^aeiou]y$/i.test(w))return w.slice(0,-1)+'ies';return w+'s';}
   function delivDisp(s){if(!s||s==='__ALL__')return 'All Deliverable Types';var t=s.replace(/\band\b/gi,'&').split(' ');t[t.length-1]=pluralize(t[t.length-1]);return t.join(' ');}
@@ -1054,10 +1063,17 @@
     }
     panel.appendChild(el('div',{class:'mfhd'},[
       el('span',{style:'font-weight:700;color:'+NAVY+';font-size:11px'},['Colours — '+title]),
-      el('a',{title:'Reset to default colours',style:'margin-left:auto',onclick:function(){S.colorSchemes[kind]={};if(S.fgSchemes[kind])S.fgSchemes[kind]={};saveCfg();renderBody();renderCharts();build();}},['Reset']),
-      el('a',{title:'Close',onclick:function(){var p=root.getElementById('cspanel');if(p)p.remove();}},['✕'])
+      el('a',{title:'Close',style:'margin-left:auto',onclick:function(){var p=root.getElementById('cspanel');if(p)p.remove();}},['✕'])
     ]));
-    build();panel.appendChild(bodyEl);wrapEl.appendChild(panel);
+    build();panel.appendChild(bodyEl);
+    function copyMap(m){var o={};for(var kk in (m||{}))o[kk]=m[kk];return o;}
+    function setSchemeDefault(){var d={};try{d=JSON.parse(localStorage.getItem(DKEY)||'{}');}catch(e){}d.colorSchemes=d.colorSchemes||{};d.fgSchemes=d.fgSchemes||{};d.colorSchemes[kind]=copyMap(S.colorSchemes[kind]);d.fgSchemes[kind]=copyMap(S.fgSchemes[kind]);try{localStorage.setItem(DKEY,JSON.stringify(d));}catch(e){}toast('Saved these '+title+' colours as your default');}
+    function restoreSchemeDefault(){var d=null;try{d=JSON.parse(localStorage.getItem(DKEY)||'null');}catch(e){}var has=!!(d&&d.colorSchemes&&d.colorSchemes[kind]&&Object.keys(d.colorSchemes[kind]).length);S.colorSchemes[kind]=(d&&d.colorSchemes&&d.colorSchemes[kind])?copyMap(d.colorSchemes[kind]):{};S.fgSchemes[kind]=(d&&d.fgSchemes&&d.fgSchemes[kind])?copyMap(d.fgSchemes[kind]):{};saveCfg();renderBody();renderCharts();build();toast(has?'Restored your default '+title+' colours':'Reset '+title+' colours to built-in');}
+    panel.appendChild(el('div',{class:'mfrow',style:'border-top:1px solid #e3e9f0;margin-top:5px;padding-top:6px;gap:6px'},[
+      el('button',{class:'btn alt',title:'Save these '+title+' colours as the default for this project',onclick:setSchemeDefault},['Set as Default']),
+      el('button',{class:'btn',title:'Restore this project\'s default '+title+' colours (or the built-in colours if none saved)',onclick:restoreSchemeDefault},['Restore Defaults'])
+    ]));
+    wrapEl.appendChild(panel);
     var ar=anchor.getBoundingClientRect(),wr=wrapEl.getBoundingClientRect();
     panel.style.left=Math.min(Math.max(4,wr.width-230),Math.max(4,ar.left-wr.left))+'px';panel.style.top=(ar.bottom-wr.top+2)+'px';
   }
@@ -1607,8 +1623,12 @@
       S.fltDate = (c.fltDate && typeof c.fltDate === 'object') ? { from: c.fltDate.from||'', to: c.fltDate.to||'', preset: c.fltDate.preset||'' } : { from:'', to:'', preset:'' };
       S.fltRef = c.fltRef || '';
       S.hiddenRows = (c.hiddenRows && c.hiddenRows.length ? c.hiddenRows.slice() : []);
+      S.colorSchemes = normSchemes(c.colorSchemes);
+      S.fgSchemes = normFgSchemes(c.fgSchemes);
+      S.seriesOrder = (c.seriesOrder && typeof c.seriesOrder === 'object') ? c.seriesOrder : {};
     } else {
       S.selFilters = {}; S.packageSel = null; S.packageText = {}; S.fltDate = { from:'', to:'', preset:'' }; S.fltRef = ''; S.hiddenRows = [];
+      S.colorSchemes = normSchemes(null); S.fgSchemes = normFgSchemes(null); S.seriesOrder = {};
     }
     S.colFilters = {}; S.globalSearch = '';
   }
