@@ -16,7 +16,7 @@
   if (window.__MPS_ACONEX && window.__MPS_ACONEX.__live) { window.__MPS_ACONEX.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.34', BUILD_DATE='8 Sep 2026';
+  var VERSION='v12.35', BUILD_DATE='8 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -287,6 +287,136 @@
 
   // ---- GitHub team sync ----
   var GH={repo:'MPS-TK/ITR-Dashboard',branch:'main',path:'aconex/overrides_'+CFG.projectId+'.json',sha:null,timer:null,state:''};
+  // ================= GLOBAL DEFAULTS (team-wide, per-tab) =================
+  // Field-level patch model: publishing pushes ONLY the settings the admin changed
+  // (a diff), never a full config sweep. Stored in the private team-sync repo, per module.
+  var GDEF_FILE='aconex/global_defaults_itp.json';
+  var GDEF_CACHE='mps_aconex_gdef_itp', GDEF_APPLIED='mps_aconex_gdefapplied_itp';
+  var GDEF={sha:null,patches:[]};
+  try{GDEF.patches=JSON.parse(localStorage.getItem(GDEF_CACHE)||'[]')||[];}catch(e){}
+  function gdefApplied(){try{return +localStorage.getItem(GDEF_APPLIED)||0;}catch(e){return 0;}}
+  function setGdefApplied(ts){try{localStorage.setItem(GDEF_APPLIED,String(ts));}catch(e){}}
+  function gdefKindName(k){return {status:'Status',lifecycleStatus:'Lifecycle Status',phase:'Phase',toAction:'To Action',dateRequired:'Date Required'}[k]||k;}
+  function gdefColName(k){return (S.colNames&&S.colNames[k])||(COLDEF[k]&&COLDEF[k].label)||k;}
+  function gdefApplyChange(path,val){
+    var p=path.split('.');
+    if(p[0]==='colorSchemes'&&p.length>=3){S.colorSchemes[p[1]]=S.colorSchemes[p[1]]||{};S.colorSchemes[p[1]][p.slice(2).join('.')]=val;return;}
+    if(p[0]==='fgSchemes'&&p.length>=3){S.fgSchemes[p[1]]=S.fgSchemes[p[1]]||{};S.fgSchemes[p[1]][p.slice(2).join('.')]=val;return;}
+    if(p[0]==='colW'&&p.length>=2){var kw=p.slice(1).join('.');if(S.cols[kw])S.cols[kw].w=val;return;}
+    if(p[0]==='colShow'&&p.length>=2){var ks=p.slice(1).join('.');if(S.cols[ks])S.cols[ks].show=!!val;return;}
+    if(p[0]==='order'){if(Object.prototype.toString.call(val)==='[object Array]')S.order=val.slice();return;}
+    var scal={fontScale:1,padScale:1,hdrFontSize:1,hdrMaxLines:1,chartType:1,chartDataField:1,fontSize:1,rowPad:1,wrap:1,baseFont:1};
+    if(scal[p[0]]&&p.length===1){S[p[0]]=val;return;}
+  }
+  function gdefApplyNew(){
+    var last=gdefApplied();
+    var pend=(GDEF.patches||[]).filter(function(p){return p&&typeof p.ts==='number'&&p.ts>last;}).sort(function(a,b){return a.ts-b.ts;});
+    if(!pend.length)return false;
+    pend.forEach(function(p){var ch=p.changes||{};Object.keys(ch).forEach(function(path){try{gdefApplyChange(path,ch[path]);}catch(e){}});});
+    setGdefApplied(pend[pend.length-1].ts);
+    try{saveCfg();}catch(e){}
+    return true;
+  }
+  function gdefSnapshot(){return JSON.parse(JSON.stringify({colorSchemes:S.colorSchemes,fgSchemes:S.fgSchemes,cols:S.cols,order:S.order,fontScale:S.fontScale,padScale:S.padScale,hdrFontSize:S.hdrFontSize,hdrMaxLines:S.hdrMaxLines,chartType:S.chartType,chartDataField:S.chartDataField,fontSize:S.fontSize,rowPad:S.rowPad,wrap:S.wrap,baseFont:S.baseFont}));}
+  function gdefDiff(base){
+    base=base||{};var ch={};
+    ['colorSchemes','fgSchemes'].forEach(function(rk){var cur=S[rk]||{},old=base[rk]||{};Object.keys(cur).forEach(function(kind){var cm=cur[kind]||{},om=old[kind]||{};Object.keys(cm).forEach(function(v){if(cm[v]!==om[v])ch[rk+'.'+kind+'.'+v]=cm[v];});});});
+    Object.keys(S.cols||{}).forEach(function(k){var c=S.cols[k]||{},o=(base.cols||{})[k]||{};if(c.w!==o.w)ch['colW.'+k]=c.w;if((!!c.show)!==(!!o.show))ch['colShow.'+k]=!!c.show;});
+    if(JSON.stringify(S.order)!==JSON.stringify(base.order))ch['order']=S.order.slice();
+    ['fontScale','padScale','hdrFontSize','hdrMaxLines','chartType','chartDataField','fontSize','rowPad','wrap','baseFont'].forEach(function(f){if(S[f]!==base[f])ch[f]=S[f];});
+    return ch;
+  }
+  function gdefWhoAmI(){return fetch('/api/user',{headers:{Accept:'application/json'},credentials:'include'}).then(function(r){return r.json();}).then(function(j){var nm=(((j.userFirstName||'')+' '+(j.userLastName||'')).trim())||j.userName||'Unknown';return {by:nm,user:j.userName||'',org:j.organizationName||''};}).catch(function(){return {by:'Unknown',user:'',org:''};});}
+  function gdefLoad(){
+    if(!ghToken())return Promise.resolve(false);
+    return fetch('https://api.github.com/repos/'+GH.repo+'/contents/'+GDEF_FILE+'?ref='+GH.branch,{headers:ghHeaders()}).then(function(r){if(r.status===404){GDEF.sha=null;return null;}if(!r.ok)throw 0;return r.json();}).then(function(j){
+      var data={patches:[]};
+      if(j){GDEF.sha=j.sha;try{data=JSON.parse(decodeURIComponent(escape(atob((j.content||'').replace(/\n/g,'')))))||data;}catch(e){}}
+      GDEF.patches=(data&&data.patches)?data.patches:[];
+      try{localStorage.setItem(GDEF_CACHE,JSON.stringify(GDEF.patches));}catch(e){}
+      return gdefApplyNew();
+    }).catch(function(){return false;});
+  }
+  function gdefPublish(changes){
+    return gdefWhoAmI().then(function(who){
+      var patch={id:Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),ts:Date.now(),by:who.by,user:who.user,org:who.org,changes:changes};
+      var list=(GDEF.patches||[]).slice();list.unshift(patch);if(list.length>50)list=list.slice(0,50);
+      var body={message:'Aconex ITP global defaults ('+who.by+')',content:btoa(unescape(encodeURIComponent(JSON.stringify({patches:list})))),branch:GH.branch};
+      if(GDEF.sha)body.sha=GDEF.sha;
+      return fetch('https://api.github.com/repos/'+GH.repo+'/contents/'+GDEF_FILE,{method:'PUT',headers:ghHeaders(),body:JSON.stringify(body)}).then(function(r){return r.json();}).then(function(j){
+        if(j&&j.content){GDEF.sha=j.content.sha;GDEF.patches=list;try{localStorage.setItem(GDEF_CACHE,JSON.stringify(list));}catch(e){}setGdefApplied(patch.ts);return true;}
+        return false;
+      });
+    }).catch(function(){return false;});
+  }
+  function gdefWhen(ts){try{var d=new Date(ts);return d.toLocaleDateString()+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}catch(e){return '';}}
+  function gdefChangeLabel(path,val){
+    var p=path.split('.');
+    if(p[0]==='colorSchemes')return 'Fill colour · '+gdefKindName(p[1])+' · '+p.slice(2).join('.')+' → '+val;
+    if(p[0]==='fgSchemes')return 'Text colour · '+gdefKindName(p[1])+' · '+p.slice(2).join('.')+' → '+val;
+    if(p[0]==='colW')return 'Column width · '+gdefColName(p.slice(1).join('.'))+' → '+val+'px';
+    if(p[0]==='colShow')return 'Column '+(val?'shown':'hidden')+' · '+gdefColName(p.slice(1).join('.'));
+    if(p[0]==='order')return 'Column order';
+    var nm={fontScale:'Table font size',padScale:'Row density',hdrFontSize:'Header font size',hdrMaxLines:'Header max lines',chartType:'Chart type',chartDataField:'Chart field',fontSize:'Font size',rowPad:'Row padding',wrap:'Word wrap',baseFont:'Base font'};
+    return (nm[p[0]]||p[0])+' → '+val;
+  }
+  function gdefLastText(){var ps=GDEF.patches||[];if(!ps.length)return 'No global changes recorded yet.';var p=ps[0];return 'Last change: '+(p.by||'?')+' · '+gdefWhen(p.ts);}
+  function gdefBar(){
+    var openv=!!S.gdefOpen;
+    var bar=el('div',{class:'gdefbar'});
+    bar.appendChild(el('div',{class:'gdefhd',title:'Team-wide defaults for this tab. Click to '+(openv?'collapse':'expand'),onclick:function(){S.gdefOpen=!S.gdefOpen;renderAll();}},[
+      el('span',{class:'gdefarrow'},[openv?'▾':'▸']),
+      el('span',{style:'font-weight:700'},['Global Defaults (team)']),
+      el('span',{class:'muted',style:'font-size:10.5px;margin-left:8px'},[openv?'':'rolled up'])
+    ]));
+    if(openv)bar.appendChild(gdefBody());
+    return bar;
+  }
+  function gdefBody(){
+    var b=el('div',{class:'gdefbody'});
+    b.appendChild(el('div',{class:'muted',style:'font-size:11px'},['Sets the starting defaults for EVERYONE on this tab. Click Start editing, adjust colours / fonts / columns / chart settings with the normal controls, then Save. Only the settings you actually change are pushed — everything else stays as each person set it.']));
+    if(!ghToken()){b.appendChild(el('div',{style:'color:#c0392b;font-size:11px'},['Team sync is not connected on this browser — connect it (the ⚙ sync button) to publish global defaults.']));return b;}
+    if(!S.gdefEditing){
+      b.appendChild(el('div',{style:'display:flex;gap:8px;flex-wrap:wrap;align-items:center'},[
+        el('button',{class:'btn',title:'Snapshot the current view, then change settings to stage a global default',onclick:function(){S.gdefBaseline=gdefSnapshot();S.gdefEditing=true;renderAll();}},['Start editing']),
+        el('span',{class:'muted',style:'font-size:11px'},[gdefLastText()])
+      ]));
+    } else {
+      var ch=gdefDiff(S.gdefBaseline||gdefSnapshot());var keys=Object.keys(ch);
+      b.appendChild(el('div',{style:'font-size:11px'},[el('b',{},['Pending changes: '+keys.length]),el('span',{class:'muted'},[keys.length?'  (adjust more with the controls above, or Save)':'  — change a colour, font, column width or chart setting above']) ]));
+      if(keys.length){var ul=el('div',{style:'max-height:120px;overflow:auto;border:1px solid #f0c9b0;border-radius:6px;padding:4px 8px;background:#fff'});keys.slice(0,40).forEach(function(k){ul.appendChild(el('div',{style:'font-size:11px;padding:1px 0;color:#1f2d3d'},[gdefChangeLabel(k,ch[k])]));});b.appendChild(ul);}
+      b.appendChild(el('div',{style:'display:flex;gap:8px;flex-wrap:wrap'},[
+        el('button',{class:'btn',style:'background:#c0392b;border-color:#c0392b;color:#fff',title:'Publish these changes to everyone on this tab',onclick:function(){var c=gdefDiff(S.gdefBaseline||gdefSnapshot());if(!Object.keys(c).length){toast('No changes staged yet');return;}gdefConfirmDialog(c);}},['● Save as Global Default']),
+        el('button',{class:'btn',title:'Stop editing without publishing',onclick:function(){S.gdefEditing=false;S.gdefBaseline=null;renderAll();}},['Cancel'])
+      ]));
+    }
+    return b;
+  }
+  function gdefConfirmDialog(changes){
+    var wrapEl=root.getElementById('wrap');var ex=root.getElementById('gdefdlg');if(ex)ex.remove();
+    var keys=Object.keys(changes);
+    var inner=el('div',{class:'gdefdlg'});
+    inner.appendChild(el('h4',{},['⚠ Change the default for EVERYONE?']));
+    var body=el('div',{class:'in'});
+    body.appendChild(el('div',{},['This updates the Doc. Register defaults for every user on the team. Your name and the time are recorded (shown below). Only these '+keys.length+' setting'+(keys.length===1?'':'s')+' change — nothing else each person has set is touched.']));
+    var ul=el('div',{style:'margin-top:8px;max-height:150px;overflow:auto;border:1px solid #eee;border-radius:6px;padding:4px 8px'});
+    keys.forEach(function(k){ul.appendChild(el('div',{style:'font-size:11px;padding:1px 0'},[gdefChangeLabel(k,changes[k])]));});
+    body.appendChild(ul);
+    var aud=el('div',{class:'aud'});
+    aud.appendChild(el('div',{style:'font-weight:700;margin-bottom:3px'},['Recent global changes (last 10)']));
+    var ps=(GDEF.patches||[]).slice(0,10);
+    if(!ps.length)aud.appendChild(el('div',{},['None yet — this will be the first.']));
+    ps.forEach(function(p){var nn=Object.keys(p.changes||{}).length;aud.appendChild(el('div',{style:'padding:1px 0'},[gdefWhen(p.ts)+' — '+(p.by||'?')+(p.org?(' ('+p.org+')'):'')+' · '+nn+' change'+(nn===1?'':'s')]));});
+    body.appendChild(aud);
+    var saveB=el('button',{class:'btn',style:'background:#c0392b;border-color:#c0392b;color:#fff'},['Confirm & Save']);
+    saveB.onclick=function(){saveB.textContent='Saving…';saveB.disabled=true;gdefPublish(changes).then(function(ok){var d=root.getElementById('gdefdlg');if(d)d.remove();if(ok){S.gdefEditing=false;S.gdefBaseline=null;toast('Global default saved for everyone');renderAll();}else{toast('Could not save — check the team sync token');}});};
+    var btns=el('div',{style:'margin-top:12px;display:flex;gap:8px;justify-content:flex-end'},[
+      el('button',{class:'btn',onclick:function(){var d=root.getElementById('gdefdlg');if(d)d.remove();}},['Cancel']),saveB
+    ]);
+    body.appendChild(btns);inner.appendChild(body);
+    wrapEl.appendChild(el('div',{class:'gdefdlg-bg',id:'gdefdlg'},[inner]));
+  }
+
   function ghToken(){try{return localStorage.getItem('mps_gh_token')||localStorage.getItem('__itr_gh_token__')||'';}catch(e){return '';}}
   function ghHeaders(){return {Authorization:'token '+ghToken(),Accept:'application/vnd.github+json'};}
   function applyOverridesToRows(){var keys=['phase','transmittalNo','priority','toAction','dateRequired','dateResub1','dateResub2','comment'];S.allRows.forEach(function(r){var o=S.overrides[r.docNo]||{};keys.forEach(function(k){if(o[k]!=null)r[k]=o[k];});
@@ -312,8 +442,10 @@
       S.capHit=(S.allRows.length>=250);
       var set={};S.allRows.forEach(function(r){if(r.deliverableType)set[r.deliverableType]=1;});S.deliverableTypes=Object.keys(set).sort();
       applyStartupDefaults();
+      gdefApplyNew();
       S.loading=false;applyScope();renderAll();
       if(ghToken())ghLoad().then(function(ok){if(ok){applyScope();renderAll();}});
+      if(ghToken())gdefLoad().then(function(ap){if(ap){applyScope();renderAll();}});
     }).catch(function(e){S.loading=false;S.error=String(e.message||e);renderAll();});}
   // ---- v12.17 filters: Date Modified range (a), hidden rows (b), Document No text (c) ----
   function fltDateRange(){
@@ -469,7 +601,7 @@
   }
   function CSS(){return '#wrap{position:fixed;inset:0;background:#f4f6f8;color:'+INK+';font:13px/1.4 "Segoe UI",Arial,sans-serif;display:flex;flex-direction:column}'
     +'.content{flex:1;overflow:auto;padding-bottom:10px}'
-    +'.regbody{display:flex;flex-direction:column}.regbody .toolbar{border-top:1px solid '+LINE+'}'
+    +'.regbody{display:flex;flex-direction:column}.gdefbar{border-bottom:1px solid #f0c9b0;background:#fff8f3}.gdefhd{display:flex;align-items:center;gap:6px;padding:5px 12px;cursor:pointer;color:#8a3b12;font-size:12px;user-select:none}.gdefhd:hover{background:#fdeee3}.gdefarrow{color:#c0562a;font-size:10px}.gdefbody{padding:8px 12px;border-top:1px dashed #f0c9b0;display:flex;flex-direction:column;gap:8px}.gdefdlg-bg{position:absolute;inset:0;background:rgba(11,42,74,.35);display:flex;align-items:center;justify-content:center;z-index:120}.gdefdlg{background:#fff;border:2px solid #c0392b;border-radius:10px;max-width:520px;width:90%;max-height:80%;overflow:auto;box-shadow:0 18px 50px rgba(0,0,0,.3)}.gdefdlg h4{margin:0;padding:12px 16px;background:#c0392b;color:#fff;font-size:14px;border-radius:8px 8px 0 0}.gdefdlg .in{padding:14px 16px;font-size:12px;color:#1f2d3d}.gdefdlg .aud{margin-top:10px;border-top:1px solid #eee;padding-top:8px;font-size:11px;color:#555;max-height:160px;overflow:auto}.dark .gdefbar{background:#2a1d12;border-bottom-color:#5a3d28}.dark .gdefhd{color:#ffd7bf}.dark .gdefhd:hover{background:#3a2717}.dark .gdefbody{border-top-color:#5a3d28}.dark .gdefdlg{background:#1b2430}.dark .gdefdlg .in{color:#e6edf5}.regbody .toolbar{border-top:1px solid '+LINE+'}'
     +'.top{display:flex;align-items:center;gap:10px;background:'+NAVY+';color:#fff;padding:calc(7px*var(--ps,1)) 12px}'
     +'.brand{font-weight:800;letter-spacing:.5px}.brand span{color:'+ACCENT+'}.title{font-weight:600}.muted{opacity:.72;font-size:12px}.spacer{flex:1}'
     +'.btn{background:#fff;color:'+NAVY+';border:1px solid #cfd8e3;border-radius:5px;padding:4px 9px;font-size:12px;cursor:pointer;font-weight:600}.btn:hover{background:#eef3f8}'
@@ -776,7 +908,7 @@
     // REGISTER panel — column controls, filters, buttons AND the data grid together (collapsible).
     // The grid has an INNER scrollbar; the content region above is the OUTER scrollbar.
     var regCount=el('span',{class:'ccount',id:'countlbl',style:'margin-left:auto',title:'Rows shown of the total in this Deliverable Type'},[S.filtered.length+' of '+S.rows.length]);
-    var regBody=el('div',{class:'regbody'},[toolbar,el('div',{class:'tablewrap'},[])]);
+    var regBody=el('div',{class:'regbody'},[toolbar,gdefBar(),el('div',{class:'tablewrap'},[])]);
     content.appendChild(makeCPanel('register','REGISTER: '+delivTitle(),regCount,regBody,'The register: column controls, filters, buttons and the full data grid. Click the title to roll this panel up.'));
     wrap.appendChild(content);
     applyTheme();renderStats();renderCharts();renderTable();equalizeChartHeaders();fitRegisterHeight();
