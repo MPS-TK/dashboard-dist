@@ -16,7 +16,7 @@
   if (window.__MPS_ACONEX && window.__MPS_ACONEX.__live) { window.__MPS_ACONEX.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.49', BUILD_DATE='8 Sep 2026';
+  var VERSION='v12.50', BUILD_DATE='8 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -508,7 +508,7 @@
   }
   function custFieldSelect(){
     var flds=(S.customFields&&S.customFields.length)?S.customFields:[{id:(S.customField||'selectList1'),label:activeFieldLabel(),values:[]}];
-    var sel=el('select',{style:'color:'+ACCENT+';border:1px solid '+ACCENT+';border-radius:4px;padding:2px 4px;font-size:11px;font-weight:700;max-width:190px;background:#fff;cursor:pointer',title:'Choose which Aconex field this column shows and filters (saved per project)'});
+    var sel=el('select',{style:'box-sizing:border-box;height:32px;color:'+ACCENT+';border:2px solid '+ACCENT+';border-radius:5px;padding:0 10px;font-size:12px;font-weight:700;max-width:190px;background:#fff;cursor:pointer;vertical-align:middle',title:'Choose which Aconex field this column shows and filters (saved per project)'});
     flds.forEach(function(f){sel.appendChild(el('option',{value:f.id},[f.label]));});
     sel.value=S.customField||flds[0].id;
     sel.onchange=function(){pickCustField(sel.value);};
