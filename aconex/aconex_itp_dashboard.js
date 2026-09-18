@@ -16,7 +16,7 @@
   if (window.__MPS_ACONEX && window.__MPS_ACONEX.__live) { window.__MPS_ACONEX.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.48', BUILD_DATE='8 Sep 2026';
+  var VERSION='v12.49', BUILD_DATE='8 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -165,7 +165,7 @@
   function startupSummaryText(){var su=loadStartup();if(!su||(su.deliverables==null&&su.packages==null))return 'Startup: not set (opens with your last view)';var dv=su.deliverables==null?'last used':(su.deliverables==='__ALL__'?'All types':(su.deliverables.length+' type'+(su.deliverables.length===1?'':'s')));var pk=su.packages==null?'last used':(su.packages==='__ALL__'?'All packages':(su.packages.length+' package'+(su.packages.length===1?'':'s')));return 'Startup: '+dv+' \u00B7 '+pk;}
   // ---- Deliverable Type multi-select ----
   function delivSummary(){var n=S.deliverableTypes.length;var sel=S.delivSel;if(sel==null||sel.length>=n)return 'All ('+n+')';if(sel.length===0)return 'None';if(sel.length===1)return delivDisp(sel[0]);return sel.length+' of '+n;}
-  function delivTitle(){var sel=S.delivSel,n=S.deliverableTypes.length;if(sel==null||sel.length>=n)return 'All Deliverable Types';if(sel.length===0)return 'No Deliverable Type';if(sel.length===1)return delivDisp(sel[0]);return sel.length+' Deliverable Types';}
+  function delivTitle(){var sel=S.delivSel,n=S.deliverableTypes.length,L=activeFieldLabel();if(sel==null||sel.length>=n)return 'All '+L;if(sel.length===0)return 'No '+L;if(sel.length===1)return delivDisp(sel[0]);return sel.length+' '+L;}
   function openDelivPanel(anchor){
     var wrapEl=root.getElementById('wrap');
     var ex=root.getElementById('dlvpanel');if(ex){ex.remove();return;}
@@ -175,14 +175,14 @@
     function refreshOutputs(){applyScope();saveCfg();renderStats();renderCharts();renderBody();var cl=root.getElementById('countlbl');if(cl)cl.textContent=S.filtered.length+' of '+S.rows.length;var ds=root.getElementById('dtsum');if(ds)ds.textContent=delivSummary();var ps=root.getElementById('pksum');if(ps)ps.textContent=packageSummary();}
     function setSel(arr){S.delivSel=(arr.length>=d.length)?null:arr;refreshOutputs();}
     var listWrap=el('div',{});
-    function rebuild(){listWrap.innerHTML='';if(!d.length){listWrap.appendChild(el('div',{class:'muted',style:'font-size:11px;padding:4px'},['No Deliverable Types in this project.']));return;}var sel=curSel();d.forEach(function(v){var cb=el('input',{type:'checkbox',title:'Show '+delivDisp(v)});cb.checked=sel.indexOf(v)>=0;cb.onchange=function(){var sx=curSel();var i=sx.indexOf(v);if(cb.checked){if(i<0)sx.push(v);}else if(i>=0)sx.splice(i,1);setSel(sx);};listWrap.appendChild(el('label',{class:'mfrow pkrow'},[cb,el('span',{class:'pkno'},[delivDisp(v)])]));});}
+    function rebuild(){listWrap.innerHTML='';if(!d.length){listWrap.appendChild(el('div',{class:'muted',style:'font-size:11px;padding:4px'},['No values for this field in this project.']));return;}var sel=curSel();d.forEach(function(v){var cb=el('input',{type:'checkbox',title:'Show '+delivDisp(v)});cb.checked=sel.indexOf(v)>=0;cb.onchange=function(){var sx=curSel();var i=sx.indexOf(v);if(cb.checked){if(i<0)sx.push(v);}else if(i>=0)sx.splice(i,1);setSel(sx);};listWrap.appendChild(el('label',{class:'mfrow pkrow'},[cb,el('span',{class:'pkno'},[delivDisp(v)])]));});}
     panel.appendChild(el('div',{class:'mfhd'},[
-      el('span',{style:'font-weight:700;color:'+NAVY+';font-size:11px'},['Deliverable Type']),
+      el('span',{style:'font-weight:700;color:'+NAVY+';font-size:11px'},[activeFieldLabel()]),
       el('a',{title:'Select all',style:'margin-left:auto',onclick:function(){setSel(d.slice());rebuild();}},['(All)']),
       el('a',{title:'Select none',onclick:function(){setSel([]);rebuild();}},['(None)']),
       el('a',{title:'Close',onclick:function(){var p=root.getElementById('dlvpanel');if(p)p.remove();}},['\u2715'])
     ]));
-    panel.appendChild(el('div',{class:'muted',style:'font-size:10.5px;padding:2px 4px 4px'},['Tick one or more Deliverable Types to show. Set a per-project startup default in \u2699 Header Settings.']));
+    panel.appendChild(el('div',{class:'muted',style:'font-size:10.5px;padding:2px 4px 4px'},['Tick one or more values to show. Set a per-project startup default in \u2699 Header Settings.']));
     rebuild();panel.appendChild(listWrap);wrapEl.appendChild(panel);
     var ar=anchor.getBoundingClientRect(),wr=wrapEl.getBoundingClientRect();
     panel.style.left=Math.min(Math.max(4,wr.width-450),Math.max(4,ar.left-wr.left))+'px';panel.style.top=(ar.bottom-wr.top+2)+'px';
@@ -436,7 +436,7 @@
   function openSyncPanel(){var ex=root.getElementById('syncpanel');if(ex){ex.remove();return;}var panel=el('div',{id:'syncpanel',class:'panel',style:'right:12px;top:44px;min-width:250px'},[el('h4',{},[ghToken()?'Team sync connected':'Connect team sync']),el('div',{class:'muted',style:'font-size:11px;margin-bottom:6px;max-width:240px'},['Paste a GitHub token (repo scope) to share edits with your team. Stored only in this browser, on the Aconex site.'])]);var inp=el('input',{type:'password',placeholder:'ghp_…',style:'width:230px;border:1px solid #cfd8e3;border-radius:5px;padding:5px 8px'});var save=el('button',{class:'btn primary',style:'margin-top:8px',onclick:function(){var v=inp.value.trim();if(v){try{localStorage.setItem('mps_gh_token',v);}catch(e){}}panel.remove();ghLoad().then(function(){renderAll();});}},['Save & Connect']);panel.appendChild(inp);var row=el('div',{},[save]);if(ghToken())row.appendChild(el('button',{class:'btn',style:'margin-left:6px',onclick:function(){try{localStorage.removeItem('mps_gh_token');}catch(e){}panel.remove();renderAll();}},['Disconnect']));panel.appendChild(row);collapsiblePanel(panel);root.getElementById('wrap').appendChild(panel);}
 
   // ---- data ----
-  function apiUrl(dir){var rf=['docno','title','revision','statusid','discipline','doctype','packageNumber','filetype','author','current','versionNumber','reviewStatus','comments','confidential','category','attribute1','attribute2','attribute3','attribute4','registered','revisionDate','milestoneDate','received','filename','trackingId','contractDeliverable','selectList1','selectList2','vdrCode'].join(',');var _sc=(CFG.docScope!=null?String(CFG.docScope).trim():'');var _q=_sc?('&search_query='+encodeURIComponent('docno:'+_sc)):'';var _s=dir?('&sort_field=docno&sort_direction='+dir):'';return '/api/projects/'+CFG.projectId+'/register?page_size=250'+_q+_s+'&return_fields='+rf;}
+  function apiUrl(dir){var rf=['docno','title','revision','statusid','discipline','doctype','packageNumber','filetype','author','current','versionNumber','reviewStatus','comments','confidential','category','attribute1','attribute2','attribute3','attribute4','registered','revisionDate','milestoneDate','received','filename','trackingId','contractDeliverable','selectList1','selectList2','selectList3','selectList4','selectList5','vdrCode'].join(',');var _sc=(CFG.docScope!=null?String(CFG.docScope).trim():'');var _q=_sc?('&search_query='+encodeURIComponent('docno:'+_sc)):'';var _s=dir?('&sort_field=docno&sort_direction='+dir):'';return '/api/projects/'+CFG.projectId+'/register?page_size=250'+_q+_s+'&return_fields='+rf;}
   function txt(el,sel){var n=el.querySelector(sel);return n?(n.textContent||'').trim():'';}
   function subRegex(){var f=S.subFmt||'XXX-XX-XX';if(f==='XXX-XX')return /(\d{3,4}[-_]\d{2})[-_\s]*([^-_]*)/;if(f==='XXXX-XX-XX')return /(\d{4}[-_]\d{2}[-_]\d{2})[-_\s]*([^-_]*)/;return /(\d{3,4}[-_]\d{2}[-_]\d{2})[-_\s]*([^-_]*)/;}
   function parseTitle(t){var out={subsystem:'',subsystemName:''};var after=(t||'').replace(/^.*?ITP[\s\-_]*/i,'');var m=after.match(subRegex());if(m){out.subsystem=m[1].replace(/_/g,'-');out.subsystemName=(m[2]||'').trim().slice(0,40);}return out;}
@@ -454,19 +454,79 @@
     wrapEl.appendChild(panel);
     if(anchor){var ar=anchor.getBoundingClientRect(),wr=wrapEl.getBoundingClientRect();panel.style.left=Math.min(Math.max(4,wr.width-panel.offsetWidth-8),Math.max(4,ar.left-wr.left))+'px';panel.style.top=(ar.bottom-wr.top+4)+'px';}else{panel.style.left='12px';panel.style.top='120px';}
   }
-  function fetchData(){S.loading=true;S.error='';renderAll();return (function(){function grab(dir){return fetch(apiUrl(dir),{headers:{Accept:'application/xml'},credentials:'include'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.text();}).then(function(b){return [].slice.call(new DOMParser().parseFromString(b,'application/xml').querySelectorAll('Document'));});}
+  // ---- v12.49: per-project custom-field picker (Aconex SelectList / Attribute slots) ----
+  function custFieldKey(){return 'mps_aconex_custfield_'+CFG.projectId;}
+  function loadCustField(){try{return localStorage.getItem(custFieldKey())||'';}catch(e){return '';}}
+  function saveCustField(v){try{if(v)localStorage.setItem(custFieldKey(),v);else localStorage.removeItem(custFieldKey());}catch(e){}}
+  function fetchSchema(){
+    return fetch('/api/projects/'+CFG.projectId+'/register/schema',{headers:{Accept:'application/xml'},credentials:'include'})
+      .then(function(r){if(!r.ok)throw new Error('schema HTTP '+r.status);return r.text();})
+      .then(function(b){
+        var doc=new DOMParser().parseFromString(b,'application/xml');
+        var host=doc.querySelector('SearchSchemaFields')||doc.documentElement;
+        var flds=[];
+        [].slice.call((host&&host.children)||[]).forEach(function(f){
+          var idEl=f.querySelector('Identifier');var id=idEl?idEl.textContent.trim():'';
+          if(!/^(selectList|attribute)\d+$/i.test(id))return;
+          var mEl=f.querySelector('ModifiedFieldName'),nEl=f.querySelector('FieldName');
+          var label=(mEl&&mEl.textContent.trim())||(nEl&&nEl.textContent.trim())||id;
+          var vals=[].slice.call(f.querySelectorAll('SchemaValues > SchemaValue > Value')).map(function(v){return v.textContent.trim();}).filter(Boolean);
+          flds.push({id:id,label:label,values:vals});
+        });
+        S.customFieldsAll=flds;
+        S.customFields=flds.filter(function(f){return f.values.length>0;});
+        return S.customFields;
+      })
+      .catch(function(){S.customFieldsAll=S.customFieldsAll||[];S.customFields=S.customFields||[];return S.customFields;});
+  }
+  function custFieldById(id){var a=S.customFieldsAll||[];for(var i=0;i<a.length;i++)if(a[i].id===id)return a[i];return null;}
+  function activeFieldLabel(){var f=custFieldById(S.customField);return (f&&f.label)||(COLDEF.deliverableType?COLDEF.deliverableType.label:'Deliverable Type');}
+  function pickDefaultCustField(){
+    var saved=loadCustField(),pop=S.customFields||[];
+    function has(id){for(var i=0;i<pop.length;i++)if(pop[i].id===id)return true;return false;}
+    if(saved&&has(saved))return saved;
+    if(has('selectList1'))return 'selectList1';
+    return pop.length?pop[0].id:'selectList1';
+  }
+  function applyCustomField(){
+    if(!S.customField)S.customField=pickDefaultCustField();
+    var fid=S.customField;
+    S.allRows.forEach(function(r){r.deliverableType=(r.custom&&r.custom[fid]!=null)?r.custom[fid]:'';});
+    var f=custFieldById(fid),set={};
+    if(f)f.values.forEach(function(v){if(v)set[v]=1;});
+    S.allRows.forEach(function(r){if(r.deliverableType)set[r.deliverableType]=1;});
+    S.deliverableTypes=Object.keys(set).sort();
+    if(COLDEF.deliverableType){COLDEF.deliverableType.label=activeFieldLabel();COLDEF.deliverableType.tip='Aconex '+activeFieldLabel()+' ('+fid+')';}
+    var s2=custFieldById('selectList2');
+    if(s2&&COLDEF.deliverableName){COLDEF.deliverableName.label=s2.label;COLDEF.deliverableName.tip='Aconex '+s2.label+' (selectList2)';}
+    S.allRows.forEach(function(r){r.deliverableName=(r.custom&&r.custom.selectList2!=null)?r.custom.selectList2:'';});
+  }
+  function pickCustField(id){
+    if(!id||id===S.customField)return;
+    S.customField=id;saveCustField(id);S.delivSel=null;
+    applyCustomField();applyScope();saveCfg();renderAll();
+  }
+  function custFieldSelect(){
+    var flds=(S.customFields&&S.customFields.length)?S.customFields:[{id:(S.customField||'selectList1'),label:activeFieldLabel(),values:[]}];
+    var sel=el('select',{style:'color:'+ACCENT+';border:1px solid '+ACCENT+';border-radius:4px;padding:2px 4px;font-size:11px;font-weight:700;max-width:190px;background:#fff;cursor:pointer',title:'Choose which Aconex field this column shows and filters (saved per project)'});
+    flds.forEach(function(f){sel.appendChild(el('option',{value:f.id},[f.label]));});
+    sel.value=S.customField||flds[0].id;
+    sel.onchange=function(){pickCustField(sel.value);};
+    return sel;
+  }
+  function fetchData(){S.loading=true;S.error='';renderAll();return fetchSchema().then(function(){return (function(){function grab(dir){return fetch(apiUrl(dir),{headers:{Accept:'application/xml'},credentials:'include'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.text();}).then(function(b){return [].slice.call(new DOMParser().parseFromString(b,'application/xml').querySelectorAll('Document'));});}
       // The Aconex register endpoint hard-caps at 250 docs and ignores paging; a docno ASC + DESC union recovers every doc for registers up to ~500 (e.g. OCRP: 342 with no package numbers).
-      return grab('ASC').then(function(_a){if(_a.length<250)return [_a];return grab('DESC').then(function(_d){return [_a,_d];});});})().then(function(_parts){
+      return grab('ASC').then(function(_a){if(_a.length<250)return [_a];return grab('DESC').then(function(_d){return [_a,_d];});});})();}).then(function(_parts){
       var _seen={},_els=[];_parts.forEach(function(_l){_l.forEach(function(el){var _id=el.getAttribute('DocumentId')||(el.querySelector('DocumentNumber')?el.querySelector('DocumentNumber').textContent:'');if(_id&&!_seen[_id]){_seen[_id]=1;_els.push(el);}});});
       S._ascN=_parts[0].length;S._descN=(_parts[1]?_parts[1].length:0);
       S.allRows=_els.map(function(el){
         var title=txt(el,'Title'),docNo=txt(el,'DocumentNumber'),d=parseTitle(title),ov=S.overrides[docNo]||{};
         var phase=(ov.phase!=null&&ov.phase!=='')?ov.phase:(BHP_PHASE[docNo]||'');
         var bm=BHP_MANUAL[docNo]||{};function pre(key){return (ov[key]!=null)?ov[key]:(bm[key]||'');}
-        return {documentId:el.getAttribute('DocumentId'),fileType:txt(el,'FileType'),docNo:docNo,title:title,subsystem:((ov.subsystem!=null&&ov.subsystem!=='')?ov.subsystem:d.subsystem),_subParsed:d.subsystem,subsystemName:d.subsystemName,phase:phase,revision:txt(el,'Revision'),status:txt(el,'DocumentStatus'),lifecycleStatus:txt(el,'Attribute2 AttributeTypeNames'),dateModified:txt(el,'DateModified'),dateCreated:txt(el,'DateCreated'),discipline:txt(el,'Discipline'),type:txt(el,'DocumentType'),packageNo:txt(el,'PackageNumber'),deliverableType:txt(el,'SelectList1'),deliverableName:txt(el,'SelectList2'),createdBy:txt(el,'Author'),versionNumber:txt(el,'VersionNumber'),reviewStatus:txt(el,'ReviewStatus'),comments:txt(el,'Comments'),trackingId:txt(el,'TrackingId'),transmittalNo:ov.transmittalNo||'',priority:ov.priority||'',toAction:pre('toAction'),dateRequired:pre('dateRequired'),dateResub1:ov.dateResub1||'',dateResub2:ov.dateResub2||''  ,comment:pre('comment')};
+        return {documentId:el.getAttribute('DocumentId'),fileType:txt(el,'FileType'),docNo:docNo,title:title,subsystem:((ov.subsystem!=null&&ov.subsystem!=='')?ov.subsystem:d.subsystem),_subParsed:d.subsystem,subsystemName:d.subsystemName,phase:phase,revision:txt(el,'Revision'),status:txt(el,'DocumentStatus'),lifecycleStatus:txt(el,'Attribute2 AttributeTypeNames'),dateModified:txt(el,'DateModified'),dateCreated:txt(el,'DateCreated'),discipline:txt(el,'Discipline'),type:txt(el,'DocumentType'),packageNo:txt(el,'PackageNumber'),custom:{selectList1:txt(el,'SelectList1'),selectList2:txt(el,'SelectList2'),selectList3:txt(el,'SelectList3'),selectList4:txt(el,'SelectList4'),selectList5:txt(el,'SelectList5'),attribute1:txt(el,'Attribute1 AttributeTypeNames'),attribute2:txt(el,'Attribute2 AttributeTypeNames'),attribute3:txt(el,'Attribute3 AttributeTypeNames'),attribute4:txt(el,'Attribute4 AttributeTypeNames')},deliverableType:txt(el,'SelectList1'),deliverableName:txt(el,'SelectList2'),createdBy:txt(el,'Author'),versionNumber:txt(el,'VersionNumber'),reviewStatus:txt(el,'ReviewStatus'),comments:txt(el,'Comments'),trackingId:txt(el,'TrackingId'),transmittalNo:ov.transmittalNo||'',priority:ov.priority||'',toAction:pre('toAction'),dateRequired:pre('dateRequired'),dateResub1:ov.dateResub1||'',dateResub2:ov.dateResub2||''  ,comment:pre('comment')};
       });
       S.capHit=(S._ascN>=250&&S._descN>=250&&S.allRows.length>=500);
-      var set={};S.allRows.forEach(function(r){if(r.deliverableType)set[r.deliverableType]=1;});S.deliverableTypes=Object.keys(set).sort();
+      applyCustomField();
       applyStartupDefaults();
       gdefApplyNew();
       S.loading=false;applyScope();renderAll();
@@ -599,7 +659,7 @@
   function lifeFg(v){var k=(v||'').toLowerCase();var fg=schemeGetFg('lifecycleStatus',k);if(fg)return fg;var c=schemeGet('lifecycleStatus',k);if(c)return lumFg(c);if(k==='for information')return '#1e7e34';if(LIFECYCLE_COLORS[k])return lumFg(LIFECYCLE_COLORS[k]);if(ISSUE_COLORS[k])return lumFg(ISSUE_COLORS[k]);return lumFg(autoColor(k));}
   function toActionColor(v){var k=(v||'').toLowerCase();return schemeGet('toAction',k)||TOACTION_COLORS[k]||'';}
   function pluralize(w){if(!w)return w;if(/[sxz]$/i.test(w)||/(ch|sh)$/i.test(w))return w+'es';if(/[^aeiou]y$/i.test(w))return w.slice(0,-1)+'ies';return w+'s';}
-  function delivDisp(s){if(!s||s==='__ALL__')return 'All Deliverable Types';var t=s.replace(/\band\b/gi,'&').split(' ');t[t.length-1]=pluralize(t[t.length-1]);return t.join(' ');}
+  function delivDisp(s){if(!s||s==='__ALL__')return 'All '+activeFieldLabel();return String(s);}
   function btn(label,tip,onclick,cls){return el('button',{class:'btn'+(cls?' '+cls:''),title:tip,onclick:onclick},[label]);}
 
   function ensureShell(){if(root)return;host=document.createElement('div');host.id='mps-aconex-host';host.setAttribute('style','all:initial;position:fixed;inset:0;z-index:2147483000;');document.documentElement.appendChild(host);root=host.attachShadow({mode:'open'});var st=document.createElement('style');st.textContent=CSS();root.appendChild(st);root.appendChild(el('div',{id:'wrap'}));installOutsideClose();try{window.addEventListener('resize',function(){equalizeChartHeaders();fitRegisterHeight();});}catch(e){}}
@@ -908,7 +968,7 @@
     apvRenderDropdown();apvBindSelSwap();
     // toolbar
     var search=el('input',{type:'search',class:'search',title:'Search across all columns',placeholder:'⌕ Search ITPs…',value:S.globalSearch});search.oninput=function(){S.globalSearch=search.value;applyFilters();renderBody();renderCharts();saveCfg();};
-    var dsel=(function(){var ds=el('span',{id:'dtsum'},[delivSummary()]);var b=el('button',{class:'btn pkgbtn',style:'border-color:'+ACCENT+';color:'+ACCENT,title:'Filter the register by one or more Aconex Deliverable Types',onclick:function(){openDelivPanel(b);}},[ds,el('span',{style:'margin-left:5px;color:'+ACCENT},['\u25be'])]);return b;})();
+    var dsel=(function(){var ds=el('span',{id:'dtsum'},[delivSummary()]);var b=el('button',{class:'btn pkgbtn',style:'border-color:'+ACCENT+';color:'+ACCENT,title:'Filter the register by the values of the field selected on its left',onclick:function(){openDelivPanel(b);}},[ds,el('span',{style:'margin-left:5px;color:'+ACCENT},['\u25be'])]);return b;})();
     var rng=el('input',{type:'range',min:'0',max:'12',value:String(S.rowPad),class:'rng',title:'Row height — drag left to pack rows tightly together'});rng.oninput=function(){S.rowPad=+rng.value;saveCfg();renderBody();};
     var fontGroup=el('span',{style:'display:inline-flex;align-items:center;gap:3px',title:'Table font size'},[
       btn('−','Decrease font size',function(){S.fontSize=Math.max(8,S.fontSize-1);saveCfg();renderTable();},'sq'),
@@ -931,7 +991,7 @@
       el('span',{class:'muted',title:'Row height — drag the slider to pack rows tighter or looser'},['Row Density']),rng,
       el('span',{class:'dtlbl',style:'color:#0a84ff',title:'Filter the register by Aconex Package Number'},['PACKAGE NO']),
       (function(){var ps=el('span',{id:'pksum'},[packageSummary()]);var b=el('button',{class:'btn pkgbtn',title:'Select one or more Package Numbers to filter the register; add a custom label per package',onclick:function(){openPackagePanel(b);}},[ps,el('span',{style:'margin-left:5px;color:#0a84ff'},['▾'])]);return b;})(),
-      el('span',{class:'dtlbl',style:'color:'+ACCENT,title:'Filter the whole register by Aconex Deliverable Type'},['DELIVERABLE TYPE']),dsel,
+      custFieldSelect(),dsel,
       search
     ]);
     // scrolling content region — provides the OUTER scrollbar; each section is its own collapsible panel
