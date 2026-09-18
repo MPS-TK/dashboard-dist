@@ -16,7 +16,7 @@
   if (window.__MPS_ACONEX && window.__MPS_ACONEX.__live) { window.__MPS_ACONEX.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.47', BUILD_DATE='8 Sep 2026';
+  var VERSION='v12.48', BUILD_DATE='8 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -436,7 +436,7 @@
   function openSyncPanel(){var ex=root.getElementById('syncpanel');if(ex){ex.remove();return;}var panel=el('div',{id:'syncpanel',class:'panel',style:'right:12px;top:44px;min-width:250px'},[el('h4',{},[ghToken()?'Team sync connected':'Connect team sync']),el('div',{class:'muted',style:'font-size:11px;margin-bottom:6px;max-width:240px'},['Paste a GitHub token (repo scope) to share edits with your team. Stored only in this browser, on the Aconex site.'])]);var inp=el('input',{type:'password',placeholder:'ghp_…',style:'width:230px;border:1px solid #cfd8e3;border-radius:5px;padding:5px 8px'});var save=el('button',{class:'btn primary',style:'margin-top:8px',onclick:function(){var v=inp.value.trim();if(v){try{localStorage.setItem('mps_gh_token',v);}catch(e){}}panel.remove();ghLoad().then(function(){renderAll();});}},['Save & Connect']);panel.appendChild(inp);var row=el('div',{},[save]);if(ghToken())row.appendChild(el('button',{class:'btn',style:'margin-left:6px',onclick:function(){try{localStorage.removeItem('mps_gh_token');}catch(e){}panel.remove();renderAll();}},['Disconnect']));panel.appendChild(row);collapsiblePanel(panel);root.getElementById('wrap').appendChild(panel);}
 
   // ---- data ----
-  function apiUrl(){var rf=['docno','title','revision','statusid','discipline','doctype','packageNumber','filetype','author','current','versionNumber','reviewStatus','comments','confidential','category','attribute1','attribute2','attribute3','attribute4','registered','revisionDate','milestoneDate','received','filename','trackingId','contractDeliverable','selectList1','selectList2','vdrCode'].join(',');var _sc=(CFG.docScope!=null?String(CFG.docScope).trim():'');var _q=_sc?('&search_query='+encodeURIComponent('docno:'+_sc)):'';return '/api/projects/'+CFG.projectId+'/register?page_size=250'+_q+'&return_fields='+rf;}
+  function apiUrl(dir){var rf=['docno','title','revision','statusid','discipline','doctype','packageNumber','filetype','author','current','versionNumber','reviewStatus','comments','confidential','category','attribute1','attribute2','attribute3','attribute4','registered','revisionDate','milestoneDate','received','filename','trackingId','contractDeliverable','selectList1','selectList2','vdrCode'].join(',');var _sc=(CFG.docScope!=null?String(CFG.docScope).trim():'');var _q=_sc?('&search_query='+encodeURIComponent('docno:'+_sc)):'';var _s=dir?('&sort_field=docno&sort_direction='+dir):'';return '/api/projects/'+CFG.projectId+'/register?page_size=250'+_q+_s+'&return_fields='+rf;}
   function txt(el,sel){var n=el.querySelector(sel);return n?(n.textContent||'').trim():'';}
   function subRegex(){var f=S.subFmt||'XXX-XX-XX';if(f==='XXX-XX')return /(\d{3,4}[-_]\d{2})[-_\s]*([^-_]*)/;if(f==='XXXX-XX-XX')return /(\d{4}[-_]\d{2}[-_]\d{2})[-_\s]*([^-_]*)/;return /(\d{3,4}[-_]\d{2}[-_]\d{2})[-_\s]*([^-_]*)/;}
   function parseTitle(t){var out={subsystem:'',subsystemName:''};var after=(t||'').replace(/^.*?ITP[\s\-_]*/i,'');var m=after.match(subRegex());if(m){out.subsystem=m[1].replace(/_/g,'-');out.subsystemName=(m[2]||'').trim().slice(0,40);}return out;}
@@ -454,15 +454,18 @@
     wrapEl.appendChild(panel);
     if(anchor){var ar=anchor.getBoundingClientRect(),wr=wrapEl.getBoundingClientRect();panel.style.left=Math.min(Math.max(4,wr.width-panel.offsetWidth-8),Math.max(4,ar.left-wr.left))+'px';panel.style.top=(ar.bottom-wr.top+4)+'px';}else{panel.style.left='12px';panel.style.top='120px';}
   }
-  function fetchData(){S.loading=true;S.error='';renderAll();return fetch(apiUrl(),{headers:{Accept:'application/xml'},credentials:'include'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.text();}).then(function(body){
-      var xml=new DOMParser().parseFromString(body,'application/xml');
-      S.allRows=[].slice.call(xml.querySelectorAll('Document')).map(function(el){
+  function fetchData(){S.loading=true;S.error='';renderAll();return (function(){function grab(dir){return fetch(apiUrl(dir),{headers:{Accept:'application/xml'},credentials:'include'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.text();}).then(function(b){return [].slice.call(new DOMParser().parseFromString(b,'application/xml').querySelectorAll('Document'));});}
+      // The Aconex register endpoint hard-caps at 250 docs and ignores paging; a docno ASC + DESC union recovers every doc for registers up to ~500 (e.g. OCRP: 342 with no package numbers).
+      return grab('ASC').then(function(_a){if(_a.length<250)return [_a];return grab('DESC').then(function(_d){return [_a,_d];});});})().then(function(_parts){
+      var _seen={},_els=[];_parts.forEach(function(_l){_l.forEach(function(el){var _id=el.getAttribute('DocumentId')||(el.querySelector('DocumentNumber')?el.querySelector('DocumentNumber').textContent:'');if(_id&&!_seen[_id]){_seen[_id]=1;_els.push(el);}});});
+      S._ascN=_parts[0].length;S._descN=(_parts[1]?_parts[1].length:0);
+      S.allRows=_els.map(function(el){
         var title=txt(el,'Title'),docNo=txt(el,'DocumentNumber'),d=parseTitle(title),ov=S.overrides[docNo]||{};
         var phase=(ov.phase!=null&&ov.phase!=='')?ov.phase:(BHP_PHASE[docNo]||'');
         var bm=BHP_MANUAL[docNo]||{};function pre(key){return (ov[key]!=null)?ov[key]:(bm[key]||'');}
         return {documentId:el.getAttribute('DocumentId'),fileType:txt(el,'FileType'),docNo:docNo,title:title,subsystem:((ov.subsystem!=null&&ov.subsystem!=='')?ov.subsystem:d.subsystem),_subParsed:d.subsystem,subsystemName:d.subsystemName,phase:phase,revision:txt(el,'Revision'),status:txt(el,'DocumentStatus'),lifecycleStatus:txt(el,'Attribute2 AttributeTypeNames'),dateModified:txt(el,'DateModified'),dateCreated:txt(el,'DateCreated'),discipline:txt(el,'Discipline'),type:txt(el,'DocumentType'),packageNo:txt(el,'PackageNumber'),deliverableType:txt(el,'SelectList1'),deliverableName:txt(el,'SelectList2'),createdBy:txt(el,'Author'),versionNumber:txt(el,'VersionNumber'),reviewStatus:txt(el,'ReviewStatus'),comments:txt(el,'Comments'),trackingId:txt(el,'TrackingId'),transmittalNo:ov.transmittalNo||'',priority:ov.priority||'',toAction:pre('toAction'),dateRequired:pre('dateRequired'),dateResub1:ov.dateResub1||'',dateResub2:ov.dateResub2||''  ,comment:pre('comment')};
       });
-      S.capHit=(S.allRows.length>=250);
+      S.capHit=(S._ascN>=250&&S._descN>=250&&S.allRows.length>=500);
       var set={};S.allRows.forEach(function(r){if(r.deliverableType)set[r.deliverableType]=1;});S.deliverableTypes=Object.keys(set).sort();
       applyStartupDefaults();
       gdefApplyNew();
@@ -562,7 +565,7 @@
     wrapEl.appendChild(panel);
     var l=panel.querySelector('.rlist');if(l)l.scrollTop=sc;
   }
-  function applyScope(){reconcileSelKnown();S.rows=(S.delivSel==null)?S.allRows.slice():S.allRows.filter(function(r){return S.delivSel.indexOf(r.deliverableType||'')>=0;});if(S.packageSel&&S.packageSel.length){S.rows=S.rows.filter(function(r){return S.packageSel.indexOf(r.packageNo||'')>=0;});}S.rows=S.rows.filter(function(r){return !isRowHidden(r)&&passDateFilter(r)&&passRefFilter(r);});applyFilters();}
+  function applyScope(){reconcileSelKnown();S.rows=(S.delivSel==null)?S.allRows.slice():S.allRows.filter(function(r){return S.delivSel.indexOf(r.deliverableType||'')>=0;});if(S.packageSel){if(S.packageSel.length){S.rows=S.rows.filter(function(r){return S.packageSel.indexOf(r.packageNo||'')>=0;});}else{S.rows=S.rows.filter(function(r){return !String(r.packageNo||'').trim();});}}S.rows=S.rows.filter(function(r){return !isRowHidden(r)&&passDateFilter(r)&&passRefFilter(r);});applyFilters();}
   function distinctPackages(){var m={};S.allRows.forEach(function(r){var p=(S.delivSel==null||S.delivSel.indexOf(r.deliverableType||'')>=0)?(r.packageNo||''):null;if(p!=null&&p!=='')m[p]=1;});return Object.keys(m).sort();}
 
   function fmtDate(v){if(!v)return '';var m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return m[3]+'/'+m[2]+'/'+m[1];var d=new Date(v);if(isNaN(d))return v;return ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear();}
@@ -1217,7 +1220,7 @@
     panel.style.left=Math.max(4,ar.left-wr.left)+'px';panel.style.top=(ar.bottom-wr.top+2)+'px';
   }
   // ---- Package No multi-select (item 9) ----
-  function packageSummary(){var d=distinctPackages();var sel=S.packageSel;if(sel==null||sel.length>=d.length)return 'All ('+d.length+')';if(sel.length===0)return 'None';return sel.length+' of '+d.length;}
+  function packageSummary(){var d=distinctPackages();var sel=S.packageSel;if(sel==null||sel.length>=d.length)return 'All ('+d.length+')';if(sel.length===0)return 'No package';return sel.length+' of '+d.length;}
   function openPackagePanel(anchor){
     var wrapEl=root.getElementById('wrap');
     var ex=root.getElementById('pkpanel');if(ex){ex.remove();return;}
