@@ -16,7 +16,7 @@
   if (window.__MPS_ACONEX && window.__MPS_ACONEX.__live) { window.__MPS_ACONEX.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.50', BUILD_DATE='8 Sep 2026';
+  var VERSION='v12.51', BUILD_DATE='8 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -508,10 +508,10 @@
   }
   function custFieldSelect(){
     var flds=(S.customFields&&S.customFields.length)?S.customFields:[{id:(S.customField||'selectList1'),label:activeFieldLabel(),values:[]}];
-    var sel=el('select',{style:'box-sizing:border-box;height:32px;color:'+ACCENT+';border:2px solid '+ACCENT+';border-radius:5px;padding:0 10px;font-size:12px;font-weight:700;max-width:190px;background:#fff;cursor:pointer;vertical-align:middle',title:'Choose which Aconex field this column shows and filters (saved per project)'});
+    var sel=el('select',{style:'box-sizing:border-box;height:32px;color:'+ACCENT+';border:2px solid '+ACCENT+';border-radius:5px;padding:0 5px;font-size:12px;font-weight:700;max-width:190px;background:#fff;cursor:pointer;vertical-align:middle',title:'Choose which Aconex field this column shows and filters (saved per project)'});
     flds.forEach(function(f){sel.appendChild(el('option',{value:f.id},[f.label]));});
     sel.value=S.customField||flds[0].id;
-    sel.onchange=function(){pickCustField(sel.value);};
+    sel.onchange=function(){pickCustField(sel.value);};try{requestAnimationFrame(function(){try{var tb=sel.closest('.toolbar');var ref=tb&&tb.querySelector('button.pkgbtn');if(ref&&ref.offsetHeight)sel.style.height=ref.offsetHeight+'px';}catch(e){}});}catch(e){}
     return sel;
   }
   function fetchData(){S.loading=true;S.error='';renderAll();return fetchSchema().then(function(){return (function(){function grab(dir){return fetch(apiUrl(dir),{headers:{Accept:'application/xml'},credentials:'include'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.text();}).then(function(b){return [].slice.call(new DOMParser().parseFromString(b,'application/xml').querySelectorAll('Document'));});}
@@ -750,7 +750,7 @@
     +'thead th{position:sticky;top:0;background:'+NAVY+';color:#fff;font-weight:600;z-index:2;user-select:none;padding:4px 6px;text-align:center;vertical-align:middle}'
     +'.statsrow{display:flex;gap:calc(12px*var(--ps,1));padding:calc(10px*var(--ps,1)) calc(12px*var(--hp,1));flex-wrap:wrap}'
     +'.dtlbl{font-weight:700;color:'+NAVY+'}.toolbar select.dtsel{font-weight:700;color:'+NAVY+';border:2px solid '+ACCENT+';background:#fff7f2;padding:4px 10px}'
-    +'.toolbar button.pkgbtn{font-weight:700;color:#0a58c2;border:2px solid #0a84ff;background:#eaf3ff;padding:4px 10px;box-shadow:0 0 0 2px rgba(10,132,255,.12)}.toolbar button.pkgbtn:hover{background:#dcebff;border-color:#0070e0}.dark .toolbar button.pkgbtn{color:#8ec5ff;background:#0e2438;border-color:#2f8bff}'
+    +'.toolbar button.pkgbtn{font-weight:700;color:#0a58c2;border:2px solid #0a84ff;background:#eaf3ff;padding:4px 5px;box-shadow:0 0 0 2px rgba(10,132,255,.12)}.toolbar button.pkgbtn:hover{background:#dcebff;border-color:#0070e0}.dark .toolbar button.pkgbtn{color:#8ec5ff;background:#0e2438;border-color:#2f8bff}'
     +'th .lbl{cursor:grab;display:inline;white-space:normal;overflow-wrap:break-word;word-break:normal;vertical-align:middle}'
     +'th .srt{cursor:pointer;opacity:.6;font-size:10px;margin-left:2px;white-space:nowrap;display:inline-block}th .srt:hover{opacity:1}th .hicons{white-space:nowrap;display:inline-block;vertical-align:middle}'
     +'th.drop{outline:2px dashed '+ACCENT+';outline-offset:-2px}th{position:relative}.rez{position:absolute;right:0;top:0;width:6px;height:100%;cursor:col-resize}'
