@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.51', BUILD_DATE='8 Sep 2026';
+  var VERSION='v12.52', BUILD_DATE='8 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -2025,7 +2025,7 @@ async function fullScan(){
     function q(b, term){
       return fetch('/api/projects/' + pid + '/mail?mail_box=' + b + '&page_size=500&return_fields=' + RF + '&search_query=' + encodeURIComponent(term), { headers: { Accept: 'application/xml' }, credentials: 'include' })
         .then(function(r){ return r.ok ? r.text() : ''; })
-        .then(function(t){ var d = new DOMParser().parseFromString(t, 'application/xml'); return [].slice.call(d.querySelectorAll('Mail')).map(function(m){ function T(s){ var n = m.querySelector(s); return n ? (n.textContent||'').trim() : ''; } return { no: T('MailNo'), subj: T('Subject'), sent: T('SentDate'), ct: T('CorrespondenceType').toLowerCase(), rrq: T('ResponseRequired') }; }); })
+        .then(function(t){ var d = new DOMParser().parseFromString(t, 'application/xml'); return [].slice.call(d.querySelectorAll('Mail')).map(function(m){ function T(s){ var n = m.querySelector(s); return n ? (n.textContent||'').trim() : ''; } return { no: T('MailNo'), subj: T('Subject'), sent: T('SentDate'), ct: T('CorrespondenceType').toLowerCase(), rrq: T('ResponseRequired'), id: m.getAttribute('MailId')||'', box: b }; }); })
         .catch(function(){ return []; });
     }
     var jobs = []; ['sentbox', 'inbox'].forEach(function(b){ TERMS.forEach(function(term){ jobs.push(q(b, term)); }); });
@@ -2046,7 +2046,7 @@ async function fullScan(){
         r.rfiNo = parseRefNo(m.no); r._rfiNoOrig = r.rfiNo; r._seqNo = i + 1; r.aconexRef = m.no; r.sender = sndr(m.no);
         r.dateSent = iso(m.sent); r.dateRespReq = iso(m.rrq); r.dateRespRecd = last;
         r.closed = (resps.length ? 'Closed' : 'Open'); r.description = m.subj;
-        r.mailNo = ''; r.respMailNo = ''; r.type = refType(m.no) || (RFI_T[m.ct] === 'tq' ? 'TQ' : 'RFI');
+        r.mailNo = ''; r.respMailNo = ''; r.type = refType(m.no) || (RFI_T[m.ct] === 'tq' ? 'TQ' : 'RFI'); r._refMailId = m.id || ''; r._refMailbox = (m.box === 'inbox' ? 4 : 5); r._refPid = pid;
         return r;
       });
       applyOverridesToRows(); recomputeAuto(); backfillClosedDates();
