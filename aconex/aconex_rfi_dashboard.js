@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.55', BUILD_DATE='8 Sep 2026';
+  var VERSION='v12.56', BUILD_DATE='8 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -497,12 +497,12 @@
     var lc=L.classList.contains('coll'),rc=R.classList.contains('coll');
     if(H)H.style.display=(lc||rc)?'none':'';
     if(lc||rc){L.style.flex='';R.style.flex='';L.style.maxWidth='';R.style.maxWidth='';return;}
-    var p=chartSplitPct();
+    if(S.chartSplit==null||!isFinite(+S.chartSplit)||Math.abs((+S.chartSplit)-0.5)<1e-6){L.style.flex='1 1 0%';L.style.maxWidth='none';R.style.flex='0 0 540px';R.style.maxWidth='none';return;}var p=chartSplitPct();
     L.style.flex='0 0 calc('+(p*100).toFixed(2)+'% - 5px)';L.style.maxWidth='none';
     R.style.flex='1 1 0%';R.style.maxWidth='none';
   }
   function makeSplitter(){
-    var h=el('div',{class:'csplit',title:'Drag to change how the width is shared between the two chart panels \u00b7 double-click to reset to 50/50'});
+    var h=el('div',{class:'csplit',title:'Drag to change how the width is shared between the two chart panels \u00b7 double-click to reset to the default'});
     h.onmousedown=function(e){
       e.preventDefault();e.stopPropagation();
       var row=h.parentNode;if(!row)return;var rect=row.getBoundingClientRect();
@@ -581,7 +581,7 @@
     +'.toolbar{display:flex;align-items:center;gap:calc(7px*var(--ps,1));padding:calc(6px*var(--ps,1)) calc(12px*var(--hp,1));background:#fff;border-bottom:1px solid '+LINE+';flex-wrap:wrap}'
     +'.toolbar input[type=search],.toolbar select{border:1px solid #cfd8e3;border-radius:5px;padding:4px 8px;font-size:12px}.search{width:220px}'
     +'.cpanel{margin:calc(8px*var(--ps,1)) calc(12px*var(--hp,1)) 0;border:1px solid '+LINE+';border-radius:8px;background:#fff;overflow:hidden}'
-    +'.cpanelhd{display:flex;align-items:center;gap:10px;background:#eef2f7;padding:calc(4px*var(--ps,1)) calc(12px*var(--hp,1));border-bottom:1px solid '+LINE+'}.cptitle{color:#55637a;font-weight:700;letter-spacing:.5px;font-size:11px;text-transform:uppercase}'
+    +'.cpanelhd{display:flex;align-items:center;gap:10px;background:#eef2f7;padding:calc(4px*var(--ps,1)) calc(12px*var(--hp,1));border-bottom:1px solid '+LINE+'}.cgrow2 .cpt{min-width:540px}.cptitle{color:#55637a;font-weight:700;letter-spacing:.5px;font-size:11px;text-transform:uppercase}'
     +'.cpchev{cursor:pointer;color:#8894a6;font-size:11px;line-height:1;user-select:none;width:12px;text-align:center;flex:0 0 auto}.cpchev:hover{color:'+NAVY+'}'
     +'.cpanel.coll .cpbody{display:none}'
     +'.charts{padding:calc(10px*var(--ps,1)) calc(12px*var(--hp,1));background:#fff}'

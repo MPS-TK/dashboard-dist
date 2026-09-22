@@ -16,7 +16,7 @@
   if (window.__MPS_ACONEX && window.__MPS_ACONEX.__live) { window.__MPS_ACONEX.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.55', BUILD_DATE='8 Sep 2026';
+  var VERSION='v12.56', BUILD_DATE='8 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -218,59 +218,42 @@
     function setb(t){if(btn)btn.textContent=t;}
     (async function(){
       try{
-        // Ask per DOCUMENT, not per mail.
-        //
-        // The old crawl listed mail and walked a sentdate window backwards. That cannot
-        // work against this API: page_number is ignored (page 2 returns the identical
-        // 250), every result set is capped at 250, and no sort is applied unless asked,
-        // so the window walked an arbitrary subset and never reached most transmittals.
-        // Measured: today's MPSBE-TRANSMIT-000490 was absent from the very first page the
-        // old code fetched, which is why 20 of 48 ITPs had no transmittal number.
-        //
-        // Searching on the document number returns just the mails that reference that
-        // document, so coverage no longer depends on ordering or paging. Mail old enough
-        // to have fallen out of the search index can still be missed, but anything missed
-        // is OLDER than what comes back, so it can never change a "latest" answer.
-        //
-        // The value taken is the latest transmittal of ANY issuer (MPSBE-TRANSMIT,
-        // BHPCSAMP-TRANSMIT and BHPCSAMP-WTRAN all count) — matched on the correspondence
-        // type rather than a hard-coded prefix, so it holds on other projects too.
-        var rows=S.allRows.slice(), idx=0, done=0, found=0, applied=0, changed=[], nothing=[];
-        async function worker(){
-          while(idx<rows.length){
-            var row=rows[idx++], best=null, bestTs=-1;
-            for(var b=0;b<2;b++){
-              var box=b?'inbox':'sentbox';
-              try{
-                var u='/api/projects/'+pid+'/mail?mail_box='+box+'&page_size=100'
-                     +'&return_fields=docno,sentdate,corrtypeid&search_query='+encodeURIComponent(row.docNo);
-                var r=await fetch(u,{headers:{Accept:'application/xml'},credentials:'include'});
-                if(!r.ok)continue;
-                var dd=new DOMParser().parseFromString(await r.text(),'text/xml');
-                Array.prototype.forEach.call(dd.querySelectorAll('Mail'),function(m){
-                  function t(s){var n=m.querySelector(s);return n?(n.textContent||''):'';}
-                  if(!/transmittal/i.test(t('CorrespondenceType')))return;
-                  var no=t('MailNo'); if(!no)return;
-                  var ts=Date.parse(t('SentDate'))||0;
-                  if(ts>bestTs){bestTs=ts;best=no;}
-                });
-              }catch(e){}
-            }
-            if(best){
-              found++;
-              if(row.transmittalNo!==best){
-                if(row.transmittalNo)changed.push(row.docNo+': '+row.transmittalNo+' -> '+best);
-                row.transmittalNo=best;
-                var o=S.overrides[row.docNo]||(S.overrides[row.docNo]={});
-                o.transmittalNo=best; applied++;
-              }
-            } else nothing.push(row.docNo);
-            done++; if(done%5===0)setb('Syncing… '+done+'/'+rows.length);
-          }
+        // ---- Transmittal crawl (v12.56): read each transmittal's document list ----
+        // The Aconex mail search does NOT match a transmittal by the document numbers it
+        // carries (a search on the doc number returns nothing), so the old per-document
+        // search silently missed transmitted docs. Instead enumerate every Transmittal
+        // correspondence (both boxes; TRANSMIT + WTRAN tokens; sentdate DESC+ASC union to
+        // beat the 250 cap), then read each transmittal's attached DocumentNo list newest
+        // first - the first transmittal that carries a document IS its latest. Any issuer
+        // counts (MPSBE-TRANSMIT, BHPCSAMP-TRANSMIT, BHPCSAMP-WTRAN), matched on the
+        // correspondence type, not a hard-coded prefix.
+        var rows=S.allRows.slice(), found=0, applied=0, changed=[], nothing=[];
+        var need={}; rows.forEach(function(r){if(r.docNo)need[r.docNo]=1;});
+        var remaining=0; for(var _nk in need)remaining++;
+        function _parse(t){var dd=new DOMParser().parseFromString(t,'text/xml');return [].slice.call(dd.querySelectorAll('Mail')).map(function(m){return {id:m.getAttribute('MailId'),ct:((m.querySelector('CorrespondenceType')||{}).textContent||''),no:(m.querySelector('MailNo')||{}).textContent,ts:Date.parse((m.querySelector('SentDate')||{}).textContent)||0};});}
+        function _grab(box,q,dir){var srt=dir?('&sort_field=sentdate&sort_direction='+dir):'';return fetch('/api/projects/'+pid+'/mail?mail_box='+box+'&page_size=500&return_fields=docno,sentdate,corrtypeid&search_query='+encodeURIComponent(q)+srt,{headers:{Accept:'application/xml'},credentials:'include'}).then(function(r){return r.ok?r.text():'';}).then(_parse).catch(function(){return [];});}
+        async function _unionQ(box,q){var a=await _grab(box,q,'DESC');if(a.length<250)return a;var b=await _grab(box,q,'ASC');return a.concat(b);}
+        setb('Finding transmittals...');
+        var _seen={}, trans=[], _boxes=['sentbox','inbox'], _toks=['TRANSMIT','WTRAN'];
+        for(var _bi=0;_bi<_boxes.length;_bi++){for(var _ti=0;_ti<_toks.length;_ti++){(await _unionQ(_boxes[_bi],_toks[_ti])).forEach(function(m){if(m.id&&!_seen[m.id]&&/transmittal/i.test(m.ct)){_seen[m.id]=1;trans.push(m);}});}}
+        trans.sort(function(a,b){return b.ts-a.ts;});
+        function _docsOf(id){return fetch('/api/projects/'+pid+'/mail/'+id,{headers:{Accept:'application/xml'},credentials:'include'}).then(function(r){return r.ok?r.text():'';}).then(function(t){var d=new DOMParser().parseFromString(t,'text/xml');return [].slice.call(d.querySelectorAll('DocumentNo')).map(function(n){return (n.textContent||'').trim();}).filter(Boolean);}).catch(function(){return [];});}
+        var best={}, scanned=0;
+        for(var _i=0;_i<trans.length&&remaining>0;_i+=10){
+          var _chunk=trans.slice(_i,_i+10);
+          var _res=await Promise.all(_chunk.map(function(m){return _docsOf(m.id).then(function(ds){return {m:m,ds:ds};});}));
+          _res.forEach(function(rr){rr.ds.forEach(function(dn){if(need[dn]&&!best[dn]){best[dn]=rr.m.no;remaining--;}});});
+          scanned+=_chunk.length; setb('Reading transmittals... '+scanned+'/'+trans.length);
         }
-        setb('Syncing…');
-        var ws=[]; for(var w=0;w<8;w++)ws.push(worker());
-        await Promise.all(ws);
+        rows.forEach(function(row){
+          var no=best[row.docNo];
+          if(no){found++;
+            if(row.transmittalNo!==no){
+              if(row.transmittalNo)changed.push(row.docNo+': '+row.transmittalNo+' -> '+no);
+              row.transmittalNo=no; var o=S.overrides[row.docNo]||(S.overrides[row.docNo]={}); o.transmittalNo=no; applied++;
+            }
+          } else nothing.push(row.docNo);
+        });
         if(applied){saveOverrides();ghPush();}
         saveTxCache({ts:Date.now(),docs:found});
         applyScope();renderBody();
