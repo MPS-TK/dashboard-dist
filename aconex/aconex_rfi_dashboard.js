@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.53', BUILD_DATE='8 Sep 2026';
+  var VERSION='v12.54', BUILD_DATE='8 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -587,7 +587,7 @@
     +'.charts{padding:calc(10px*var(--ps,1)) calc(12px*var(--hp,1));background:#fff}'
     +'.cgrow{display:flex;gap:12px;align-items:stretch;margin:calc(8px*var(--ps,1)) calc(12px*var(--hp,1)) 0;flex-wrap:wrap}.cgrow>.cpanel{margin:0}.cgrow .cpt{flex:0 0 auto;width:auto;max-width:460px}.cgrow .cpc{flex:1 1 340px;min-width:0}.cgrow>.cpanel.coll{align-self:flex-start}'
     +'.cgrow2{display:flex;gap:0;align-items:stretch;margin:calc(8px*var(--ps,1)) calc(12px*var(--hp,1)) 0;flex-wrap:nowrap}.cgrow2>.cpanel{margin:0;min-width:0}.cgrow2 .cpc{flex:1 1 50%;min-width:0}.cgrow2 .cpt{flex:1 1 50%;min-width:0;max-width:none}.cgrow2>.cpanel.coll{align-self:flex-start;flex:0 0 auto!important;max-width:none}.cgrow2 .doopen{border-top:0}.csplit{flex:0 0 10px;cursor:col-resize;align-self:stretch;position:relative;background:transparent}.csplit:after{content:"";position:absolute;left:4px;top:10px;bottom:10px;width:2px;border-radius:1px;background:'+LINE+'}.csplit:hover:after{background:'+ACCENT+';width:3px;left:3px}.dark .csplit:after{background:#28374a}'
-    +'.chartctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-left:auto}.ccount{font-size:12px;font-weight:700;color:'+NAVY+';background:#fff;border:1px solid '+LINE+';border-radius:5px;padding:3px 9px;white-space:nowrap}'
+    +'.chartctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-left:auto}.chartctl .chip{padding:4px 10px;border-radius:6px;font-size:12px}.ccount{font-size:12px;font-weight:700;color:'+NAVY+';background:#fff;border:1px solid '+LINE+';border-radius:5px;padding:3px 9px;white-space:nowrap}'
     +'.chartsrow{display:flex;justify-content:space-around;align-items:flex-start;gap:10px;width:100%}'
     +'.btn.chart{background:#123a63;color:#fff;border-color:#123a63}.btn.chart:hover{background:#0B2A4A}'
     +'.pchart{flex:1 1 0;min-width:120px;max-width:340px;text-align:center;position:relative;display:flex;flex-direction:column;align-items:center}.pchart svg{overflow:visible}.pctitle{font-size:11px;font-weight:700;margin-bottom:4px;white-space:nowrap}'
@@ -867,7 +867,7 @@
     var statsPanel=makeCPanel('stats','STATS',null,statsBody,'Summary counts for the current view. Roll this up and the charts stay put.');
     content.appendChild(el('div',{class:'cgrow'},[statsPanel]));
     var barBody=el('div',{},[el('div',{class:'doopen',id:'daysopen'})]);
-    var barPanel=makeCPanel('barchart','BAR CHART',null,barBody,'The per-RFI/TQ bar chart — Days Open and the other measures. Click the title to roll this panel up.','BAR CHART');
+    var barPanel=makeCPanel('barchart','BAR CHART',el('div',{class:'chartctl',id:'barctl'}),barBody,'The per-RFI/TQ bar chart — Days Open and the other measures. Click the title to roll this panel up.','BAR CHART');
     barPanel.classList.add('cpc');
     var chartsPanel=makeCPanel('chart',chartPanelTitle(),el('div',{class:'chartctl',id:'chartctl'}),el('div',{class:'charts',id:'chart'}),'Status breakdown of the current view (all statuses). Click the title to roll this panel up.',chartPanelTitle());
     chartsPanel.classList.add('cpt');
@@ -963,11 +963,11 @@
     var def=statDef();
     var btns=el('span',{style:'display:inline-flex;gap:5px;flex-wrap:wrap'});
     STAT_DEFS.forEach(function(sd){btns.appendChild(el('button',{class:'chip'+(S.doStat===sd.key?' active':''),title:'Show '+sd.label,onclick:function(){S.doStat=sd.key;saveCfg();renderDaysOpen();}},[sd.label]));});
-    var sz=el('input',{type:'range',min:'20',max:'240',value:String(Math.round((S.doScale||1)*100)),class:'rng',style:'width:150px',title:'Resize the bars (useful when there are many RFIs/TQs)'});sz.oninput=function(){S.doScale=(+sz.value)/100;saveCfg();drawDaysOpen();};
+    var sz=el('input',{type:'range',min:'20',max:'240',value:String(Math.round((S.doScale||1)*100)),class:'rng',style:'width:130px',title:'Resize the bars (useful when there are many RFIs/TQs)'});sz.oninput=function(){S.doScale=(+sz.value)/100;saveCfg();drawDaysOpen();};
     var hideBtn=el('button',{class:'chip'+(S.doHideClosed?' active':''),title:'Hide the closed RFIs/TQs from this chart (does not change the bar size)',onclick:function(){S.doHideClosed=!S.doHideClosed;saveCfg();renderDaysOpen();}},['Hide Closed']);var afBtn=el('button',{class:'btn sq',title:'Autofit — size the bars so every item fits the panel width',onclick:function(){autofitBars();}},['Autofit']);
     var filBtn=el('button',{id:'dofilt',class:'chip'+(nHid?' active':''),title:'Choose which RFIs/TQs the chart draws \u2014 untick an outlier to read the rest. The register and the tiles are not affected.',onclick:function(){doItemsPanel(filBtn);}},['Items shown'+(nHid?' ('+rows.length+'/'+allRows.length+')':'')]);
     var cntTxt=nHid?(rows.length+' of '+allRows.length+' items'):(rows.length+' item'+(rows.length===1?'':'s'));
-    var hd=el('div',{class:'dohd'},[el('span',{class:'dotitle'},[def.label]),el('span',{class:'muted',style:'font-size:11px'},[cntTxt]),btns,el('span',{style:'margin-left:auto;display:inline-flex;align-items:center;gap:6px'},[filBtn,hideBtn,afBtn,el('span',{class:'muted',style:'font-size:11px'},['Bar Size']),sz])]);
+    var hd=el('div',{class:'dohd'},[el('span',{class:'dotitle'},[def.label]),el('span',{class:'muted',style:'font-size:11px'},[cntTxt]),btns]);var _barctl=root.getElementById('barctl');if(_barctl){_barctl.innerHTML='';[filBtn,hideBtn,afBtn,el('span',{class:'muted',style:'font-size:11px'},['Bar Size']),sz].forEach(function(_x){_barctl.appendChild(_x);});}
     box.appendChild(hd);
     var exp=statExplain(def.key);if(exp)box.appendChild(el('div',{class:'muted',style:'font-size:11px;margin:0 0 5px'},['\u24d8 '+exp]));
     var scroll=el('div',{class:'doscroll',id:'doscroll'});box.appendChild(scroll);
@@ -1008,8 +1008,8 @@
       ctl.appendChild(el('span',{class:'ccount',title:'Entries in the current view'},[String(S.filtered.length)+' · RFI / TQ']));
       var nextLbl=CT_LABEL[S.chartType]||'Bars';
       ctl.appendChild(btn(nextLbl,'Switch the chart to '+nextLbl+' (cycles Donut → Bars → Pie)',function(){S.chartType=CT_NEXT[S.chartType]||'donut';saveCfg();renderChart();},'chart'));
-      ctl.appendChild(el('span',{class:'muted',style:'font-size:11px;margin-left:4px'},['Size']));
-      var sz=el('input',{type:'range',min:'70',max:'240',value:String(Math.round((S.chartScale||1)*100)),class:'rng',title:'Increase or decrease the chart size'});sz.oninput=function(){S.chartScale=(+sz.value)/100;saveCfg();renderChartBody();};
+      ctl.appendChild(btn('Autofit','Autofit \u2014 size the chart to fill the panel',function(){autoSizeChart();},'sq'));ctl.appendChild(el('span',{class:'muted',style:'font-size:11px;margin-left:4px'},['Size']));
+      var sz=el('input',{type:'range',min:'70',max:'240',value:String(Math.round((S.chartScale||1)*100)),class:'rng',style:'width:130px',title:'Increase or decrease the chart size'});sz.oninput=function(){S.chartScale=(+sz.value)/100;saveCfg();renderChartBody();};
       ctl.appendChild(sz);
     }
     renderChartBody();
@@ -1042,7 +1042,7 @@
     var box=root.getElementById('chart');if(!box)return;box.innerHTML='';
     box.appendChild(el('div',{class:'chartsrow'},[ocChart()]));
     var extra=false;S.filtered.forEach(function(r){var st=(r.closed||'').toLowerCase();if(st&&st!=='open'&&st!=='closed')extra=true;});
-    if(extra){box.appendChild(el('div',{class:'chartsrow',style:'margin-top:12px;padding-top:10px;border-top:1px solid '+LINE},[ocChartOC()]));}
+    if(extra){box.appendChild(el('div',{class:'chartsrow'},[ocChartOC()]));}
     autoSizeChart();
   }
   function toggleClosedFilter(v){var cur=S.selFilters.closed;if(cur&&cur.length===1&&cur[0]===v){S.selFilters.closed=null;}else{S.selFilters.closed=[v];}applyFilters();renderStats();renderChart();renderDaysOpen();renderTable();saveCfg();}
