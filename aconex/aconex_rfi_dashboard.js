@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.58', BUILD_DATE='22 Sep 2026';
+  var VERSION='v12.59', BUILD_DATE='22 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -509,16 +509,45 @@
   // v12.20 (f/g): BAR CHART and the status chart sit side by side with a draggable split.
   function chartSplitPct(){var v=+(S.chartSplit);if(!isFinite(v)||v<0.15||v>0.85)v=0.5;return v;}
   function chartPanelTitle(){var t=S.chartType||'donut';return (t==='pie'?'PIE':t==='bar'?'BAR':'DONUT')+' CHART';}
+  // v12.59: the DONUT/BAR/PIE panel header (chevron + title + count/chart/Autofit/Size/slider controls)
+  // must stay on ONE line. We measure the header's natural one-line width in the live browser (correct
+  // font/zoom/content) and use it + 5px as the donut panel's minimum width, applied as an INLINE style so
+  // it wins over the stylesheet (a later '.cgrow2 .cpt{min-width:0}' rule cancels any stylesheet floor).
+  // The user can still drag the splitter to make the donut WIDER; the floor only stops it shrinking so far
+  // the header would wrap to two lines. Falls back to 545px until the header controls exist to measure.
+  function donutHeaderFloor(){
+    try{
+      if(!root)return 545;var cp=root.querySelector('.cgrow2 .cpt');if(!cp)return 545;
+      var hd=cp.querySelector('.cpanelhd');if(!hd)return 545;
+      var ctl=hd.querySelector('.chartctl');if(!ctl||!ctl.children.length)return 545;
+      var prev=ctl.style.flexWrap;ctl.style.flexWrap='nowrap';
+      var cs=getComputedStyle(hd),padL=parseFloat(cs.paddingLeft)||0,padR=parseFloat(cs.paddingRight)||0,gap=parseFloat(cs.columnGap||cs.gap)||0;
+      var kids=[].slice.call(hd.children),sum=0;
+      kids.forEach(function(c){sum+=(c===ctl?c.scrollWidth:c.offsetWidth);});
+      var w=padL+padR+sum+gap*(kids.length>1?kids.length-1:0);
+      ctl.style.flexWrap=prev;
+      var pcs=getComputedStyle(cp);w+=(parseFloat(pcs.borderLeftWidth)||0)+(parseFloat(pcs.borderRightWidth)||0);
+      return Math.ceil(w)+5;
+    }catch(e){return 545;}
+  }
+  function applyDonutFloor(){
+    if(!root)return;var row=root.querySelector('.cgrow2');if(!row)return;
+    var R=row.querySelector('.cpanel.cpt');if(!R)return;
+    if(R.classList.contains('coll')){R.style.minWidth='';return;}
+    var f=donutHeaderFloor();R.style.minWidth=f+'px';
+    if(S.chartSplit==null||!isFinite(+S.chartSplit)||Math.abs((+S.chartSplit)-0.5)<1e-6)R.style.flex='0 0 '+f+'px';
+  }
   function applySplit(){
     if(!root)return;var row=root.querySelector('.cgrow2');if(!row)return;
     var L=row.querySelector('.cpanel.cpc'),R=row.querySelector('.cpanel.cpt'),H=row.querySelector('.csplit');
     if(!L||!R)return;
     var lc=L.classList.contains('coll'),rc=R.classList.contains('coll');
     if(H)H.style.display=(lc||rc)?'none':'';
-    if(lc||rc){L.style.flex='';R.style.flex='';L.style.maxWidth='';R.style.maxWidth='';return;}
-    if(S.chartSplit==null||!isFinite(+S.chartSplit)||Math.abs((+S.chartSplit)-0.5)<1e-6){L.style.flex='1 1 0%';L.style.maxWidth='none';R.style.flex='0 0 600px';R.style.maxWidth='none';return;}var p=chartSplitPct();
+    if(lc||rc){L.style.flex='';R.style.flex='';L.style.maxWidth='';R.style.maxWidth='';R.style.minWidth='';return;}
+    var floor=donutHeaderFloor();
+    if(S.chartSplit==null||!isFinite(+S.chartSplit)||Math.abs((+S.chartSplit)-0.5)<1e-6){L.style.flex='1 1 0%';L.style.maxWidth='none';R.style.flex='0 0 '+floor+'px';R.style.maxWidth='none';R.style.minWidth=floor+'px';return;}var p=chartSplitPct();
     L.style.flex='0 0 calc('+(p*100).toFixed(2)+'% - 5px)';L.style.maxWidth='none';
-    R.style.flex='1 1 0%';R.style.maxWidth='none';
+    R.style.flex='1 1 0%';R.style.maxWidth='none';R.style.minWidth=floor+'px';
   }
   function makeSplitter(){
     var h=el('div',{class:'csplit',title:'Drag to change how the width is shared between the two chart panels \u00b7 double-click to reset to the default'});
@@ -1031,7 +1060,7 @@
       var sz=el('input',{type:'range',min:'70',max:'240',value:String(Math.round((S.chartScale||1)*100)),class:'rng',style:'width:130px',title:'Increase or decrease the chart size'});sz.oninput=function(){S.chartScale=(+sz.value)/100;saveCfg();renderChartBody();};
       ctl.appendChild(sz);
     }
-    renderChartBody();
+    renderChartBody();try{applyDonutFloor();}catch(e){}
   }
   function statusRank(v){var i=(S.statusList||STATUS_WORKFLOW).map(function(s){return s.toLowerCase();}).indexOf(String(v||'').toLowerCase());return i<0?999:i;}
   function scCounts(){var c={};S.filtered.forEach(function(r){var k=r.closed||'—';c[k]=(c[k]||0)+1;});return c;}
