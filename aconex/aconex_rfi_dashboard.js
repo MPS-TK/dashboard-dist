@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.57', BUILD_DATE='22 Sep 2026';
+  var VERSION='v12.58', BUILD_DATE='22 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -299,6 +299,25 @@
     if(changed){saveOverrides();ghPush();recomputeAuto();}
   }
   function isClosed(r){return String(r.closed||'').toLowerCase()==='closed';}
+  // v12.58: reconcile every row currently showing Open against Aconex's own Mail Status.
+  // The register's Open/Closed is a manual workflow field, so a stale manual "Open" (left on an
+  // RFI/TQ after it was Closed-Out in Aconex) keeps a resolved item showing Open. On load we read
+  // each Open row's authoritative Aconex Mail Status (the mail-level <Status> on the mail detail:
+  // "Closed-Out"/"Closed") and flip it to Closed when Aconex has closed it. Rows parked at a manual
+  // hold ("MPS to Review"/"MPS to Review2") are not Open, so they are never touched. Display-only:
+  // nothing is written to team-sync, so every user's dashboard self-corrects on load.
+  function reconcileAconexStatus(){
+    if(!S.allRows||!S.allRows.length||S._acStatusRunning)return;
+    var targets=S.allRows.filter(function(r){return String(r.closed||'').toLowerCase()==='open'&&r._refMailId;});
+    if(!targets.length)return;
+    S._acStatusRunning=true;
+    function mailStatus(el){if(!el)return '';var c=el.children||[];for(var i=0;i<c.length;i++){if(c[i].tagName==='Status')return (c[i].textContent||'').trim();}return '';}
+    function det(pid,id){return fetch('/api/projects/'+pid+'/mail/'+id,{headers:{Accept:'application/xml'},credentials:'include'}).then(function(r){return r.status===200?r.text():'';}).then(function(t){if(!t)return null;try{return new DOMParser().parseFromString(t,'text/xml').documentElement;}catch(e){return null;}}).catch(function(){return null;});}
+    var i=0,changed=0;
+    function worker(){if(i>=targets.length)return Promise.resolve();var r=targets[i++],pid=r._refPid||CFG.projectId;return det(pid,r._refMailId).then(function(el){var s=mailStatus(el).toLowerCase();if(s&&s.indexOf('clos')>=0){r.closed='Closed';if(!r.dateClosed&&r.dateRespRecd)r.dateClosed=r.dateRespRecd;changed++;}}).then(worker);}
+    var n=Math.min(4,targets.length),ws=[];for(var w=0;w<n;w++)ws.push(worker());
+    return Promise.all(ws).then(function(){S._acStatusRunning=false;if(changed){recomputeAuto();applyScope();renderAll();}}).catch(function(){S._acStatusRunning=false;});
+  }
   function statusOptions(){var out=(S.statusList&&S.statusList.length?S.statusList.slice():STATUS_WORKFLOW.slice());return out;}
   function addStatus(name){name=String(name||'').trim();if(!name)return false;if(!S.statusList)S.statusList=STATUS_WORKFLOW.slice();var low=name.toLowerCase();for(var i=0;i<S.statusList.length;i++)if(S.statusList[i].toLowerCase()===low)return false;S.statusList.push(name);saveCfg();return true;}
   function colLabel(k){return (S.colNames&&S.colNames[k])||(COLDEF[k]&&COLDEF[k].label)||k;}
@@ -2072,7 +2091,7 @@ async function fullScan(){
       });
       applyOverridesToRows(); recomputeAuto(); backfillClosedDates();
       S.loading = false; rfiCheckNew(); try{gdefApplyNew();}catch(e){} applyScope(); renderAll();
-      if (ghToken()) ghLoad().then(function(){ applyOverridesToRows(); recomputeAuto(); applyScope(); renderAll(); });
+      if (ghToken()) ghLoad().then(function(){ applyOverridesToRows(); recomputeAuto(); applyScope(); renderAll(); reconcileAconexStatus(); }); else reconcileAconexStatus();
       if (ghToken()) gdefLoad().then(function(ap){ if(ap){ applyScope(); renderAll(); } });
     }).catch(function(e){ S.loading = false; S.error = String(e && e.message || e); renderAll(); });
   }
