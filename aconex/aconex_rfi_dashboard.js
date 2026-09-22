@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.56', BUILD_DATE='8 Sep 2026';
+  var VERSION='v12.57', BUILD_DATE='22 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -408,7 +408,7 @@
           function fill(field,val){if(val==null||val==='')return;if(ov[field]!=null&&ov[field]!=='')return;if(row[field]===val)return;row[field]=val;applied++;}
           if(rfi){fill('dateSent',(rfi.sd||'').slice(0,10));fill('description',rfi.subj);if(rfi.from)fill('sender',rfi.from);if(rfi.respReq)fill('dateRespReq',(rfi.respReq||'').slice(0,10));}
           var origin=byRef[key];
-          if(origin){var seen2={},grp=[];threadOf(origin.id).forEach(function(m){if(!seen2[m.id]){seen2[m.id]=1;grp.push(m);}});(bySubj[nsub(origin.subj)]||[]).forEach(function(m){if(!seen2[m.id]){seen2[m.id]=1;grp.push(m);}});var srt=function(a,b){return a.sd<b.sd?-1:a.sd>b.sd?1:0;};var mpsAll=grp.filter(function(m){return m.org==='MPS';}).sort(srt);var bhpAll=grp.filter(function(m){return m.org==='BHP';}).sort(srt);row._mpsMails=mpsAll.map(function(m){return m.mno;});row._bhpMails=bhpAll.map(function(m){return m.mno;});var lm=mpsAll.length?mpsAll[mpsAll.length-1]:null,lb=bhpAll.length?bhpAll[bhpAll.length-1]:null;if(lm)fill('mailNo',lm.mno);if(lb)fill('respMailNo',lb.mno);var mpsResp=mpsAll.filter(function(m){return m.id!==origin.id;});row._autoFu1=mpsResp[0]?(mpsResp[0].sd||'').slice(0,10):'';row._autoFu2=mpsResp[1]?(mpsResp[1].sd||'').slice(0,10):'';row._refMailId=origin.id;row._refMailbox=(origin.org==='MPS'?5:4);row._refPid=pid;xData[key]={p:row.mailNo||'',q:row.respMailNo||'',mps:row._mpsMails,bhp:row._bhpMails,fu1:row._autoFu1,fu2:row._autoFu2,rid:row._refMailId,rbox:row._refMailbox,pid:row._refPid};try{var _cx=JSON.parse(localStorage.getItem(('mps_aconex_rfi_xdata_'+CFG.mpsProjectNo))||'{}');for(var _k in xData)_cx[_k]=Object.assign(_cx[_k]||{},xData[_k]);localStorage.setItem(('mps_aconex_rfi_xdata_'+CFG.mpsProjectNo),JSON.stringify(_cx));}catch(e){}}
+          if(origin){var seen2={},grp=[];threadOf(origin.id).forEach(function(m){if(!seen2[m.id]){seen2[m.id]=1;grp.push(m);}});(bySubj[nsub(origin.subj)]||[]).forEach(function(m){if(!seen2[m.id]){seen2[m.id]=1;grp.push(m);}});var srt=function(a,b){return a.sd<b.sd?-1:a.sd>b.sd?1:0;};var mpsAll=grp.filter(function(m){return m.org==='MPS';}).sort(srt);var bhpAll=grp.filter(function(m){return m.org==='BHP';}).sort(srt);row._mpsMails=mpsAll.map(function(m){return m.mno;});row._bhpMails=bhpAll.map(function(m){return m.mno;});var _oorg=origin.org,_gall=grp.slice().sort(srt),_gresp=grp.filter(function(m){return m.org&&_oorg&&m.org!==_oorg;}).sort(srt);var lm=_gall.length?_gall[0]:null,lb=_gresp.length?_gresp[_gresp.length-1]:null;if(lm)fill('mailNo',lm.mno);if(lb)fill('respMailNo',lb.mno);var mpsResp=mpsAll.filter(function(m){return m.id!==origin.id;});row._autoFu1=mpsResp[0]?(mpsResp[0].sd||'').slice(0,10):'';row._autoFu2=mpsResp[1]?(mpsResp[1].sd||'').slice(0,10):'';row._refMailId=origin.id;row._refMailbox=(origin.org==='MPS'?5:4);row._refPid=pid;xData[key]={p:row.mailNo||'',q:row.respMailNo||'',mps:row._mpsMails,bhp:row._bhpMails,fu1:row._autoFu1,fu2:row._autoFu2,rid:row._refMailId,rbox:row._refMailbox,pid:row._refPid};try{var _cx=JSON.parse(localStorage.getItem(('mps_aconex_rfi_xdata_'+CFG.mpsProjectNo))||'{}');for(var _k in xData)_cx[_k]=Object.assign(_cx[_k]||{},xData[_k]);localStorage.setItem(('mps_aconex_rfi_xdata_'+CFG.mpsProjectNo),JSON.stringify(_cx));}catch(e){}}
           var rp=respByRef[key];
           if(rp){fill('dateRespRecd',(rp.sd||'').slice(0,10));}
         });
@@ -497,7 +497,7 @@
     var lc=L.classList.contains('coll'),rc=R.classList.contains('coll');
     if(H)H.style.display=(lc||rc)?'none':'';
     if(lc||rc){L.style.flex='';R.style.flex='';L.style.maxWidth='';R.style.maxWidth='';return;}
-    if(S.chartSplit==null||!isFinite(+S.chartSplit)||Math.abs((+S.chartSplit)-0.5)<1e-6){L.style.flex='1 1 0%';L.style.maxWidth='none';R.style.flex='0 0 540px';R.style.maxWidth='none';return;}var p=chartSplitPct();
+    if(S.chartSplit==null||!isFinite(+S.chartSplit)||Math.abs((+S.chartSplit)-0.5)<1e-6){L.style.flex='1 1 0%';L.style.maxWidth='none';R.style.flex='0 0 600px';R.style.maxWidth='none';return;}var p=chartSplitPct();
     L.style.flex='0 0 calc('+(p*100).toFixed(2)+'% - 5px)';L.style.maxWidth='none';
     R.style.flex='1 1 0%';R.style.maxWidth='none';
   }
@@ -581,7 +581,7 @@
     +'.toolbar{display:flex;align-items:center;gap:calc(7px*var(--ps,1));padding:calc(6px*var(--ps,1)) calc(12px*var(--hp,1));background:#fff;border-bottom:1px solid '+LINE+';flex-wrap:wrap}'
     +'.toolbar input[type=search],.toolbar select{border:1px solid #cfd8e3;border-radius:5px;padding:4px 8px;font-size:12px}.search{width:220px}'
     +'.cpanel{margin:calc(8px*var(--ps,1)) calc(12px*var(--hp,1)) 0;border:1px solid '+LINE+';border-radius:8px;background:#fff;overflow:hidden}'
-    +'.cpanelhd{display:flex;align-items:center;gap:10px;background:#eef2f7;padding:calc(4px*var(--ps,1)) calc(12px*var(--hp,1));border-bottom:1px solid '+LINE+'}.cgrow2 .cpt{min-width:540px}.cptitle{color:#55637a;font-weight:700;letter-spacing:.5px;font-size:11px;text-transform:uppercase}'
+    +'.cpanelhd{display:flex;align-items:center;gap:10px;background:#eef2f7;padding:calc(4px*var(--ps,1)) calc(12px*var(--hp,1));border-bottom:1px solid '+LINE+'}.cgrow2 .cpt{min-width:600px}.cptitle{color:#55637a;font-weight:700;letter-spacing:.5px;font-size:11px;text-transform:uppercase;white-space:nowrap;flex:0 0 auto}'
     +'.cpchev{cursor:pointer;color:#8894a6;font-size:11px;line-height:1;user-select:none;width:12px;text-align:center;flex:0 0 auto}.cpchev:hover{color:'+NAVY+'}'
     +'.cpanel.coll .cpbody{display:none}'
     +'.charts{padding:calc(10px*var(--ps,1)) calc(12px*var(--hp,1));background:#fff}'
@@ -1466,8 +1466,9 @@ async function fullScan(){
         var bhp=mem.filter(function(m){return m.org==='BHP';}).sort(function(a,b){return a.sd<b.sd?-1:a.sd>b.sd?1:0;});
         r._mpsMails=mps.map(function(m){return m.mno;});r._bhpMails=bhp.map(function(m){return m.mno;});
         var ov=S.overrides[rowKey(r)]||{};
-        if(mps.length&&(ov.mailNo==null||ov.mailNo===''))r.mailNo=mps[mps.length-1].mno;
-        if(bhp.length&&(ov.respMailNo==null||ov.respMailNo===''))r.respMailNo=bhp[bhp.length-1].mno;
+        var _asc=function(a,b){return a.sd<b.sd?-1:a.sd>b.sd?1:0;};var _allS=mem.slice().sort(_asc);var _oorg=(r.__o&&r.__o.org)||'';var _resp=mem.filter(function(m){return m.org&&_oorg&&m.org!==_oorg;}).sort(_asc);var _first=_allS.length?_allS[0]:null,_lastR=_resp.length?_resp[_resp.length-1]:null;
+        if(_first&&(ov.mailNo==null||ov.mailNo===''))r.mailNo=_first.mno;
+        if(_lastR&&(ov.respMailNo==null||ov.respMailNo===''))r.respMailNo=_lastR.mno;
         var mpsResp=mps.filter(function(m){return m.id!==r.__o.id;});
         r._autoFu1=mpsResp[0]?(mpsResp[0].sd||'').slice(0,10):'';r._autoFu2=mpsResp[1]?(mpsResp[1].sd||'').slice(0,10):'';
         updates[normRef(r.aconexRef)]={p:r.mailNo||'',q:r.respMailNo||'',mps:r._mpsMails,bhp:r._bhpMails,fu1:r._autoFu1,fu2:r._autoFu2,rid:r._refMailId,rbox:r._refMailbox,pid:r._refPid};
@@ -2060,11 +2061,13 @@ async function fullScan(){
       S.allRows = initials.map(function(m, i){
         var r = {}; MANUAL_FIELDS.forEach(function(k){ r[k] = ''; });
         var resps = respBy[ns(m.subj)] || [];
-        var last = resps.map(function(x){ return iso(x.sent); }).sort().slice(-1)[0] || '';
+        var respsSorted = resps.slice().sort(function(a,b){ return iso(a.sent).localeCompare(iso(b.sent)); });
+        var last = respsSorted.length ? iso(respsSorted[respsSorted.length-1].sent) : '';
+        var lastRespNo = respsSorted.length ? respsSorted[respsSorted.length-1].no : '';
         r.rfiNo = parseRefNo(m.no); r._rfiNoOrig = r.rfiNo; r._seqNo = i + 1; r.aconexRef = m.no; r.sender = sndr(m.no);
         r.dateSent = iso(m.sent); r.dateRespReq = iso(m.rrq); r.dateRespRecd = last;
         r.closed = (resps.length ? 'Closed' : 'Open'); r.description = m.subj;
-        r.mailNo = ''; r.respMailNo = ''; r.type = refType(m.no) || (RFI_T[m.ct] === 'tq' ? 'TQ' : 'RFI'); r._refMailId = m.id || ''; r._refMailbox = (m.box === 'inbox' ? 4 : 5); r._refPid = pid;
+        r.mailNo = m.no; r.respMailNo = lastRespNo; r.type = refType(m.no) || (RFI_T[m.ct] === 'tq' ? 'TQ' : 'RFI'); r._refMailId = m.id || ''; r._refMailbox = (m.box === 'inbox' ? 4 : 5); r._refPid = pid;
         return r;
       });
       applyOverridesToRows(); recomputeAuto(); backfillClosedDates();

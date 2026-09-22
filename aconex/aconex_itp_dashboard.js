@@ -16,7 +16,7 @@
   if (window.__MPS_ACONEX && window.__MPS_ACONEX.__live) { window.__MPS_ACONEX.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.56', BUILD_DATE='8 Sep 2026';
+  var VERSION='v12.57', BUILD_DATE='22 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -950,7 +950,7 @@
     ]));
     apvRenderDropdown();apvBindSelSwap();
     // toolbar
-    var search=el('input',{type:'search',class:'search',title:'Search across all columns',placeholder:'⌕ Search ITPs…',value:S.globalSearch});search.oninput=function(){S.globalSearch=search.value;applyFilters();renderBody();renderCharts();saveCfg();};
+    var search=el('input',{type:'search',class:'search',title:'Search across all columns',placeholder:'⌕ Search '+activeFieldLabel()+'…',value:S.globalSearch});search.oninput=function(){S.globalSearch=search.value;applyFilters();renderBody();renderCharts();saveCfg();};
     var dsel=(function(){var ds=el('span',{id:'dtsum'},[delivSummary()]);var b=el('button',{class:'btn pkgbtn',style:'border-color:'+ACCENT+';color:'+ACCENT,title:'Filter the register by the values of the field selected on its left',onclick:function(){openDelivPanel(b);}},[ds,el('span',{style:'margin-left:5px;color:'+ACCENT},['\u25be'])]);return b;})();
     var rng=el('input',{type:'range',min:'0',max:'12',value:String(S.rowPad),class:'rng',title:'Row height — drag left to pack rows tightly together'});rng.oninput=function(){S.rowPad=+rng.value;saveCfg();renderBody();};
     var fontGroup=el('span',{style:'display:inline-flex;align-items:center;gap:3px',title:'Table font size'},[
