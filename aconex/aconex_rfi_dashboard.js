@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.59', BUILD_DATE='22 Sep 2026';
+  var VERSION='v12.60', BUILD_DATE='22 Sep 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -316,7 +316,7 @@
     var i=0,changed=0;
     function worker(){if(i>=targets.length)return Promise.resolve();var r=targets[i++],pid=r._refPid||CFG.projectId;return det(pid,r._refMailId).then(function(el){var s=mailStatus(el).toLowerCase();if(s&&s.indexOf('clos')>=0){r.closed='Closed';if(!r.dateClosed&&r.dateRespRecd)r.dateClosed=r.dateRespRecd;changed++;}}).then(worker);}
     var n=Math.min(4,targets.length),ws=[];for(var w=0;w<n;w++)ws.push(worker());
-    return Promise.all(ws).then(function(){S._acStatusRunning=false;if(changed){recomputeAuto();applyScope();renderAll();}}).catch(function(){S._acStatusRunning=false;});
+    return Promise.all(ws).then(function(){S._acStatusRunning=false;if(changed){recomputeAuto();applyScope();renderStats();renderChart();renderDaysOpen();renderBody();}}).catch(function(){S._acStatusRunning=false;});
   }
   function statusOptions(){var out=(S.statusList&&S.statusList.length?S.statusList.slice():STATUS_WORKFLOW.slice());return out;}
   function addStatus(name){name=String(name||'').trim();if(!name)return false;if(!S.statusList)S.statusList=STATUS_WORKFLOW.slice();var low=name.toLowerCase();for(var i=0;i<S.statusList.length;i++)if(S.statusList[i].toLowerCase()===low)return false;S.statusList.push(name);saveCfg();return true;}
@@ -520,12 +520,13 @@
       if(!root)return 545;var cp=root.querySelector('.cgrow2 .cpt');if(!cp)return 545;
       var hd=cp.querySelector('.cpanelhd');if(!hd)return 545;
       var ctl=hd.querySelector('.chartctl');if(!ctl||!ctl.children.length)return 545;
-      var prev=ctl.style.flexWrap;ctl.style.flexWrap='nowrap';
+      var pw=ctl.style.width,pmw=ctl.style.maxWidth,pfw=ctl.style.flexWrap,pfx=ctl.style.flex;
+      ctl.style.flexWrap='nowrap';ctl.style.flex='0 0 auto';ctl.style.maxWidth='none';ctl.style.width='max-content';
       var cs=getComputedStyle(hd),padL=parseFloat(cs.paddingLeft)||0,padR=parseFloat(cs.paddingRight)||0,gap=parseFloat(cs.columnGap||cs.gap)||0;
       var kids=[].slice.call(hd.children),sum=0;
-      kids.forEach(function(c){sum+=(c===ctl?c.scrollWidth:c.offsetWidth);});
+      kids.forEach(function(c){sum+=c.offsetWidth;});
       var w=padL+padR+sum+gap*(kids.length>1?kids.length-1:0);
-      ctl.style.flexWrap=prev;
+      ctl.style.width=pw;ctl.style.maxWidth=pmw;ctl.style.flexWrap=pfw;ctl.style.flex=pfx;
       var pcs=getComputedStyle(cp);w+=(parseFloat(pcs.borderLeftWidth)||0)+(parseFloat(pcs.borderRightWidth)||0);
       return Math.ceil(w)+5;
     }catch(e){return 545;}
@@ -1483,7 +1484,7 @@ async function mpsMailSearch(pid,box,q){try{var u='/api/projects/'+pid+'/mail?ma
 async function mpsPool(items,worker,conc){var i=0;async function nx(){if(i>=items.length)return;var idx=i++;try{await worker(items[idx]);}catch(e){}return nx();}var st=[];for(var c=0;c<Math.min(conc,items.length);c++)st.push(nx());await Promise.all(st);}
 async function mpsRfiThread(pid,originId,cache){cache=cache||{};var od=await mpsMailXml(pid,originId);if(!od)return null;var ns=mpsTxt(od,'Subject').replace(/^(\s*(re|fw|fwd)\s*:\s*)+/i,'').trim();var det=cache[ns];if(!det){det={};var ids={};ids[originId]=1;(await mpsMailSearch(pid,'sentbox',ns)).forEach(function(x){ids[x]=1;});(await mpsMailSearch(pid,'inbox',ns)).forEach(function(x){ids[x]=1;});var arr=Object.keys(ids).slice(0,150);await mpsPool(arr,async function(id){var d=await mpsMailXml(pid,id);if(d)det[id]={no:mpsTxt(d,'MailNo'),inref:mpsTxt(d,'InRefToMailId'),date:(mpsTxt(d,'SentDate')||'').slice(0,10)};},6);cache[ns]=det;}if(!det[originId])det[originId]={no:mpsTxt(od,'MailNo'),inref:mpsTxt(od,'InRefToMailId'),date:(mpsTxt(od,'SentDate')||'').slice(0,10)};function ownerOf(id){var cur=id,g=0,seen={};while(cur&&det[cur]&&g<30){if(mpsIsRFIroot(det[cur].no))return cur;var nx2=det[cur].inref;if(!nx2||seen[nx2]||!det[nx2])break;seen[nx2]=1;cur=nx2;g++;}return null;}var mine=Object.keys(det).filter(function(id){return ownerOf(id)===originId;});if(mine.indexOf(originId)<0)mine.push(originId);mine.sort(function(a,b){return (det[a].date||'').localeCompare(det[b].date||'');});var corr=mine.map(function(id){return {n:det[id].no,d:det[id].date,o:mpsOrg(det[id].no),id:id};}).filter(function(c){return c.n;});var mps=corr.filter(function(c){return c.o==='MPS';});var bhp=corr.filter(function(c){return c.o==='BHP';});var oNo=det[originId].no;var mpsAfter=mps.filter(function(c){return c.n!==oNo;});return {mps:mps.map(function(c){return c.n;}),bhp:bhp.map(function(c){return c.n;}),corr:corr,fu1:(mpsAfter[0]?mpsAfter[0].d:''),fu2:(mpsAfter[1]?mpsAfter[1].d:'')};}
 function mpsRfiApplyCorr(xd){try{var rows=(S&&S.allRows)||[];for(var i=0;i<rows.length;i++){var row=rows[i];var k=normRef(row.aconexRef);var e=xd[k];if(!e)continue;if(e.corr)row._corr=e.corr;if(e.mps)row._mpsMails=e.mps;if(e.bhp)row._bhpMails=e.bhp;if(e.mps&&e.bhp)row.totalCorr=e.mps.length+e.bhp.length;}try{recomputeAuto();}catch(e){}try{renderBody();}catch(e){}}catch(e){}}
-async function mpsRfiCorrectAll(force){try{if(mpsRfiCorrectAll._busy)return;var rows=(S&&S.allRows)||[];if(!rows.length)return;var XK=('mps_aconex_rfi_xdata_'+CFG.mpsProjectNo);var xd={};try{xd=JSON.parse(localStorage.getItem(XK)||'{}')||{};}catch(e){}var pid=mpsPidGuess();if(!force&&xd.__corr&&xd.__corr.ver>=11&&(!xd.__corr.pid||xd.__corr.pid===pid)){mpsRfiApplyCorr(xd);return;}mpsRfiCorrectAll._busy=1;if(typeof resolveRefLinks==='function'){try{await resolveRefLinks();}catch(e){}}mpsDetectPfxFromRows();var cache={};var updates={};for(var i=0;i<rows.length;i++){var row=rows[i];var oid=row._refMailId;if(!oid)continue;var res=null;try{res=await mpsRfiThread(pid,String(oid),cache);}catch(e){}if(!res)continue;var key=normRef(row.aconexRef);var ex=xd[key]||{};updates[key]=Object.assign({},ex,{mps:res.mps,bhp:res.bhp,corr:res.corr,fu1:res.fu1||ex.fu1,fu2:res.fu2||ex.fu2});row._mpsMails=res.mps;row._bhpMails=res.bhp;row._corr=res.corr;if(res.fu1)row._autoFu1=res.fu1;if(res.fu2)row._autoFu2=res.fu2;row.totalCorr=res.mps.length+res.bhp.length;}updates.__corr={ver:11,ts:Date.now(),pid:pid};try{if(typeof saveXDataMerge==='function'){saveXDataMerge(updates);}else{Object.keys(updates).forEach(function(k){xd[k]=updates[k];});localStorage.setItem(XK,JSON.stringify(xd));}}catch(e){try{Object.keys(updates).forEach(function(k){xd[k]=updates[k];});localStorage.setItem(XK,JSON.stringify(xd));}catch(_){}}try{recomputeAuto();}catch(e){}try{renderStats();}catch(e){}try{renderChart();}catch(e){}try{renderDaysOpen();}catch(e){}try{renderBody();}catch(e){}mpsRfiCorrectAll._busy=0;}catch(e){mpsRfiCorrectAll._busy=0;}}
+async function mpsRfiCorrectAll(force){try{if(mpsRfiCorrectAll._busy)return;var rows=(S&&S.allRows)||[];if(!rows.length)return;var XK=('mps_aconex_rfi_xdata_'+CFG.mpsProjectNo);var xd={};try{xd=JSON.parse(localStorage.getItem(XK)||'{}')||{};}catch(e){}var pid=mpsPidGuess();if(!force&&xd.__corr&&xd.__corr.ver>=11&&(!xd.__corr.pid||xd.__corr.pid===pid)){mpsRfiApplyCorr(xd);return;}mpsRfiCorrectAll._busy=1;if(typeof resolveRefLinks==='function'){try{await resolveRefLinks();}catch(e){}}mpsDetectPfxFromRows();var cache={};var updates={};for(var i=0;i<rows.length;i++){var row=rows[i];var oid=row._refMailId;if(!oid)continue;var res=null;try{res=await mpsRfiThread(pid,String(oid),cache);}catch(e){}if(!res)continue;var key=normRef(row.aconexRef);var ex=xd[key]||{};updates[key]=Object.assign({},ex,{mps:res.mps,bhp:res.bhp,corr:res.corr,fu1:res.fu1||ex.fu1,fu2:res.fu2||ex.fu2});row._mpsMails=res.mps;row._bhpMails=res.bhp;row._corr=res.corr;if(res.fu1)row._autoFu1=res.fu1;if(res.fu2)row._autoFu2=res.fu2;row.totalCorr=res.mps.length+res.bhp.length;}updates.__corr={ver:11,ts:Date.now(),pid:pid};try{if(typeof saveXDataMerge==='function'){saveXDataMerge(updates);}else{Object.keys(updates).forEach(function(k){xd[k]=updates[k];});localStorage.setItem(XK,JSON.stringify(xd));}}catch(e){try{Object.keys(updates).forEach(function(k){xd[k]=updates[k];});localStorage.setItem(XK,JSON.stringify(xd));}catch(_){}}try{recomputeAuto();}catch(e){}try{renderStats();}catch(e){}try{renderDaysOpen();}catch(e){}try{renderBody();}catch(e){}mpsRfiCorrectAll._busy=0;}catch(e){mpsRfiCorrectAll._busy=0;}}
 function mpsRfiSR(){var els=document.querySelectorAll('*');for(var i=0;i<els.length;i++){var sr=els[i].shadowRoot;if(sr){var tc=sr.textContent||'';if(sr.querySelector('th')&&tc.indexOf('Aconex Reference No')>=0&&tc.indexOf('Follow up Sent Date')>=0)return sr;}}return null;}
 function mpsRfiPop(anchor,corr,pid){try{var old=document.getElementById('mps-ij-pop');if(old)old.remove();var box=document.createElement('div');box.id='mps-ij-pop';box.style.cssText='position:fixed;z-index:2147483647;background:#fff;border:1px solid #cfd6dd;border-radius:4px;box-shadow:0 4px 14px rgba(0,0,0,.18);padding:4px 0;font:12px/1.5 Arial,Helvetica,sans-serif;color:#1f2d3d;min-width:170px;max-height:260px;overflow:auto;';corr.forEach(function(c){var a=document.createElement('a');a.textContent=c.n;a.title=c.o+' \u2022 '+(c.d||'');a.href=(c.id?('https://au1.aconex.com/ViewCorrespondence?Correspondence_ID='+c.id+'&CORRESPONDENCE_MAILBOX='+(c.o==='MPS'?'5':'4')+'&PROJECT_ID='+pid):'#');a.target='_blank';a.rel='noopener';a.style.cssText='display:block;padding:3px 12px;text-decoration:none;color:'+(c.o==='BHP'?'#b8541a':'#1f6fb2')+';white-space:nowrap;';a.addEventListener('mouseenter',function(){a.style.background='#f0f4f8';});a.addEventListener('mouseleave',function(){a.style.background='';});box.appendChild(a);});document.body.appendChild(box);var rc=anchor.getBoundingClientRect();box.style.left=Math.max(4,Math.min(rc.left,window.innerWidth-box.offsetWidth-8))+'px';box.style.top=(rc.bottom+2)+'px';setTimeout(function(){document.addEventListener('click',function h(){var b=document.getElementById('mps-ij-pop');if(b)b.remove();document.removeEventListener('click',h);});},0);}catch(e){}}
 function mpsRfiIJ(td,row,dateVal,pid){try{if(!td||td.getAttribute('data-mps-ij'))return;var day=mpsDay(dateVal);if(!day)return;var corr=(row._corr||[]).filter(function(c){return mpsDay(c.d)===day;});if(!corr.length)return;td.setAttribute('data-mps-ij','1');td.style.position='relative';var car=document.createElement('span');car.textContent=' \u25be';car.title=corr.length+' correspondence on this date';car.style.cssText='cursor:pointer;color:#8a939b;font-size:10px;margin-left:2px;user-select:none;';car.addEventListener('click',function(ev){ev.stopPropagation();mpsRfiPop(car,corr,pid);});td.appendChild(car);}catch(e){}}
@@ -1523,7 +1524,7 @@ async function fullScan(){
       });
       updates.__full={ver:10,ts:Date.now()};
       saveXDataMerge(updates);
-      try{recomputeAuto();renderStats();renderChart();renderDaysOpen();renderBody();}catch(e){}
+      try{recomputeAuto();renderStats();renderDaysOpen();renderBody();}catch(e){}
     }catch(e){}
     S._fullScanning=false;
   }
@@ -2119,9 +2120,18 @@ async function fullScan(){
         return r;
       });
       applyOverridesToRows(); recomputeAuto(); backfillClosedDates();
-      S.loading = false; rfiCheckNew(); try{gdefApplyNew();}catch(e){} applyScope(); renderAll();
-      if (ghToken()) ghLoad().then(function(){ applyOverridesToRows(); recomputeAuto(); applyScope(); renderAll(); reconcileAconexStatus(); }); else reconcileAconexStatus();
-      if (ghToken()) gdefLoad().then(function(ap){ if(ap){ applyScope(); renderAll(); } });
+      S.loading = false; rfiCheckNew(); try{gdefApplyNew();}catch(e){}
+      // v12.60: render the charts ONCE in final form. Fold the initial paint together with the
+      // fast team-sync (ghLoad) and global-default (gdefLoad) enrichments so they no longer each
+      // trigger their own full rebuild. A 1200ms cap guarantees the first paint even if a sync is slow.
+      var _bootPainted=false;
+      function bootPaint(){ if(_bootPainted)return; _bootPainted=true; applyScope(); renderAll(); reconcileAconexStatus(); }
+      if (ghToken()){
+        var _g1=ghLoad().then(function(){ applyOverridesToRows(); recomputeAuto(); },function(){});
+        var _g2=gdefLoad().then(function(){},function(){});
+        Promise.all([_g1,_g2]).then(bootPaint,bootPaint);
+        setTimeout(bootPaint,1200);
+      } else { bootPaint(); }
     }).catch(function(e){ S.loading = false; S.error = String(e && e.message || e); renderAll(); });
   }
   function apvOpenPanel(){
