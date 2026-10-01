@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.68', BUILD_DATE='1 Oct 2026';
+  var VERSION='v12.69', BUILD_DATE='1 Oct 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -432,8 +432,34 @@
   function isRowHidden(r){return !!(S.hiddenRows&&S.hiddenRows.indexOf(rowKey(r))>=0);}
   function passDateFilter(r){var rg=fltDateRange();if(!rg)return true;var v=parseISODay(r.dateSent);if(v==null)return false;if(rg.from!=null&&v<rg.from)return false;if(rg.to!=null&&v>rg.to)return false;return true;}
   function passRefFilter(r){if(!refFilterActive())return true;return String(r.aconexRef||'').toLowerCase().indexOf(String(S.fltRef).toLowerCase().trim())>=0;}
+  // v12.69: find RFIs that are really a reply inside another RFI's Aconex thread (a reply the other
+  // party logged as its own 'Request For Information' instead of a 'Response to RFI'). Grouping uses the
+  // authoritative thread membership from the Cross-check (InRefToMailId-derived _mpsMails/_bhpMails), NOT
+  // subject text — distinct RFIs can share a subject (see v12.62). Initials that reference each other via
+  // thread correspondence are one RFI; the earliest (the original) is canonical, the rest get __linked set
+  // to the canonical ref and are hidden by default behind the toolbar toggle. Fully reversible.
+  function linkKey(){return 'mps_rfi_hidelinked_'+CFG.projectId;}
+  function loadHideLinked(){try{var v=localStorage.getItem(linkKey());return v===null?true:v!=='0';}catch(e){return true;}}
+  function saveHideLinked(){try{localStorage.setItem(linkKey(),S.hideLinked===false?'0':'1');}catch(e){}}
+  function detectLinkedRFIs(){
+    var rows=S.allRows||[];var byNo={},parent={};
+    rows.forEach(function(r){r.__linked='';r.__linkParent=false;r.__linkKids=null;var k=normRef(r.aconexRef);if(k){byNo[k]=r;parent[k]=k;}});
+    function find(x){while(parent[x]&&parent[x]!==x){parent[x]=parent[parent[x]]||parent[x];x=parent[x];}return x;}
+    function uni(a,b){a=find(a);b=find(b);if(a&&b&&a!==b)parent[b]=a;}
+    rows.forEach(function(r){var k=normRef(r.aconexRef);if(!k)return;[].concat(r._mpsMails||[],r._bhpMails||[]).forEach(function(mn){var nk=normRef(mn);if(nk&&nk!==k&&byNo[nk])uni(k,nk);});});
+    var groups={};rows.forEach(function(r){var k=normRef(r.aconexRef);if(!k)return;var g=find(k);(groups[g]=groups[g]||[]).push(r);});
+    var count=0;
+    Object.keys(groups).forEach(function(g){var arr=groups[g];if(arr.length<2)return;
+      arr.sort(function(a,b){var da=a.dateSent||'',db=b.dateSent||'';if(da!==db)return (da&&db)?(da<db?-1:1):(da?-1:1);return normRef(a.aconexRef)<normRef(b.aconexRef)?-1:1;});
+      var canon=arr[0];canon.__linkParent=true;canon.__linkKids=[];
+      for(var i=1;i<arr.length;i++){arr[i].__linked=canon.aconexRef;canon.__linkKids.push(arr[i].aconexRef);count++;}
+    });
+    S._linkedCount=count;return count;
+  }
   function applyScope(){
+    detectLinkedRFIs();
     S.rows=S.allRows.filter(function(r){
+      if(S.hideLinked!==false && r.__linked)return false;
       if(S.statusSel==='__OPEN__'&&isClosed(r))return false;
       if(S.statusSel==='__CLOSED__'&&!isClosed(r))return false;
       if(S.typeSel&&S.typeSel.length&&S.typeSel.indexOf(r.type||'')<0)return false;
@@ -1017,6 +1043,7 @@
       btn('⚙ GLOBAL DEFAULTS','Publish team-wide defaults for this tab (affects everyone)',function(ev){toggleGdefPanel(ev&&ev.currentTarget);},'gdefbtn pnltrig'),
       btn('Reset Cols','Restore columns to the saved default (or factory) order, widths and visibility',function(){resetCols();}),
       (function(){var b=btn('Remove Filters','Clear every register filter and show all hidden rows so the full register is visible',function(){removeAllFilters();});b.id='rmfiltbtn';if(anyFilters()){b.style.color='#c0392b';b.style.fontWeight='700';b.style.borderColor='#c0392b';}return b;})(),
+      (function(){var n=S._linkedCount||0;if(!n)return null;var hid=(S.hideLinked!==false);var b=btn((hid?('\u26D3 '+n+' linked hidden'):('\u26D3 '+n+' linked shown')),n+' RFI/TQ row'+(n===1?' is a reply':'s are replies')+' logged inside another RFI\u2019s Aconex thread (flagged \u21B3 in the RFI/TQ No. column). Click to '+(hid?'show':'hide')+' them.',function(){S.hideLinked=(S.hideLinked===false);saveHideLinked();applyScope();renderAll();});b.id='linkedbtn';b.style.fontWeight='700';b.style.color=hid?'#8a6d3b':'#2d7d46';b.style.borderColor=hid?'#e8871e':'#2d7d46';return b;})(),
       btn('Expand All','Comfortable rows with word-wrap — show full cell content',function(){S.wrap=true;S.rowPad=6;saveCfg();renderTable();}),
       btn('Collapse All','Pack rows as tightly as possible',function(){S.wrap=false;S.rowPad=0;saveCfg();renderTable();}),
       (function(){var b=btn('Optimise Widths','Auto-size every visible column to fit its content',function(){optimiseWidths();});b.id='optbtn';if(S._widthMode==='opt')b.classList.add('grn');return b;})(),
@@ -1821,9 +1848,10 @@ async function fullScan(){
   var DUP_BG='#ffe1a8';
   // Col A cell: editable RFI/TQ number, amber when it duplicates another of the same type.
   function rfiNoCell(row,base,dups){
-    var td=el('td',{class:'edit',style:base});var dup=isDupNo(row,dups);
-    var inp=el('input',{type:'text',title:(COLDEF.rfiNo.tip||'')+(dup?(' \u00b7 Duplicate '+(row.type||'RFI')+' number in the current view'):''),value:(row.rfiNo==null?'':row.rfiNo)});
+    var td=el('td',{class:'edit',style:base});var dup=isDupNo(row,dups);var linked=row.__linked;
+    var inp=el('input',{type:'text',title:(COLDEF.rfiNo.tip||'')+(dup?(' \u00b7 Duplicate '+(row.type||'RFI')+' number in the current view'):'')+(linked?(' \u00b7 \u21B3 Part of '+linked+' \u2014 same Aconex thread; this reply was logged as a separate RFI'):''),value:(row.rfiNo==null?'':row.rfiNo)});
     if(dup){td.style.background=DUP_BG;inp.style.background=DUP_BG;inp.style.fontWeight='700';}
+    if(linked){td.style.boxShadow='inset 3px 0 0 #e8871e';inp.style.color='#8a6d3b';inp.style.fontStyle='italic';}
     inp.onchange=function(){setRfiNoMod(row,inp.value);applyFilters();renderBody();};
     td.appendChild(inp);return td;
   }
@@ -2206,6 +2234,7 @@ async function fullScan(){
     GH.path = 'aconex/rfi_overrides_' + CFG.projectId + '.json'; GH.sha = null;
     try { S.overrides = loadOverrides(); } catch(e){ S.overrides = {}; }
     try { S.ometa = loadOMeta(); } catch(e){ S.ometa = {}; }
+    try { S.hideLinked = loadHideLinked(); } catch(e){ S.hideLinked = true; }
     try { localStorage.setItem(APV_SELKEY, id); } catch(e){}
   }
   function apvReloadProjectView(){
