@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.61', BUILD_DATE='22 Sep 2026';
+  var VERSION='v12.62', BUILD_DATE='1 Oct 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -297,6 +297,31 @@
     S.allRows.forEach(function(r){if(isClosed(r)&&r.dateRespRecd&&r.dateClosed!==r.dateRespRecd){r.dateClosed=r.dateRespRecd;var o=S.overrides[rowKey(r)]||(S.overrides[rowKey(r)]={});o.dateClosed=r.dateRespRecd;changed=true;}});
     try{localStorage.setItem(KEY,'1');}catch(e){}
     if(changed){saveOverrides();ghPush();recomputeAuto();}
+  }
+  // v12.62: one-time repair of Description text that drifted onto the wrong RFI reference. The body is
+  // compared (word overlap) to the row's own live Aconex subject; a body that clearly belongs to a
+  // different RFI is replaced with the correct subject, preserving the user's 'ALP114-013 ' prefix.
+  // Computed at runtime from Aconex (no project text stored in this public repo). Guarded: runs once
+  // per browser, so it never clobbers a deliberate future edit.
+  function descFixMigration(){
+    if(!S.allRows||!S.allRows.length)return;
+    var KEY='mps_rfi_descfix_'+CFG.projectId;
+    try{if(localStorage.getItem(KEY))return;}catch(e){}
+    function norm(s){return String(s||'').toLowerCase().replace(/^\s*alp114-013[\s:\u2013-]*/i,'').replace(/\bre:\s*/g,'').replace(/\brfi\b/g,'').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();}
+    function toks(s){return norm(s).split(' ').filter(function(w){return w.length>2;});}
+    function overlap(a,b){var A=toks(a),B=toks(b);if(!A.length||!B.length)return norm(a)===norm(b)?1:0;var sb={};B.forEach(function(w){sb[w]=1;});var h=0;A.forEach(function(w){if(sb[w])h++;});return h/Math.max(A.length,B.length);}
+    function stripPfx(s){return String(s).replace(/^\s*alp114-013[\s:\u2013-]*/i,'').trim();}
+    var changed=0;
+    S.allRows.forEach(function(r){
+      var live=r._liveSubj; if(live==null||live==='')return;
+      var ov=S.overrides[rowKey(r)]; if(!ov||ov.description==null)return;
+      if(overlap(ov.description,live)>=0.5)return;
+      var hadPfx=/^\s*alp114-013[\s:\u2013-]*/i.test(ov.description);
+      var nd=(hadPfx?'ALP114-013 ':'')+stripPfx(live);
+      if(nd&&nd!==ov.description){ ov.description=nd; r.description=nd; changed++; }
+    });
+    try{localStorage.setItem(KEY,'1');}catch(e){}
+    if(changed){ saveOverrides(); try{ghPush();}catch(e){} }
   }
   function isClosed(r){return String(r.closed||'').toLowerCase()==='closed';}
   // v12.58: reconcile every row currently showing Open against Aconex's own Mail Status.
@@ -2121,7 +2146,7 @@ async function fullScan(){
         var lastRespNo = respsSorted.length ? respsSorted[respsSorted.length-1].no : '';
         r.rfiNo = parseRefNo(m.no); r._rfiNoOrig = r.rfiNo; r._seqNo = i + 1; r.aconexRef = m.no; r.sender = sndr(m.no);
         r.dateSent = iso(m.sent); r.dateRespReq = iso(m.rrq); r.dateRespRecd = last;
-        r.closed = (resps.length ? 'Closed' : 'Open'); r.description = m.subj;
+        r.closed = (resps.length ? 'Closed' : 'Open'); r.description = m.subj; r._liveSubj = m.subj;
         r.mailNo = m.no; r.respMailNo = lastRespNo; r.type = refType(m.no) || (RFI_T[m.ct] === 'tq' ? 'TQ' : 'RFI'); r._refMailId = m.id || ''; r._refMailbox = (m.box === 'inbox' ? 4 : 5); r._refPid = pid;
         return r;
       });
@@ -2131,7 +2156,7 @@ async function fullScan(){
       // fast team-sync (ghLoad) and global-default (gdefLoad) enrichments so they no longer each
       // trigger their own full rebuild. A 1200ms cap guarantees the first paint even if a sync is slow.
       var _bootPainted=false;
-      function bootPaint(){ if(_bootPainted)return; _bootPainted=true; applyScope(); renderAll(); reconcileAconexStatus(); }
+      function bootPaint(){ if(_bootPainted)return; _bootPainted=true; try{descFixMigration();}catch(e){} applyScope(); renderAll(); reconcileAconexStatus(); }
       if (ghToken()){
         var _g1=ghLoad().then(function(){ applyOverridesToRows(); recomputeAuto(); },function(){});
         var _g2=gdefLoad().then(function(){},function(){});
