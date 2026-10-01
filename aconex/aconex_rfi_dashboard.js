@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.66', BUILD_DATE='1 Oct 2026';
+  var VERSION='v12.67', BUILD_DATE='1 Oct 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -444,7 +444,20 @@
     });
     applyFilters();
   }
-  function applyFilters(){var g=S.globalSearch.toLowerCase();S.filtered=S.rows.filter(function(row){if(g){if(S.order.map(function(k){return cellVal(row,k);}).join(' ').toLowerCase().indexOf(g)<0)return false;}for(var k in S.colFilters){var f=(S.colFilters[k]||'').toLowerCase();if(!f)continue;if(cellVal(row,k).toLowerCase().indexOf(f)<0)return false;}for(var sk in S.selFilters){var arr=S.selFilters[sk];if(!arr)continue;if(arr.indexOf(cellVal(row,sk))<0)return false;}return true;});if(S.sortKey){var nk=(S.sortKey==='daysSinceSub'||S.sortKey==='daysSinceResp'||S.sortKey==='rfiNo'||S.sortKey==='daysToClose');S.filtered.sort(function(a,b){var x=cellVal(a,S.sortKey),y=cellVal(b,S.sortKey);if(nk){var nx=parseFloat(x),ny=parseFloat(y);if(!isNaN(nx)||!isNaN(ny)){nx=isNaN(nx)?-Infinity:nx;ny=isNaN(ny)?-Infinity:ny;return (nx-ny)*S.sortDir;}}return x<y?-S.sortDir:x>y?S.sortDir:0;});}}
+  // v12.67: type-aware sort value for a column. Dates -> epoch ms from the raw ISO value (not the
+  // DD/MM/YYYY display string); numeric columns -> number; everything else -> lowercased string.
+  // Returns null for an empty/unparseable cell so blanks always sort to the bottom in both directions.
+  function dateMs(v){if(v==null||v==='')return NaN;var m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return Date.UTC(+m[1],+m[2]-1,+m[3]);var t=Date.parse(v);return t;}
+  function cmpVal(row,k){
+    if(k==='followUp1'||k==='followUp2'||(COLDEF[k]&&COLDEF[k].type==='date')||isDateCol(k)){
+      var dv=(k==='followUp1')?(row.followUp1||row._autoFu1):(k==='followUp2')?(row.followUp2||row._autoFu2):row[k];
+      var t=dateMs(dv);return isNaN(t)?null:t;
+    }
+    if(k==='daysSinceResp'){return (row.daysSinceRespNum!=null&&row.daysSinceRespNum!=='')?+row.daysSinceRespNum:null;}
+    if(k==='rfiNo'||k==='daysSinceSub'||k==='daysToClose'||k==='mpsCorr'||k==='bhpCorr'||k==='totalCorr'){var n=parseFloat(row[k]);return isNaN(n)?null:n;}
+    var s=cellVal(row,k);return (s==null||s==='')?null:String(s).toLowerCase();
+  }
+  function applyFilters(){var g=S.globalSearch.toLowerCase();S.filtered=S.rows.filter(function(row){if(g){if(S.order.map(function(k){return cellVal(row,k);}).join(' ').toLowerCase().indexOf(g)<0)return false;}for(var k in S.colFilters){var f=(S.colFilters[k]||'').toLowerCase();if(!f)continue;if(cellVal(row,k).toLowerCase().indexOf(f)<0)return false;}for(var sk in S.selFilters){var arr=S.selFilters[sk];if(!arr)continue;if(arr.indexOf(cellVal(row,sk))<0)return false;}return true;});if(S.sortKey){S.filtered.sort(function(a,b){var x=cmpVal(a,S.sortKey),y=cmpVal(b,S.sortKey);var ex=(x===null),ey=(y===null);if(ex&&ey)return 0;if(ex)return 1;if(ey)return -1;if(typeof x==='number'&&typeof y==='number')return (x-y)*S.sortDir;return String(x).localeCompare(String(y),undefined,{numeric:true,sensitivity:'base'})*S.sortDir;});}}
 
   // ---- Aconex mail cross-check (item 3) ----
   var XKEY='mps_aconex_rfi_xchk_'+CFG.mpsProjectNo, __xSyncing=false;
@@ -1767,15 +1780,33 @@ async function fullScan(){
   var histNoteT=null;
   function fmtWhen(t){try{var d=new Date(t);if(isNaN(d.getTime()))return t||'';return d.toLocaleDateString(undefined,{day:'2-digit',month:'short',year:'numeric'})+', '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}catch(e){return t||'';}}
   function hideHistNote(){try{var n=root&&root.getElementById('histnote');if(n)n.parentNode.removeChild(n);}catch(e){}if(histNoteT){clearTimeout(histNoteT);histNoteT=null;}}
-  function showHistNote(td,row,field){var h=histOf(row,field);if(!h||!h.length)return;hideHistNote();var wrapEl=root.getElementById('wrap');if(!wrapEl)return;
-    var box=el('div',{id:'histnote',style:'position:absolute;z-index:99999;background:#1f2a37;color:#fff;font-size:11px;line-height:1.35;padding:7px 9px;border-radius:7px;box-shadow:0 6px 18px rgba(0,0,0,.30);max-width:320px;min-width:170px;pointer-events:none'});
-    box.appendChild(el('div',{style:'font-weight:700;margin-bottom:4px;color:#cfe3ff;font-size:9.5px;text-transform:uppercase;letter-spacing:.4px'},[((COLDEF[field]&&COLDEF[field].label)||field)+' \u00b7 last '+h.length+' change'+(h.length===1?'':'s')]));
-    h.forEach(function(e){var v=(e.v==null||e.v==='')?'(cleared)':String(e.v);box.appendChild(el('div',{style:'display:flex;flex-direction:column;margin-bottom:4px'},[el('span',{style:'color:#fff;white-space:normal;overflow-wrap:anywhere'},[v]),el('span',{style:'color:#9fb3c8;font-size:9.5px;margin-top:1px'},[(e.by||'Unknown')+' \u00b7 '+fmtWhen(e.t)])]));});
+  function showHistNote(td,row,field,tip){
+    tip=tip||((COLDEF[field]&&COLDEF[field].tip)||'');
+    var h=histOf(row,field);
+    if(!tip&&(!h||!h.length))return;
+    hideHistNote();var wrapEl=root.getElementById('wrap');if(!wrapEl)return;
+    var box=el('div',{id:'histnote',style:'position:absolute;z-index:99999;background:#1f2a37;color:#fff;font-size:11px;line-height:1.4;padding:8px 10px;border-radius:7px;box-shadow:0 6px 18px rgba(0,0,0,.30);max-width:340px;min-width:180px;pointer-events:none'});
+    box.appendChild(el('div',{style:'font-weight:700;margin-bottom:4px;color:#cfe3ff;font-size:9.5px;text-transform:uppercase;letter-spacing:.4px'},[(COLDEF[field]&&COLDEF[field].label)||field]));
+    if(tip)box.appendChild(el('div',{style:'color:#e6edf5;white-space:normal;overflow-wrap:anywhere;margin-bottom:'+((h&&h.length)?'7px':'0px')},[tip]));
+    if(h&&h.length){
+      box.appendChild(el('div',{style:'font-weight:700;color:#9fb3c8;font-size:9px;text-transform:uppercase;letter-spacing:.4px;border-top:1px solid rgba(255,255,255,.14);padding-top:6px;margin-bottom:4px'},['Last '+h.length+' change'+(h.length===1?'':'s')]));
+      h.forEach(function(e){var v=(e.v==null||e.v==='')?'(cleared)':String(e.v);box.appendChild(el('div',{style:'display:flex;flex-direction:column;margin-bottom:4px'},[el('span',{style:'color:#fff;white-space:normal;overflow-wrap:anywhere'},[v]),el('span',{style:'color:#9fb3c8;font-size:9.5px;margin-top:1px'},[(e.by||'Unknown')+' \u00b7 '+fmtWhen(e.t)])]));});
+    }
     wrapEl.appendChild(box);
     try{var ar=td.getBoundingClientRect(),wr=wrapEl.getBoundingClientRect();var bw=box.offsetWidth||260,bh=box.offsetHeight||60;var left=ar.left-wr.left;left=Math.max(4,Math.min(left,wr.width-bw-6));var top=ar.bottom-wr.top+4;if(ar.bottom+bh+10>window.innerHeight)top=(ar.top-wr.top)-bh-4;box.style.left=left+'px';box.style.top=top+'px';}catch(e){}
-    histNoteT=setTimeout(hideHistNote,5000);
+    if(h&&h.length)histNoteT=setTimeout(hideHistNote,5000);
   }
-  function attachHist(td,row,field){if(!histOf(row,field))return;td.addEventListener('mouseenter',function(){showHistNote(td,row,field);});td.addEventListener('mouseleave',hideHistNote);}
+  function attachHist(td,row,field){
+    var hasH=!!histOf(row,field);var tip='';
+    try{var te=(td.getAttribute&&td.getAttribute('title'))?td:(td.querySelector?td.querySelector('[title]'):null);if(te&&te.getAttribute('title'))tip=te.getAttribute('title');}catch(e){}
+    if(!tip)tip=(COLDEF[field]&&COLDEF[field].tip)||'';
+    if(!tip&&!hasH)return;
+    // One hover only: pull the cell's native tooltip text into the note, then strip native titles so the
+    // explanation and the change record show together rather than as two overlapping hovers.
+    try{if(td.getAttribute&&td.getAttribute('title'))td.removeAttribute('title');var kids=td.querySelectorAll?td.querySelectorAll('[title]'):[];for(var i=0;i<kids.length;i++)kids[i].removeAttribute('title');}catch(e){}
+    td.addEventListener('mouseenter',function(){showHistNote(td,row,field,tip);});
+    td.addEventListener('mouseleave',hideHistNote);
+  }
   function setOverride(row,key,val){row[key]=val;var o=S.overrides[rowKey(row)]||(S.overrides[rowKey(row)]={});o[key]=val;recordEdit(row,key,val);saveOverrides();ghPush();if(key==='closed'||key==='dateClosed')applyScope();}
   var DUP_BG='#ffe1a8';
   // Col A cell: editable RFI/TQ number, amber when it duplicates another of the same type.
