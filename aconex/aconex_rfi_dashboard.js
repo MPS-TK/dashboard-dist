@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.62', BUILD_DATE='1 Oct 2026';
+  var VERSION='v12.63', BUILD_DATE='1 Oct 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -55,6 +55,7 @@
     daysSinceResp:{label:'Days Since Last Response',w:110,auto:true,tip:'AUTO — calendar days from Date Response Received to today ( — if no response received yet). Recalculated each load.'},
     eot:{label:'E.O.T. (Y/N)',w:80,edit:'yesno',dfilter:true,tip:'Manual entry — Extension of Time (E.O.T.): does this RFI/TQ carry a claim to extend the contract completion date? Y/N. Not held in Aconex.'},
     description:{label:'Description',w:280,edit:'text',tip:'SOURCE: Aconex › Mail › Subject of the RFI/TQ (editable — refine the wording as needed).'},
+    subject:{label:'Subject',w:280,tip:'SOURCE: Aconex › Mail › Subject (live, read-only). Auto-populated from the RFI/TQ mail so it can be turned on to cross-check against the editable Description. Hidden by default.'},
     costVar:{label:'Cost Variation Y/N',w:90,edit:'yesno',dfilter:true,tip:'Manual entry — does this RFI/TQ carry a cost variation? Not held in Aconex.'},
     closed:{label:'Status',w:120,edit:'status',dfilter:true,tip:'RFI/TQ workflow status (Draft → Open → Response → MPS to Review → Response2 → MPS to Review2 → Response3 → Closed). Drives the chart. Add more statuses via the dropdown or the 🎨 palette. Not held in Aconex.'},
     dateClosed:{label:'Date Closed',w:110,edit:'date',tip:'Manual entry — date the RFI/TQ was closed out. Used with Date Sent to compute Days Open. Not held in Aconex.'},
@@ -67,7 +68,7 @@
     mailNo:{label:'Aconex Mail No',w:170,tip:'SOURCE: Aconex › Mail › No. of the matched RFI/TQ mail (as found during cross-check).'},
     respMailNo:{label:'Response Mail No',w:170,tip:'SOURCE: Aconex › Mail › No. of the matched Response to RFI / Response to Technical Query.'}
   };
-  var FACTORY_ORDER=['rfiNo','bhpFlag','aconexRef','type','sender','dateSent','daysSinceSub','daysToClose','dateRespReq','followUp1','followUp2','dateRespRecd','daysSinceResp','eot','description','costVar','closed','dateClosed','mpsCorr','bhpCorr','totalCorr','comments','mailNo','respMailNo'];
+  var FACTORY_ORDER=['rfiNo','bhpFlag','aconexRef','type','sender','dateSent','daysSinceSub','daysToClose','dateRespReq','followUp1','followUp2','dateRespRecd','daysSinceResp','eot','description','subject','costVar','closed','dateClosed','mpsCorr','bhpCorr','totalCorr','comments','mailNo','respMailNo'];
   var FACTORY_SHOW={rfiNo:1,bhpFlag:1,aconexRef:1,sender:1,dateSent:1,daysSinceSub:1,daysToClose:1,dateRespReq:1,followUp1:1,followUp2:1,dateRespRecd:1,daysSinceResp:1,eot:1,description:1,costVar:1,closed:1,dateClosed:1,mpsCorr:1,bhpCorr:1,totalCorr:1,comments:1,mailNo:1,respMailNo:1};
   // which fields the Aconex mail cross-check may populate (won't overwrite a manual override)
   var ACONEX_FIELDS=['aconexRef','sender','dateSent','dateRespReq','description','dateRespRecd','mailNo','respMailNo'];
@@ -2146,7 +2147,7 @@ async function fullScan(){
         var lastRespNo = respsSorted.length ? respsSorted[respsSorted.length-1].no : '';
         r.rfiNo = parseRefNo(m.no); r._rfiNoOrig = r.rfiNo; r._seqNo = i + 1; r.aconexRef = m.no; r.sender = sndr(m.no);
         r.dateSent = iso(m.sent); r.dateRespReq = iso(m.rrq); r.dateRespRecd = last;
-        r.closed = (resps.length ? 'Closed' : 'Open'); r.description = m.subj; r._liveSubj = m.subj;
+        r.closed = (resps.length ? 'Closed' : 'Open'); r.description = m.subj; r._liveSubj = m.subj; r.subject = m.subj;
         r.mailNo = m.no; r.respMailNo = lastRespNo; r.type = refType(m.no) || (RFI_T[m.ct] === 'tq' ? 'TQ' : 'RFI'); r._refMailId = m.id || ''; r._refMailbox = (m.box === 'inbox' ? 4 : 5); r._refPid = pid;
         return r;
       });
