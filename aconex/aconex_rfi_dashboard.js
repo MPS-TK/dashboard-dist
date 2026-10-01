@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.64', BUILD_DATE='1 Oct 2026';
+  var VERSION='v12.65', BUILD_DATE='1 Oct 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -103,7 +103,53 @@
          overrides:loadOverrides()};
   function ovKey(){return 'mps_aconex_rfi_ov_'+CFG.projectId;}
   function loadOverrides(){try{return JSON.parse(localStorage.getItem(ovKey())||'{}');}catch(e){return {};}}
-  function saveOverrides(){try{localStorage.setItem(ovKey(),JSON.stringify(S.overrides));}catch(e){}}
+  function ometaKey(){return 'mps_aconex_rfi_om_'+CFG.projectId;}
+  function loadOMeta(){try{return JSON.parse(localStorage.getItem(ometaKey())||'{}')||{};}catch(e){return {};}}
+  function saveOverrides(){try{localStorage.setItem(ovKey(),JSON.stringify(S.overrides));}catch(e){}try{localStorage.setItem(ometaKey(),JSON.stringify(S.ometa||{}));}catch(e){}}
+  // ---- Team identity + per-cell edit history (v12.65) ----
+  // ME is the signed-in Aconex user, cached from /api/user, used to stamp WHO made each manual edit.
+  // S.ometa holds, per row key and field: {t:last-writer ISO time, by:name, user, hist:[{v,by,t} x<=3]}.
+  // This both feeds the 5-second hover note AND drives a per-field last-write-wins team merge, so one
+  // user's edit no longer clobbers another's when everyone syncs to the same shared file.
+  var ME={by:'',user:'',org:''};
+  var BASIS_T0='2026-01-01T00:00:00.000Z';   // edits predating v12.65 are stamped here; the shared register (remote) is the basis on ties/conflicts, only a genuine post-upgrade edit (t>T0) can win over it.
+  function meName(){return (ME&&ME.by)?ME.by:'Unknown';}
+  function nowISO(){try{return new Date().toISOString();}catch(e){return '';}}
+  function whoAmIInit(){try{gdefWhoAmI().then(function(w){if(w){if(w.by)ME.by=w.by;if(w.user)ME.user=w.user;if(w.org)ME.org=w.org;}});}catch(e){}}
+  function omCell(rk,field){var m=S.ometa||(S.ometa={});var mr=m[rk]||(m[rk]={});return mr[field]||(mr[field]={});}
+  function histPush(list,e){list=list||[];for(var i=0;i<list.length;i++){if(list[i]&&list[i].t===e.t&&list[i].by===e.by&&String(list[i].v)===String(e.v))return list;}list.unshift(e);if(list.length>3)list.length=3;return list;}
+  function recordEdit(row,field,val){var rk=rowKey(row);if(!rk)return;var c=omCell(rk,field);var e={v:(val==null?'':String(val)),by:meName(),t:nowISO()};c.t=e.t;c.by=e.by;c.user=(ME&&ME.user)||'';c.hist=histPush(c.hist,e);}
+  function histOf(row,field){var rk=rowKey(row);var m=(S.ometa&&S.ometa[rk])?S.ometa[rk]:null;var c=m?m[field]:null;return (c&&c.hist&&c.hist.length)?c.hist:null;}
+  function omTime(meta,rk,field){try{var c=meta&&meta[rk]&&meta[rk][field];if(c&&c.t)return Date.parse(c.t)||0;}catch(e){}return 0;}
+  function mergeHist(a,b){var out=(a||[]).concat(b||[]);out.sort(function(x,y){return (Date.parse(y&&y.t)||0)-(Date.parse(x&&x.t)||0);});var seen={},res=[];for(var i=0;i<out.length&&res.length<3;i++){var e=out[i];if(!e)continue;var k=(e.t||'')+'|'+(e.by||'')+'|'+String(e.v==null?'':e.v);if(seen[k])continue;seen[k]=1;res.push(e);}return res;}
+  // One-time: stamp every pre-v12.65 local override field at T0 with the current user, so the shared
+  // register (remote) wins on ties and only genuine new edits (t>T0) propagate over the basis.
+  function seedLocalMeta(){
+    var FL='mps_rfi_ommigr_'+CFG.projectId;try{if(localStorage.getItem(FL))return;}catch(e){}
+    var by=meName();S.ometa=S.ometa||{};
+    Object.keys(S.overrides||{}).forEach(function(rk){var o=S.overrides[rk]||{};Object.keys(o).forEach(function(f){var c=omCell(rk,f);if(!c.t){c.t=BASIS_T0;c.by=by;c.user=(ME&&ME.user)||'';c.hist=[{v:(o[f]==null?'':String(o[f])),by:by,t:BASIS_T0}];}});});
+    try{localStorage.setItem(FL,'1');}catch(e){}saveOverrides();
+  }
+  // Per-field last-write-wins merge of the remote shared file into local state (used on load + on a
+  // 409 push conflict). hasL/hasR = field present locally/remotely; seeded/legacy local (t<=T0) yields
+  // to the shared register; a genuine post-upgrade local edit (t>T0) wins on tie, newest wins otherwise.
+  function ghMergeRemote(rem,remMeta){
+    var T0=Date.parse(BASIS_T0)||0;var v={},m={},keys={};
+    Object.keys(rem||{}).forEach(function(k){keys[k]=1;});Object.keys(S.overrides||{}).forEach(function(k){keys[k]=1;});
+    Object.keys(keys).forEach(function(rk){
+      var lo=S.overrides[rk]||{},ro=rem[rk]||{},fo={},mm={},fields={};
+      Object.keys(lo).forEach(function(f){fields[f]=1;});Object.keys(ro).forEach(function(f){fields[f]=1;});
+      Object.keys(fields).forEach(function(f){
+        var hasL=(lo[f]!=null),hasR=(ro[f]!=null);var lt=omTime(S.ometa,rk,f),rt=omTime(remMeta,rk,f);var takeR;
+        if(hasL&&!hasR)takeR=false;else if(hasR&&!hasL)takeR=true;else if(lt>T0)takeR=(rt>lt);else takeR=true;
+        fo[f]=takeR?ro[f]:lo[f];
+        var lc=(S.ometa[rk]||{})[f]||{},rc=(remMeta[rk]||{})[f]||{};var base=takeR?rc:lc;
+        mm[f]={t:(base.t||lc.t||rc.t||''),by:(base.by||lc.by||rc.by||''),user:(base.user||lc.user||rc.user||''),hist:mergeHist(lc.hist,rc.hist)};
+      });
+      if(Object.keys(fo).length)v[rk]=fo;if(Object.keys(mm).length)m[rk]=mm;
+    });
+    S.overrides=v;S.ometa=m;
+  }
 
   // ---- GitHub team sync (shares manual edits like the ITP module) ----
   var GH={repo:'MPS-TK/ITR-Dashboard',branch:'main',path:'aconex/rfi_overrides_'+CFG.mpsProjectNo+'.json',sha:null,timer:null,state:''};
@@ -254,8 +300,11 @@
   function ghHeaders(){return {Authorization:'token '+ghToken(),Accept:'application/vnd.github+json'};}
   function rowKey(r){return String(r.aconexRef||r.rfiNo||'');}
   function applyOverridesToRows(){S.allRows.forEach(function(r){if(r._descOrig==null)r._descOrig=(r.description||'');if(r._rfiNoOrig==null)r._rfiNoOrig=parseRefNo(r.aconexRef);var o=S.overrides[rowKey(r)]||{};MANUAL_FIELDS.forEach(function(k){if(o[k]!=null)r[k]=o[k];});});}
-  function ghLoad(){if(!ghToken())return Promise.resolve(false);setSync('sync');return fetch('https://api.github.com/repos/'+GH.repo+'/contents/'+GH.path+'?ref='+GH.branch,{headers:ghHeaders()}).then(function(r){if(r.status===404){GH.sha=null;return null;}if(!r.ok)throw 0;return r.json();}).then(function(j){if(j){GH.sha=j.sha;var rem={};try{rem=JSON.parse(decodeURIComponent(escape(atob((j.content||'').replace(/\n/g,'')))));}catch(e){}var _mg={};Object.keys(rem||{}).forEach(function(k){_mg[k]=Object.assign({},rem[k]);});Object.keys(S.overrides||{}).forEach(function(k){_mg[k]=Object.assign({},_mg[k]||{},S.overrides[k]);});S.overrides=_mg;saveOverrides();migrateOverrideKeys();applyOverridesToRows();recomputeAuto();}setSync('ok');return true;}).catch(function(){setSync('err');return false;});}
-  function ghPush(){if(!ghToken())return;setSync('save');clearTimeout(GH.timer);GH.timer=setTimeout(function(){var content=btoa(unescape(encodeURIComponent(JSON.stringify(S.overrides))));var body={message:'Aconex RFI/TQ overrides ('+CFG.projectName+')',content:content,branch:GH.branch};if(GH.sha)body.sha=GH.sha;fetch('https://api.github.com/repos/'+GH.repo+'/contents/'+GH.path,{method:'PUT',headers:ghHeaders(),body:JSON.stringify(body)}).then(function(r){return r.json();}).then(function(j){if(j&&j.content)GH.sha=j.content.sha;setSync(j&&j.content?'ok':'err');}).catch(function(){setSync('err');});},1200);}
+  function ghParse(j){var raw={};try{raw=JSON.parse(decodeURIComponent(escape(atob((j.content||'').replace(/\n/g,'')))));}catch(e){}if(raw&&raw._fmt>=2)return {v:raw.v||{},m:raw.m||{},legacy:false};return {v:raw||{},m:{},legacy:true};}
+  function ghLoad(){if(!ghToken())return Promise.resolve(false);setSync('sync');return fetch('https://api.github.com/repos/'+GH.repo+'/contents/'+GH.path+'?ref='+GH.branch,{headers:ghHeaders()}).then(function(r){if(r.status===404){GH.sha=null;return null;}if(!r.ok)throw 0;return r.json();}).then(function(j){if(j){GH.sha=j.sha;var p=ghParse(j);seedLocalMeta();ghMergeRemote(p.v,p.m);saveOverrides();migrateOverrideKeys();applyOverridesToRows();recomputeAuto();if(p.legacy){try{ghPush();}catch(e){}}}setSync('ok');return true;}).catch(function(){setSync('err');return false;});}
+  function ghLoadSilent(){return fetch('https://api.github.com/repos/'+GH.repo+'/contents/'+GH.path+'?ref='+GH.branch,{headers:ghHeaders()}).then(function(r){if(r.status===404){GH.sha=null;return null;}if(!r.ok)throw 0;return r.json();}).then(function(j){if(j){GH.sha=j.sha;var p=ghParse(j);ghMergeRemote(p.v,p.m);saveOverrides();migrateOverrideKeys();applyOverridesToRows();recomputeAuto();}return true;}).catch(function(){return false;});}
+  function ghPushNow(retry){var payload={_fmt:2,v:S.overrides,m:S.ometa||{}};var content=btoa(unescape(encodeURIComponent(JSON.stringify(payload))));var body={message:'Aconex RFI/TQ overrides + edit history ('+CFG.projectName+')',content:content,branch:GH.branch};if(GH.sha)body.sha=GH.sha;return fetch('https://api.github.com/repos/'+GH.repo+'/contents/'+GH.path,{method:'PUT',headers:ghHeaders(),body:JSON.stringify(body)}).then(function(r){if((r.status===409||r.status===422)&&!retry){return ghLoadSilent().then(function(){return ghPushNow(true);});}return r.json().then(function(j){if(j&&j.content){GH.sha=j.content.sha;setSync('ok');}else{setSync('err');}});}).catch(function(){setSync('err');});}
+  function ghPush(){if(!ghToken())return;setSync('save');clearTimeout(GH.timer);GH.timer=setTimeout(function(){ghPushNow(false);},1200);}
   function setSync(st){GH.state=st;var b=root&&root.getElementById('syncbtn');if(b)b.textContent=syncLabel();}
   function syncLabel(){if(!ghToken())return '🔒 Connect Sync';return ({sync:'⟳ Syncing…',save:'⟳ Saving…',ok:'✓ Synced',err:'⚠ Sync Error'})[GH.state]||'✓ Team Sync';}
   function openSyncPanel(){var ex=root.getElementById('syncpanel');if(ex){ex.remove();return;}var panel=el('div',{id:'syncpanel',class:'panel',style:'right:12px;top:44px;min-width:250px'},[el('h4',{},[ghToken()?'Team sync connected':'Connect team sync']),el('div',{class:'muted',style:'font-size:11px;margin-bottom:6px;max-width:240px'},['Paste a GitHub token (repo scope) to share edits with your team. Stored only in this browser, on the Aconex site.'])]);var inp=el('input',{type:'password',placeholder:'ghp_…',style:'width:230px;border:1px solid #cfd8e3;border-radius:5px;padding:5px 8px'});var save=el('button',{class:'btn primary',style:'margin-top:8px',onclick:function(){var v=inp.value.trim();if(v){try{localStorage.setItem('mps_gh_token',v);}catch(e){}}panel.remove();ghLoad().then(function(){renderAll();});}},['Save & Connect']);panel.appendChild(inp);var row=el('div',{},[save]);if(ghToken())row.appendChild(el('button',{class:'btn',style:'margin-left:6px',onclick:function(){try{localStorage.removeItem('mps_gh_token');}catch(e){}panel.remove();renderAll();}},['Disconnect']));panel.appendChild(row);collapsiblePanel(panel);root.getElementById('wrap').appendChild(panel);}
@@ -269,7 +318,7 @@
   function parseRefNo(ref){var m=String(ref||'').match(/(\d+)\s*$/);return m?String(parseInt(m[1],10)):'';}
   function rfiNoOrig(r){return (r._rfiNoOrig!=null)?r._rfiNoOrig:parseRefNo(r.aconexRef);}
   function rfiNoMod(r){var o=S.overrides[rowKey(r)]||{};return (o.rfiNo!=null)?o.rfiNo:'';}
-  function setRfiNoMod(row,v){v=String(v==null?'':v).trim();var o=S.overrides[rowKey(row)]||(S.overrides[rowKey(row)]={});if(v===''||v===rfiNoOrig(row)){delete o.rfiNo;row.rfiNo=rfiNoOrig(row);}else{o.rfiNo=v;row.rfiNo=v;}saveOverrides();ghPush();}
+  function setRfiNoMod(row,v){v=String(v==null?'':v).trim();var o=S.overrides[rowKey(row)]||(S.overrides[rowKey(row)]={});if(v===''||v===rfiNoOrig(row)){delete o.rfiNo;row.rfiNo=rfiNoOrig(row);}else{o.rfiNo=v;row.rfiNo=v;}recordEdit(row,'rfiNo',row.rfiNo);saveOverrides();ghPush();}
   // Rows in the current view whose (type,number) collides with another of the SAME type.
   // RFI vs RFI and TQ vs TQ collide; an RFI and a TQ sharing a number do NOT.
   function dupNumSet(){var cnt={},dup={};S.filtered.forEach(function(r){var n=String(r.rfiNo==null?'':r.rfiNo).trim();if(!n)return;var key=(r.type||'RFI')+'|'+n;cnt[key]=(cnt[key]||0)+1;});Object.keys(cnt).forEach(function(k){if(cnt[k]>1)dup[k]=true;});return dup;}
@@ -1611,6 +1660,7 @@ async function fullScan(){
         else if(k==='aconexRef'){var av=cellVal(row,k);if(row._refMailId){td=el('td',{style:base,title:'Open '+av+' in Aconex mail'},[el('a',{class:'doclink',href:refUrl(row),target:'_blank',rel:'noopener'},[av])]);}else{td=el('td',{style:base,title:av},[av]);}}else if(k==='bhpFlag'){var bn=(row._bhpMails?row._bhpMails.length:0);td=el('td',{style:base+';text-align:center'},bn>2?[el('span',{class:'bhpflag',title:bn+' BHP responses on this RFI/TQ \u2014 more than 2'},['\u2691 '+bn])]:[]);}else if(k==='mpsCorr'||k==='bhpCorr'){td=corrCell(row,k,base);}else if(k==='totalCorr'){var tn=String(row.totalCorr||'0');td=el('td',{style:base+';text-align:center'+((tn==='0'||tn==='')?';color:#c2c9d2':'')},[tn||'0']);}else if(k==='daysSinceSub'||k==='daysSinceResp'){var dv=cellVal(row,k);var clc=(k==='daysSinceResp'&&isClosed(row));var late=(k==='daysSinceResp'&&!isClosed(row)&&dv!=='—'&&(+dv)>=7);td=el('td',{style:base+(clc?';color:#8a939b':(late?';color:#c0392b;font-weight:700':'')),title:cd0(k,row)},[dv]);}
         else if(k==='description'){td=descCell(row,base);}
         else{td=el('td',{style:base,title:cellVal(row,k)},[cellVal(row,k)]);}
+        if(td&&MANUAL_FIELDS.indexOf(k)>=0)attachHist(td,row,k);
         tr.appendChild(td);
       });
       tr.appendChild(el('td',{class:'mps-fill'},[]));
@@ -1691,7 +1741,7 @@ async function fullScan(){
       rows.forEach(function(r){
         var orig=rfiDescOrig(r);
         var inp=el('input',{type:'text',value:rfiDescMod(r),placeholder:orig,title:'Modified description (blank = use the original)',style:'flex:1;font-size:11px;padding:2px 5px;border:1px solid #cfd8e3;border-radius:4px'});
-        inp.onchange=function(){var v=(inp.value||'').trim();var o=S.overrides[rowKey(r)]||(S.overrides[rowKey(r)]={});if(v){o.description=v;r.description=v;}else{delete o.description;r.description=rfiDescOrig(r);}saveOverrides();ghPush();applyFilters();renderBody();};
+        inp.onchange=function(){var v=(inp.value||'').trim();var o=S.overrides[rowKey(r)]||(S.overrides[rowKey(r)]={});if(v){o.description=v;r.description=v;}else{delete o.description;r.description=rfiDescOrig(r);}recordEdit(r,'description',r.description);saveOverrides();ghPush();applyFilters();renderBody();};
         list.appendChild(el('div',{style:'display:flex;gap:8px;align-items:center;padding:2px 4px;border-bottom:1px solid #f0f3f7'},[el('span',{style:'flex:0 0 auto;min-width:52px;white-space:nowrap;font-size:10.5px;color:'+NAVY,title:(r.aconexRef||'')},[(r.type||'RFI')+' '+(r.rfiNo!=null?r.rfiNo:'')]),el('span',{style:'flex:1;font-size:11px;color:#5b6674;white-space:normal;overflow-wrap:anywhere'},[orig]),inp]));
       });
     }
@@ -1700,7 +1750,20 @@ async function fullScan(){
     wrapEl.appendChild(panel);
     if(anchor){var ar=anchor.getBoundingClientRect();var vw=window.innerWidth,vh=window.innerHeight,pw=panel.offsetWidth||Math.round(vw*0.5);var top=Math.max(6,ar.bottom+4);panel.style.left=Math.max(6,Math.min(ar.left,vw-pw-8))+'px';panel.style.top=top+'px';panel.style.maxHeight=(vh-top-10)+'px';}else{panel.style.left='12px';panel.style.top='120px';}
   }
-  function setOverride(row,key,val){row[key]=val;var o=S.overrides[rowKey(row)]||(S.overrides[rowKey(row)]={});o[key]=val;saveOverrides();ghPush();if(key==='closed'||key==='dateClosed')applyScope();}
+  // ---- 5-second hover note: the last 3 changes (value + user + date/time) on any manual cell (v12.65) ----
+  var histNoteT=null;
+  function fmtWhen(t){try{var d=new Date(t);if(isNaN(d.getTime()))return t||'';return d.toLocaleDateString(undefined,{day:'2-digit',month:'short',year:'numeric'})+', '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}catch(e){return t||'';}}
+  function hideHistNote(){try{var n=root&&root.getElementById('histnote');if(n)n.parentNode.removeChild(n);}catch(e){}if(histNoteT){clearTimeout(histNoteT);histNoteT=null;}}
+  function showHistNote(td,row,field){var h=histOf(row,field);if(!h||!h.length)return;hideHistNote();var wrapEl=root.getElementById('wrap');if(!wrapEl)return;
+    var box=el('div',{id:'histnote',style:'position:absolute;z-index:99999;background:#1f2a37;color:#fff;font-size:11px;line-height:1.35;padding:7px 9px;border-radius:7px;box-shadow:0 6px 18px rgba(0,0,0,.30);max-width:320px;min-width:170px;pointer-events:none'});
+    box.appendChild(el('div',{style:'font-weight:700;margin-bottom:4px;color:#cfe3ff;font-size:9.5px;text-transform:uppercase;letter-spacing:.4px'},[((COLDEF[field]&&COLDEF[field].label)||field)+' \u00b7 last '+h.length+' change'+(h.length===1?'':'s')]));
+    h.forEach(function(e){var v=(e.v==null||e.v==='')?'(cleared)':String(e.v);box.appendChild(el('div',{style:'display:flex;flex-direction:column;margin-bottom:4px'},[el('span',{style:'color:#fff;white-space:normal;overflow-wrap:anywhere'},[v]),el('span',{style:'color:#9fb3c8;font-size:9.5px;margin-top:1px'},[(e.by||'Unknown')+' \u00b7 '+fmtWhen(e.t)])]));});
+    wrapEl.appendChild(box);
+    try{var ar=td.getBoundingClientRect(),wr=wrapEl.getBoundingClientRect();var bw=box.offsetWidth||260,bh=box.offsetHeight||60;var left=ar.left-wr.left;left=Math.max(4,Math.min(left,wr.width-bw-6));var top=ar.bottom-wr.top+4;if(ar.bottom+bh+10>window.innerHeight)top=(ar.top-wr.top)-bh-4;box.style.left=left+'px';box.style.top=top+'px';}catch(e){}
+    histNoteT=setTimeout(hideHistNote,5000);
+  }
+  function attachHist(td,row,field){if(!histOf(row,field))return;td.addEventListener('mouseenter',function(){showHistNote(td,row,field);});td.addEventListener('mouseleave',hideHistNote);}
+  function setOverride(row,key,val){row[key]=val;var o=S.overrides[rowKey(row)]||(S.overrides[rowKey(row)]={});o[key]=val;recordEdit(row,key,val);saveOverrides();ghPush();if(key==='closed'||key==='dateClosed')applyScope();}
   var DUP_BG='#ffe1a8';
   // Col A cell: editable RFI/TQ number, amber when it duplicates another of the same type.
   function rfiNoCell(row,base,dups){
@@ -1715,7 +1778,7 @@ async function fullScan(){
   function descCell(row,base){
     var td=el('td',{class:'edit',style:base});
     var inp=el('input',{type:'text',title:(row.description==null?'':String(row.description)),value:(row.description==null?'':row.description)});
-    inp.onchange=function(){var v=(inp.value||'').trim();var o=S.overrides[rowKey(row)]||(S.overrides[rowKey(row)]={});if(v===''||v===rfiDescOrig(row)){delete o.description;row.description=rfiDescOrig(row);}else{o.description=v;row.description=v;}saveOverrides();ghPush();applyFilters();renderBody();};
+    inp.onchange=function(){var v=(inp.value||'').trim();var o=S.overrides[rowKey(row)]||(S.overrides[rowKey(row)]={});if(v===''||v===rfiDescOrig(row)){delete o.description;row.description=rfiDescOrig(row);}else{o.description=v;row.description=v;}recordEdit(row,'description',row.description);saveOverrides();ghPush();applyFilters();renderBody();};
     td.appendChild(inp);return td;
   }
   // Col A header dropdown — mirrors the Description dropdown: Original (parsed) vs Modified.
@@ -2087,6 +2150,7 @@ async function fullScan(){
     try { LKEY = 'mps_aconex_rfi_cfg_' + CFG.projectId; DKEY = 'mps_aconex_rfi_defcfg_' + CFG.projectId; } catch(e){}
     GH.path = 'aconex/rfi_overrides_' + CFG.projectId + '.json'; GH.sha = null;
     try { S.overrides = loadOverrides(); } catch(e){ S.overrides = {}; }
+    try { S.ometa = loadOMeta(); } catch(e){ S.ometa = {}; }
     try { localStorage.setItem(APV_SELKEY, id); } catch(e){}
   }
   function apvReloadProjectView(){
@@ -2124,6 +2188,7 @@ async function fullScan(){
     apvRenderDropdown();
   }
   function apvBoot(){
+    whoAmIInit();
     apvFetchProjects().then(function(list){
       list.sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
       window.__apvAccessSet = new Set(); window.__apvAccessNames = {};
