@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.70', BUILD_DATE='1 Oct 2026';
+  var VERSION='v12.71', BUILD_DATE='1 Oct 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -441,18 +441,27 @@
   function linkKey(){return 'mps_rfi_hidelinked_'+CFG.projectId;}
   function loadHideLinked(){try{var v=localStorage.getItem(linkKey());return v===null?true:v!=='0';}catch(e){return true;}}
   function saveHideLinked(){try{localStorage.setItem(linkKey(),S.hideLinked===false?'0':'1');}catch(e){}}
+  // v12.71: detect RFIs that are really a reply logged as their own RFI, from the mail SUBJECT (present
+  // on load — no Cross-check needed; the old thread-based version found nothing until a fresh scan). A
+  // reply ('Re:/Fw:' subject) links to the UNIQUE non-reply original with the same base subject. Requiring
+  // exactly one original avoids the v12.62 trap: several distinct RFIs that all share a 'Re: ...' subject
+  // with no plain original are NOT merged. Flagged ↳ + hidden behind the toggle (reversible).
+  function lnkNsubj(s){s=String(s||'').toLowerCase();var p;do{p=s;s=s.replace(/^\s*(re|fw|fwd)\s*:\s*/i,'');}while(s!==p);return s.replace(/[^a-z0-9]+/g,' ').trim();}
+  function lnkIsReply(s){return /^\s*(re|fw|fwd)\s*:/i.test(String(s||''));}
+  function lnkRawSubj(r){return r._liveSubj||r.subject||r.description||'';}
   function detectLinkedRFIs(){
-    var rows=S.allRows||[];var byNo={},parent={};
-    rows.forEach(function(r){r.__linked='';r.__linkParent=false;r.__linkKids=null;var k=normRef(r.aconexRef);if(k){byNo[k]=r;parent[k]=k;}});
-    function find(x){while(parent[x]&&parent[x]!==x){parent[x]=parent[parent[x]]||parent[x];x=parent[x];}return x;}
-    function uni(a,b){a=find(a);b=find(b);if(a&&b&&a!==b)parent[b]=a;}
-    rows.forEach(function(r){var k=normRef(r.aconexRef);if(!k)return;[].concat(r._mpsMails||[],r._bhpMails||[]).forEach(function(mn){var nk=normRef(mn);if(nk&&nk!==k&&byNo[nk])uni(k,nk);});});
-    var groups={};rows.forEach(function(r){var k=normRef(r.aconexRef);if(!k)return;var g=find(k);(groups[g]=groups[g]||[]).push(r);});
+    var rows=S.allRows||[];
+    rows.forEach(function(r){r.__linked='';r.__linkParent=false;r.__linkKids=null;});
+    var groups={};
+    rows.forEach(function(r){var key=lnkNsubj(lnkRawSubj(r));if(!key)return;(groups[key]=groups[key]||[]).push(r);});
     var count=0;
-    Object.keys(groups).forEach(function(g){var arr=groups[g];if(arr.length<2)return;
-      arr.sort(function(a,b){var da=a.dateSent||'',db=b.dateSent||'';if(da!==db)return (da&&db)?(da<db?-1:1):(da?-1:1);return normRef(a.aconexRef)<normRef(b.aconexRef)?-1:1;});
-      var canon=arr[0];canon.__linkParent=true;canon.__linkKids=[];
-      for(var i=1;i<arr.length;i++){arr[i].__linked=canon.aconexRef;canon.__linkKids.push(arr[i].aconexRef);count++;}
+    Object.keys(groups).forEach(function(key){
+      var arr=groups[key];if(arr.length<2)return;
+      var origs=arr.filter(function(r){return !lnkIsReply(lnkRawSubj(r));});
+      var reps=arr.filter(function(r){return lnkIsReply(lnkRawSubj(r));});
+      if(origs.length!==1||!reps.length)return;
+      var canon=origs[0];canon.__linkParent=true;canon.__linkKids=[];
+      reps.forEach(function(r){if(r===canon)return;r.__linked=canon.aconexRef;canon.__linkKids.push(r.aconexRef);count++;});
     });
     S._linkedCount=count;return count;
   }
@@ -1044,7 +1053,7 @@
       btn('⚙ GLOBAL DEFAULTS','Publish team-wide defaults for this tab (affects everyone)',function(ev){toggleGdefPanel(ev&&ev.currentTarget);},'gdefbtn pnltrig'),
       btn('Reset Cols','Restore columns to the saved default (or factory) order, widths and visibility',function(){resetCols();}),
       (function(){var b=btn('Remove Filters','Clear every register filter and show all hidden rows so the full register is visible',function(){removeAllFilters();});b.id='rmfiltbtn';if(anyFilters()){b.style.color='#c0392b';b.style.fontWeight='700';b.style.borderColor='#c0392b';}return b;})(),
-      (function(){var n=S._linkedCount||0;if(!n)return null;var hid=(S.hideLinked!==false);var b=btn((hid?('\u26D3 '+n+' linked hidden'):('\u26D3 '+n+' linked shown')),n+' RFI/TQ row'+(n===1?' is a reply':'s are replies')+' logged inside another RFI\u2019s Aconex thread (flagged \u21B3 in the RFI/TQ No. column). Click to '+(hid?'show':'hide')+' them.',function(){S.hideLinked=(S.hideLinked===false);saveHideLinked();applyScope();renderAll();});b.id='linkedbtn';b.style.fontWeight='700';b.style.color=hid?'#8a6d3b':'#2d7d46';b.style.borderColor=hid?'#e8871e':'#2d7d46';return b;})(),
+      (function(){var n=S._linkedCount||0;var hid=(S.hideLinked!==false);if(!n){var b0=btn('\u26D3 No linked RFIs','No duplicate / linked RFIs detected. A linked RFI is a reply the other party logged in Aconex as its own RFI (subject \u201cRe: \u2026\u201d); none match in the current register.',function(){});b0.id='linkedbtn';b0.disabled=true;b0.style.opacity='0.55';return b0;}var b=btn((hid?('\u26D3 '+n+' linked hidden'):('\u26D3 '+n+' linked shown')),n+' RFI/TQ row'+(n===1?' is a reply':'s are replies')+' logged as a separate RFI but belonging to another RFI (matched by subject; flagged \u21B3 in the RFI/TQ No. column). Click to '+(hid?'show':'hide')+' them.',function(){S.hideLinked=(S.hideLinked===false);saveHideLinked();applyScope();renderAll();});b.id='linkedbtn';b.style.fontWeight='700';b.style.color=hid?'#8a6d3b':'#2d7d46';b.style.borderColor=hid?'#e8871e':'#2d7d46';return b;})(),
       btn('Expand All','Comfortable rows with word-wrap — show full cell content',function(){S.wrap=true;S.rowPad=6;saveCfg();renderTable();}),
       btn('Collapse All','Pack rows as tightly as possible',function(){S.wrap=false;S.rowPad=0;saveCfg();renderTable();}),
       (function(){var b=btn('Optimise Widths','Auto-size every visible column to fit its content',function(){optimiseWidths();});b.id='optbtn';if(S._widthMode==='opt')b.classList.add('grn');return b;})(),
