@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.63', BUILD_DATE='1 Oct 2026';
+  var VERSION='v12.64', BUILD_DATE='1 Oct 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -915,7 +915,7 @@
     ]));
     apvRenderDropdown();apvBindSelSwap();
     // toolbar
-    var search=el('input',{type:'search',class:'search',title:'Search across all columns',placeholder:'⌕ Search RFIs / TQs…',value:S.globalSearch});search.oninput=function(){S.globalSearch=search.value;applyFilters();renderBody();renderStats();renderChart();renderDaysOpen();saveCfg();};
+    var search=el('input',{type:'search',class:'search',title:'Search across all columns',placeholder:'⌕ Search RFIs / TQs…',value:S.globalSearch});search.oninput=function(){S.globalSearch=search.value;applyFilters();renderBody();renderStats();renderChart();renderDaysOpen();saveCfg();try{paintRmFilt();}catch(e){}};
     var ssel=el('select',{class:'dtsel',title:'Filter the whole register by Open / Closed status'});[['__ALL__','All Statuses'],['__OPEN__','Open only'],['__CLOSED__','Closed only']].forEach(function(p){var o=el('option',{value:p[0]},[p[1]]);if(S.statusSel===p[0])o.selected=true;ssel.appendChild(o);});ssel.onchange=function(){S.statusSel=ssel.value;applyScope();renderAll();};
     var rng=el('input',{type:'range',min:'0',max:'12',value:String(S.rowPad),class:'rng',title:'Row height — drag left to pack rows tightly together'});rng.oninput=function(){S.rowPad=+rng.value;saveCfg();renderBody();};
     var fontGroup=el('span',{style:'display:inline-flex;align-items:center;gap:3px',title:'Table font size'},[
@@ -930,6 +930,7 @@
       btn('★ Set Defaults','Save the current columns, order, widths, font and density as your default',function(){setAsDefault();},'setdefbtn'),
       btn('⚙ GLOBAL DEFAULTS','Publish team-wide defaults for this tab (affects everyone)',function(ev){toggleGdefPanel(ev&&ev.currentTarget);},'gdefbtn pnltrig'),
       btn('Reset Cols','Restore columns to the saved default (or factory) order, widths and visibility',function(){resetCols();}),
+      (function(){var b=btn('Remove Filters','Clear every register filter and show all hidden rows so the full register is visible',function(){removeAllFilters();});b.id='rmfiltbtn';if(anyFilters()){b.style.color='#c0392b';b.style.fontWeight='700';b.style.borderColor='#c0392b';}return b;})(),
       btn('Expand All','Comfortable rows with word-wrap — show full cell content',function(){S.wrap=true;S.rowPad=6;saveCfg();renderTable();}),
       btn('Collapse All','Pack rows as tightly as possible',function(){S.wrap=false;S.rowPad=0;saveCfg();renderTable();}),
       (function(){var b=btn('Optimise Widths','Auto-size every visible column to fit its content',function(){optimiseWidths();});b.id='optbtn';if(S._widthMode==='opt')b.classList.add('grn');return b;})(),
@@ -1190,7 +1191,7 @@
     var d=distinctVals(k);
     var panel=el('div',{id:'mfpanel',class:'mfpanel','data-k':k});
     function curSel(){var s=S.selFilters[k];return s==null?d.slice():s.slice();}
-    function setSel(arr){S.selFilters[k]=(arr.length>=d.length)?null:arr;applyFilters();renderBody();renderStats();renderChart();renderDaysOpen();saveCfg();var cv=anchor.querySelector('.cv');if(cv)cv.textContent=selSummary(k);}
+    function setSel(arr){S.selFilters[k]=(arr.length>=d.length)?null:arr;applyFilters();renderBody();renderStats();renderChart();renderDaysOpen();saveCfg();try{paintRmFilt();}catch(e){}var cv=anchor.querySelector('.cv');if(cv)cv.textContent=selSummary(k);}
     var listWrap=el('div',{});
     function rebuild(){listWrap.innerHTML='';var sel=curSel();d.forEach(function(v){var cb=el('input',{type:'checkbox'});cb.checked=sel.indexOf(v)>=0;cb.onchange=function(){var s=curSel();var i=s.indexOf(v);if(cb.checked){if(i<0)s.push(v);}else if(i>=0)s.splice(i,1);setSel(s);};listWrap.appendChild(el('label',{class:'mfrow'},[cb,el('span',{},[v])]));});}
     panel.appendChild(el('div',{class:'mfhd'},[
@@ -1211,7 +1212,7 @@
     var d=distinctTypes();
     var panel=el('div',{id:'typepanel',class:'mfpanel',style:'min-width:180px'});
     function curSel(){var s=S.typeSel;return s==null?d.slice():s.slice();}
-    function refreshOutputs(){applyScope();saveCfg();renderStats();renderChart();renderBody();var cl=root.getElementById('countlbl');if(cl)cl.textContent=S.filtered.length+' of '+S.rows.length;var ps=root.getElementById('pksum');if(ps)ps.textContent=typeSummary();}
+    function refreshOutputs(){applyScope();saveCfg();renderStats();renderChart();renderBody();var cl=root.getElementById('countlbl');if(cl)cl.textContent=S.filtered.length+' of '+S.rows.length;var ps=root.getElementById('pksum');if(ps)ps.textContent=typeSummary();try{paintRmFilt();}catch(e){}}
     function setSel(arr){S.typeSel=(arr.length>=d.length)?null:arr;refreshOutputs();}
     var listWrap=el('div',{});
     function rebuild(){listWrap.innerHTML='';if(!d.length){listWrap.appendChild(el('div',{class:'muted',style:'font-size:11px;padding:4px'},['No RFI/TQ types detected.']));return;}var sel=curSel();d.forEach(function(v){var cb=el('input',{type:'checkbox',title:'Show '+v});cb.checked=sel.indexOf(v)>=0;cb.onchange=function(){var s=curSel();var i=s.indexOf(v);if(cb.checked){if(i<0)s.push(v);}else if(i>=0)s.splice(i,1);setSel(s);};listWrap.appendChild(el('label',{class:'mfrow'},[cb,el('span',{},[v==='TQ'?'TQ (Technical Query)':v])]));});}
@@ -1225,6 +1226,33 @@
   // Applied at the applyScope choke-point, so the STATS tiles, both charts,
   // the register grid and the Excel export all reflect them. Persisted in cfg.
   // ============================================================
+  // ---- Remove Filters: one-click clear of every register filter + hidden rows (v12.64) ----
+  // Why: filters and hidden rows persist per-browser between sessions, so a colleague can silently
+  // see fewer rows than the live register (e.g. 79 of 177) without realising. The toolbar button
+  // turns red whenever any of these is active, and clears them all in one click.
+  function activeFilterList(){
+    var L=[];
+    if(S.hiddenRows&&S.hiddenRows.length)L.push(S.hiddenRows.length+' hidden row'+(S.hiddenRows.length===1?'':'s'));
+    if(S.statusSel&&S.statusSel!=='__ALL__')L.push('Status scope ('+(S.statusSel==='__OPEN__'?'Open only':S.statusSel==='__CLOSED__'?'Closed only':String(S.statusSel))+')');
+    if(S.typeSel&&S.typeSel.length)L.push('Type filter ('+S.typeSel.join(', ')+')');
+    if(S.fltRef&&String(S.fltRef).trim())L.push('Reference filter ("'+String(S.fltRef).trim()+'")');
+    if(S.fltDate&&(S.fltDate.from||S.fltDate.to||S.fltDate.preset))L.push('Date Sent filter');
+    var cf=[];for(var k in S.colFilters){if(S.colFilters[k]&&String(S.colFilters[k]).trim())cf.push((COLDEF[k]&&COLDEF[k].label)||k);}
+    if(cf.length)L.push('Column filter'+(cf.length===1?'':'s')+' ('+cf.join(', ')+')');
+    var sf=[];for(var k2 in S.selFilters){var a=S.selFilters[k2];if(a&&a.length)sf.push((COLDEF[k2]&&COLDEF[k2].label)||k2);}
+    if(sf.length)L.push('Value filter'+(sf.length===1?'':'s')+' ('+sf.join(', ')+')');
+    if(S.globalSearch&&String(S.globalSearch).trim())L.push('Search ("'+String(S.globalSearch).trim()+'")');
+    return L;
+  }
+  function anyFilters(){return activeFilterList().length>0;}
+  function paintRmFilt(){var b=root&&root.getElementById('rmfiltbtn');if(!b)return;var on=anyFilters();b.style.color=on?'#c0392b':'';b.style.fontWeight=on?'700':'';b.style.borderColor=on?'#c0392b':'';b.title=on?('Click to clear all filters and show every row. Active: '+activeFilterList().join('; ')):'No filters applied — the full register is shown';}
+  function removeAllFilters(){
+    var removed=activeFilterList();
+    if(!removed.length){toast('No filters are applied \u2014 the full register is already shown.',4000);return;}
+    S.hiddenRows=[];S.statusSel='__ALL__';S.typeSel=[];S.fltDate={from:'',to:'',preset:''};S.fltRef='';S.colFilters={};S.selFilters={};S.globalSearch='';
+    applyScope();saveCfg();renderAll();
+    toast('Filters removed \u2014 '+S.rows.length+' of '+S.allRows.length+' rows now shown. Cleared: '+removed.join('; '),4000);
+  }
   function refreshFilters(){applyScope();renderStats();renderChart();renderDaysOpen();renderBody();updateFilterChrome();saveCfg();}
   function paintActive(elm,on,kind){if(!elm)return;if(kind==='th'){elm.style.background=on?'#fff7f2':'';elm.style.boxShadow=on?('inset 0 -3px 0 '+ACCENT):'';elm.style.color=on?ACCENT:'';}else if(kind==='btn'){elm.style.borderColor=on?ACCENT:'';elm.style.background=on?'#fff7f2':'';elm.style.color=on?ACCENT:'';elm.style.fontWeight=on?'700':'';}else if(kind==='inp'){elm.style.borderColor=on?ACCENT:'';elm.style.background=on?'#fff7f2':'';}}
   function updateFilterChrome(){try{
@@ -1233,6 +1261,7 @@
     var rb=root.getElementById('rowsbtn');if(rb){paintActive(rb,rowsHidden(),'btn');rb.textContent=rowsHidden()?('⚑ Rows ('+S.hiddenRows.length+')'):'⚑ Rows';}
     paintActive(root.getElementById('datefltbtn'),dateFilterActive(),'btn');
     paintActive(root.getElementById('reffltinp'),refFilterActive(),'inp');
+    paintRmFilt();
     var cl=root.getElementById('countlbl');if(cl)cl.textContent=S.filtered.length+' of '+S.rows.length;
   }catch(e){}}
 
@@ -1891,7 +1920,7 @@ async function fullScan(){
   // it so a long message can actually be read. Only one at a time — a second message
   // replaces the first instead of stacking on the same spot. If the persistent Open
   // Selected notice is on screen the toast sits above it rather than over it.
-  function toast(msg){
+  function toast(msg,ms){
     var w=root.getElementById('wrap'); if(!w)return;
     var old=root.getElementById('mps-toast'); if(old){clearTimeout(old.__tm);old.remove();}
     var hp=root.getElementById('mps-popuphelp');
@@ -1905,7 +1934,7 @@ async function fullScan(){
     function arm(ms){clearTimeout(t.__tm);t.__tm=setTimeout(function(){t.remove();},ms);}
     t.onmouseenter=function(){clearTimeout(t.__tm);};
     t.onmouseleave=function(){arm(2500);};
-    w.appendChild(t); arm(10000);
+    w.appendChild(t); arm(ms||10000);
   }
 
   // ---- XLSX export (self-contained) ----
