@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.67', BUILD_DATE='1 Oct 2026';
+  var VERSION='v12.68', BUILD_DATE='1 Oct 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -952,6 +952,16 @@
       S.mig1219 = 1; saveCfg();
     } catch (e) {}
   }
+  // v12.68: make the silent 'not connected' state loud. A browser with no team-sync token saves edits
+  // only locally and never shares them; this banner says so and offers one-click connect.
+  function appendSyncBanner(wrap){
+    var connected=!!ghToken();var err=(GH.state==='err');
+    if(connected&&!err)return;
+    var red=!connected;var bg=red?'#c0392b':'#e8871e';
+    var msg=red?'Team Sync is NOT connected on this computer \u2014 your manual edits (RFI/TQ No., Description, Comments\u2026) are saved only here and are NOT shared with the team.':'Team Sync error \u2014 your recent edits may not be reaching the team. Reconnect to keep everyone in sync.';
+    var bar=el('div',{id:'syncbanner',style:'display:flex;align-items:center;gap:10px;background:'+bg+';color:#fff;padding:7px 12px;font-size:12px;font-weight:600;border-radius:6px;margin:6px 0'},[el('span',{style:'font-size:15px;flex:0 0 auto'},['\u26A0']),el('span',{style:'flex:1 1 auto'},[msg]),el('button',{class:'btn',style:'flex:0 0 auto;background:#fff;color:'+bg+';font-weight:700;border:none',onclick:openSyncPanel},[red?'Connect Team Sync':'Reconnect'])]);
+    wrap.appendChild(bar);
+  }
   function renderAll(){
     installOutsideClose(); mpsDecorPanels(); migrate1219();
     ensureShell();var wrap=root.getElementById('wrap');wrap.innerHTML='';
@@ -989,6 +999,7 @@
       el('span',{class:'pst',id:'pst'},[(S.loading?'loading…':(S.rows.length+' of '+S.allRows.length+' entries'))])
     ]));
     apvRenderDropdown();apvBindSelSwap();
+    appendSyncBanner(wrap);
     // toolbar
     var search=el('input',{type:'search',class:'search',title:'Search across all columns',placeholder:'⌕ Search RFIs / TQs…',value:S.globalSearch});search.oninput=function(){S.globalSearch=search.value;applyFilters();renderBody();renderStats();renderChart();renderDaysOpen();saveCfg();try{paintRmFilt();}catch(e){}};
     var ssel=el('select',{class:'dtsel',title:'Filter the whole register by Open / Closed status'});[['__ALL__','All Statuses'],['__OPEN__','Open only'],['__CLOSED__','Closed only']].forEach(function(p){var o=el('option',{value:p[0]},[p[1]]);if(S.statusSel===p[0])o.selected=true;ssel.appendChild(o);});ssel.onchange=function(){S.statusSel=ssel.value;applyScope();renderAll();};
@@ -1777,34 +1788,33 @@ async function fullScan(){
     if(anchor){var ar=anchor.getBoundingClientRect();var vw=window.innerWidth,vh=window.innerHeight,pw=panel.offsetWidth||Math.round(vw*0.5);var top=Math.max(6,ar.bottom+4);panel.style.left=Math.max(6,Math.min(ar.left,vw-pw-8))+'px';panel.style.top=top+'px';panel.style.maxHeight=(vh-top-10)+'px';}else{panel.style.left='12px';panel.style.top='120px';}
   }
   // ---- 5-second hover note: the last 3 changes (value + user + date/time) on any manual cell (v12.65) ----
-  var histNoteT=null;
+  var histNoteT=null, histNoteShowT=null;
   function fmtWhen(t){try{var d=new Date(t);if(isNaN(d.getTime()))return t||'';return d.toLocaleDateString(undefined,{day:'2-digit',month:'short',year:'numeric'})+', '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}catch(e){return t||'';}}
-  function hideHistNote(){try{var n=root&&root.getElementById('histnote');if(n)n.parentNode.removeChild(n);}catch(e){}if(histNoteT){clearTimeout(histNoteT);histNoteT=null;}}
+  function hideHistNote(){try{var n=root&&root.getElementById('histnote');if(n)n.parentNode.removeChild(n);}catch(e){}if(histNoteT){clearTimeout(histNoteT);histNoteT=null;}if(histNoteShowT){clearTimeout(histNoteShowT);histNoteShowT=null;}}
   function showHistNote(td,row,field,tip){
     tip=tip||((COLDEF[field]&&COLDEF[field].tip)||'');
     var h=histOf(row,field);
     if(!tip&&(!h||!h.length))return;
-    hideHistNote();var wrapEl=root.getElementById('wrap');if(!wrapEl)return;
-    var box=el('div',{id:'histnote',style:'position:absolute;z-index:99999;background:#1f2a37;color:#fff;font-size:11px;line-height:1.4;padding:8px 10px;border-radius:7px;box-shadow:0 6px 18px rgba(0,0,0,.30);max-width:340px;min-width:180px;pointer-events:none'});
-    box.appendChild(el('div',{style:'font-weight:700;margin-bottom:4px;color:#cfe3ff;font-size:9.5px;text-transform:uppercase;letter-spacing:.4px'},[(COLDEF[field]&&COLDEF[field].label)||field]));
-    if(tip)box.appendChild(el('div',{style:'color:#e6edf5;white-space:normal;overflow-wrap:anywhere;margin-bottom:'+((h&&h.length)?'7px':'0px')},[tip]));
+    var wrapEl=root.getElementById('wrap');if(!wrapEl)return;
+    // Light background to match the normal (native) hover explanations, not a dark box.
+    var box=el('div',{id:'histnote',style:'position:absolute;z-index:99999;background:#ffffff;color:#1a1a1a;font-size:11px;line-height:1.4;padding:7px 9px;border:1px solid #9aa0a6;border-radius:5px;box-shadow:0 3px 10px rgba(0,0,0,.18);max-width:340px;min-width:170px;pointer-events:none'});
+    box.appendChild(el('div',{style:'font-weight:700;margin-bottom:4px;color:#5a6472;font-size:9.5px;text-transform:uppercase;letter-spacing:.4px'},[(COLDEF[field]&&COLDEF[field].label)||field]));
+    if(tip)box.appendChild(el('div',{style:'color:#1f2328;white-space:normal;overflow-wrap:anywhere;margin-bottom:'+((h&&h.length)?'7px':'0px')},[tip]));
     if(h&&h.length){
-      box.appendChild(el('div',{style:'font-weight:700;color:#9fb3c8;font-size:9px;text-transform:uppercase;letter-spacing:.4px;border-top:1px solid rgba(255,255,255,.14);padding-top:6px;margin-bottom:4px'},['Last '+h.length+' change'+(h.length===1?'':'s')]));
-      h.forEach(function(e){var v=(e.v==null||e.v==='')?'(cleared)':String(e.v);box.appendChild(el('div',{style:'display:flex;flex-direction:column;margin-bottom:4px'},[el('span',{style:'color:#fff;white-space:normal;overflow-wrap:anywhere'},[v]),el('span',{style:'color:#9fb3c8;font-size:9.5px;margin-top:1px'},[(e.by||'Unknown')+' \u00b7 '+fmtWhen(e.t)])]));});
+      box.appendChild(el('div',{style:'font-weight:700;color:#6b7280;font-size:9px;text-transform:uppercase;letter-spacing:.4px;border-top:1px solid #e2e4e8;padding-top:6px;margin-bottom:4px'},['Last '+h.length+' change'+(h.length===1?'':'s')]));
+      h.forEach(function(e){var v=(e.v==null||e.v==='')?'(cleared)':String(e.v);box.appendChild(el('div',{style:'display:flex;flex-direction:column;margin-bottom:4px'},[el('span',{style:'color:#1a1a1a;white-space:normal;overflow-wrap:anywhere'},[v]),el('span',{style:'color:#6b7280;font-size:9.5px;margin-top:1px'},[(e.by||'Unknown')+' \u00b7 '+fmtWhen(e.t)])]));});
     }
     wrapEl.appendChild(box);
     try{var ar=td.getBoundingClientRect(),wr=wrapEl.getBoundingClientRect();var bw=box.offsetWidth||260,bh=box.offsetHeight||60;var left=ar.left-wr.left;left=Math.max(4,Math.min(left,wr.width-bw-6));var top=ar.bottom-wr.top+4;if(ar.bottom+bh+10>window.innerHeight)top=(ar.top-wr.top)-bh-4;box.style.left=left+'px';box.style.top=top+'px';}catch(e){}
-    if(h&&h.length)histNoteT=setTimeout(hideHistNote,5000);
+    histNoteT=setTimeout(hideHistNote,3000);
   }
   function attachHist(td,row,field){
     var hasH=!!histOf(row,field);var tip='';
     try{var te=(td.getAttribute&&td.getAttribute('title'))?td:(td.querySelector?td.querySelector('[title]'):null);if(te&&te.getAttribute('title'))tip=te.getAttribute('title');}catch(e){}
     if(!tip)tip=(COLDEF[field]&&COLDEF[field].tip)||'';
     if(!tip&&!hasH)return;
-    // One hover only: pull the cell's native tooltip text into the note, then strip native titles so the
-    // explanation and the change record show together rather than as two overlapping hovers.
     try{if(td.getAttribute&&td.getAttribute('title'))td.removeAttribute('title');var kids=td.querySelectorAll?td.querySelectorAll('[title]'):[];for(var i=0;i<kids.length;i++)kids[i].removeAttribute('title');}catch(e){}
-    td.addEventListener('mouseenter',function(){showHistNote(td,row,field,tip);});
+    td.addEventListener('mouseenter',function(){hideHistNote();histNoteShowT=setTimeout(function(){histNoteShowT=null;showHistNote(td,row,field,tip);},1000);});
     td.addEventListener('mouseleave',hideHistNote);
   }
   function setOverride(row,key,val){row[key]=val;var o=S.overrides[rowKey(row)]||(S.overrides[rowKey(row)]={});o[key]=val;recordEdit(row,key,val);saveOverrides();ghPush();if(key==='closed'||key==='dateClosed')applyScope();}
