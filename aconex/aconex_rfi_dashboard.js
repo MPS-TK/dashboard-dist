@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.65', BUILD_DATE='1 Oct 2026';
+  var VERSION='v12.66', BUILD_DATE='1 Oct 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -164,13 +164,26 @@
   function setGdefApplied(ts){try{localStorage.setItem(GDEF_APPLIED,String(ts));}catch(e){}}
   function gdefKindName(k){return {status:'Status',lifecycleStatus:'Lifecycle Status',phase:'Phase',toAction:'To Action',dateRequired:'Date Required'}[k]||k;}
   function gdefColName(k){return (S.colNames&&S.colNames[k])||(COLDEF[k]&&COLDEF[k].label)||k;}
+  // v12.66: keep S.order complete. A Global-Default 'order' patch (or any older saved order) can omit a
+  // column that was added to COLDEF later (e.g. Subject, v12.63). Backfill every COLDEF column into the
+  // order after its factory predecessor, drop stale keys, and ensure each has a cols entry, so newly
+  // added columns always appear in the Columns panel even when hidden by default.
+  function colPredecessor(k){var fi=FACTORY_ORDER.indexOf(k);for(var i=fi-1;i>=0;i--){if(FACTORY_ORDER[i])return FACTORY_ORDER[i];}return null;}
+  function ensureAllCols(){
+    if(!S.order||!S.order.length)S.order=FACTORY_ORDER.slice();
+    S.order=S.order.filter(function(k){return COLDEF[k];});
+    FACTORY_ORDER.forEach(function(k){if(S.order.indexOf(k)<0){var pv=colPredecessor(k),pi=pv?S.order.indexOf(pv):-1;if(pi>=0)S.order.splice(pi+1,0,k);else S.order.push(k);}});
+    Object.keys(COLDEF).forEach(function(k){if(S.order.indexOf(k)<0)S.order.push(k);});
+    S.cols=S.cols||{};
+    S.order.forEach(function(k){if(!S.cols[k])S.cols[k]={show:!!FACTORY_SHOW[k],w:COLDEF[k].w};});
+  }
   function gdefApplyChange(path,val){
     var p=path.split('.');
     if(p[0]==='colorSchemes'&&p.length>=3){S.colorSchemes[p[1]]=S.colorSchemes[p[1]]||{};S.colorSchemes[p[1]][p.slice(2).join('.')]=val;return;}
     if(p[0]==='fgSchemes'&&p.length>=3){S.fgSchemes[p[1]]=S.fgSchemes[p[1]]||{};S.fgSchemes[p[1]][p.slice(2).join('.')]=val;return;}
     if(p[0]==='colW'&&p.length>=2){var kw=p.slice(1).join('.');if(S.cols[kw])S.cols[kw].w=val;return;}
     if(p[0]==='colShow'&&p.length>=2){var ks=p.slice(1).join('.');if(S.cols[ks])S.cols[ks].show=!!val;return;}
-    if(p[0]==='order'){if(Object.prototype.toString.call(val)==='[object Array]')S.order=val.slice();return;}
+    if(p[0]==='order'){if(Object.prototype.toString.call(val)==='[object Array]'){S.order=val.slice();ensureAllCols();}return;}
     var scal={fontScale:1,padScale:1,hdrFontSize:1,hdrMaxLines:1,chartType:1,chartDataField:1,fontSize:1,rowPad:1,wrap:1,baseFont:1};
     if(scal[p[0]]&&p.length===1){S[p[0]]=val;return;}
   }
@@ -1813,6 +1826,7 @@ async function fullScan(){
   function moveCol(k,dir){var o=S.order.slice();var i=o.indexOf(k),j=i+dir;if(j<0||j>=o.length)return;var t=o[i];o[i]=o[j];o[j]=t;S.order=o;saveCfg();renderTable();renderColPanel();}
   var pDrag=null;
   function renderColPanel(){
+    ensureAllCols();
     var old=root.getElementById('colpanel');var sc=old?(old.querySelector('.clist')||{}).scrollTop:0;if(old)old.remove();
     var panel=el('div',{id:'colpanel',class:'panel',style:'left:12px;top:100px;max-height:calc(100vh - 128px);overflow:hidden'},[el('h4',{style:'white-space:normal'},['Columns']),el('div',{class:'muted',style:'font-size:11px;margin-bottom:6px'},[el('div',{style:'white-space:nowrap'},['• Tick to show/hide. ▲▼ reorder.']),el('div',{style:'white-space:nowrap'},['• Rename a header in its box (blank restores the default).']),el('div',{style:'white-space:nowrap'},['• PRIORITY is the Fit to 1 Page priority — 1 is served first, blanks rank equally.']),el('div',{style:'white-space:nowrap'},['• DEFAULT and CURRENT are the default and current widths in px.'])]),el('div',{class:'crow chead'},[el('span',{style:'flex:0 0 auto;width:46px'}),el('span',{style:'flex:0 0 auto;width:13px'}),el('span',{class:'cpri chl'},['PRIORITY']),el('span',{style:'flex:1;text-align:center'},['HEADER']),el('span',{class:'cwid chl'},['DEFAULT']),el('span',{class:'cwid chl'},['CURRENT'])])]);
     var list=el('div',{class:'clist',style:'flex:1 1 auto;overflow:auto;min-height:40px'});
@@ -1970,7 +1984,7 @@ async function fullScan(){
     saveCfg();renderTable();
   }
 
-  function resetCols(){S._widthMode=null;var b;try{var d=localStorage.getItem(DKEY);if(d)b=mergeCfg(JSON.parse(d));}catch(e){}if(!b)b=factoryCfg();S.order=b.order;S.cols=b.cols;S.colPri=b.colPri||{};S.colDefW=b.colDefW||{};S.fontSize=b.fontSize;S.rowPad=b.rowPad;S.wrap=b.wrap;S.chartType=b.chartType;if(b.selFilters)S.selFilters=b.selFilters;S.chartScale=b.chartScale||1;S.chartSplit=(b.chartSplit!=null?+b.chartSplit:0.5);if(b.colorSchemes)S.colorSchemes=normSchemes(b.colorSchemes);if(b.collapsed)S.collapsed=b.collapsed;S.fontScale=b.fontScale||100;S.padScale=b.padScale||100;S.statusSel=b.statusSel||'__ALL__';S.typeSel=(b.typeSel!=null?b.typeSel:null);S.colNames=b.colNames||{};S.statusList=(b.statusList&&b.statusList.length?b.statusList:STATUS_WORKFLOW.slice());S.doScale=b.doScale||1;S.doHideClosed=!!b.doHideClosed;S.doHide=(b.doHide&&b.doHide.length?b.doHide.slice():[]);S.chartAutoFit=b.chartAutoFit!==false;S.sortKey=b.sortKey||'';S.sortDir=(b.sortDir===-1?-1:1);S.colFilters=(b.colFilters&&typeof b.colFilters==='object'?b.colFilters:{});S.globalSearch=b.globalSearch||'';applyScope();saveCfg();renderAll();}
+  function resetCols(){S._widthMode=null;var b;try{var d=localStorage.getItem(DKEY);if(d)b=mergeCfg(JSON.parse(d));}catch(e){}if(!b)b=factoryCfg();S.order=b.order;S.cols=b.cols;ensureAllCols();S.colPri=b.colPri||{};S.colDefW=b.colDefW||{};S.fontSize=b.fontSize;S.rowPad=b.rowPad;S.wrap=b.wrap;S.chartType=b.chartType;if(b.selFilters)S.selFilters=b.selFilters;S.chartScale=b.chartScale||1;S.chartSplit=(b.chartSplit!=null?+b.chartSplit:0.5);if(b.colorSchemes)S.colorSchemes=normSchemes(b.colorSchemes);if(b.collapsed)S.collapsed=b.collapsed;S.fontScale=b.fontScale||100;S.padScale=b.padScale||100;S.statusSel=b.statusSel||'__ALL__';S.typeSel=(b.typeSel!=null?b.typeSel:null);S.colNames=b.colNames||{};S.statusList=(b.statusList&&b.statusList.length?b.statusList:STATUS_WORKFLOW.slice());S.doScale=b.doScale||1;S.doHideClosed=!!b.doHideClosed;S.doHide=(b.doHide&&b.doHide.length?b.doHide.slice():[]);S.chartAutoFit=b.chartAutoFit!==false;S.sortKey=b.sortKey||'';S.sortDir=(b.sortDir===-1?-1:1);S.colFilters=(b.colFilters&&typeof b.colFilters==='object'?b.colFilters:{});S.globalSearch=b.globalSearch||'';applyScope();saveCfg();renderAll();}
   function setAsDefault(){try{localStorage.setItem(DKEY,JSON.stringify({order:S.order,cols:S.cols,fontSize:S.fontSize,rowPad:S.rowPad,wrap:S.wrap,chartType:S.chartType,selFilters:S.selFilters,chartSplit:S.chartSplit,chartScale:S.chartScale,colorSchemes:S.colorSchemes,fontFamily:S.fontFamily,baseFont:S.baseFont,darkMode:S.darkMode,collapsed:S.collapsed,fontScale:S.fontScale,padScale:S.padScale,hpadScale:S.hpadScale,hdrFontSize:S.hdrFontSize,hdrMaxLines:S.hdrMaxLines,statusSel:S.statusSel,typeSel:S.typeSel,colPri:S.colPri,colDefW:S.colDefW,colNames:S.colNames,statusList:S.statusList,doScale:S.doScale,doStat:S.doStat,doHideClosed:S.doHideClosed,chartAutoFit:S.chartAutoFit,doHide:S.doHide,sortKey:S.sortKey,sortDir:S.sortDir,colFilters:S.colFilters,globalSearch:S.globalSearch}));}catch(e){}toast('Saved as your default view');}
   function resetGlobalDefaults(){
     try{localStorage.removeItem(DKEY);}catch(e){}
