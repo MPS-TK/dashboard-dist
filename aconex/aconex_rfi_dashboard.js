@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.69', BUILD_DATE='1 Oct 2026';
+  var VERSION='v12.70', BUILD_DATE='1 Oct 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -489,7 +489,8 @@
   var XKEY='mps_aconex_rfi_xchk_'+CFG.mpsProjectNo, __xSyncing=false;
   function loadXCache(){try{return JSON.parse(localStorage.getItem(XKEY)||'null');}catch(e){return null;}}
   function saveXCache(o){try{localStorage.setItem(XKEY,JSON.stringify(o));}catch(e){}}
-  function lastXText(){var c=loadXCache();if(!c||!c.ts)return 'Mail: not cross-checked';var h=(Date.now()-c.ts)/3600000;if(h<0)h=0;return 'Cross-checked '+h.toFixed(1)+'h ago';}
+  function lastXTs(){var ts=0;try{var c=loadXCache();if(c&&c.ts)ts=c.ts;}catch(e){}try{var xd=JSON.parse(localStorage.getItem(('mps_aconex_rfi_xdata_'+CFG.mpsProjectNo))||'null');if(xd){if(xd.__full&&xd.__full.ts&&xd.__full.ts>ts)ts=xd.__full.ts;if(xd.__corr&&xd.__corr.ts&&xd.__corr.ts>ts)ts=xd.__corr.ts;}}catch(e){}return ts;}
+  function lastXText(){var ts=lastXTs();if(!ts)return 'Mail: not cross-checked';var h=(Date.now()-ts)/3600000;if(h<0)h=0;return 'Cross-checked '+h.toFixed(1)+'h ago';}
   var RFI_TYPES={'request for information':'rfi','technical query':'tq'};
   var RESP_TYPES={'response to rfi':'rfi','response to technical query':'tq'};
   function normRef(s){return String(s||'').replace(/\s+/g,'').toUpperCase();}
@@ -1001,7 +1002,7 @@
       btn('Fonts','Choose the dashboard font and base size for all elements',function(ev){toggleFontPanel(ev&&ev.currentTarget);},'pnltrig'),
       btn((S.darkMode?'☀ Light Mode':'☾ Dark Mode'),'Toggle dark mode',function(){S.darkMode=!S.darkMode;saveCfg();renderAll();}),
       (function(){selBtnEl=el('button',{class:'btn mps-open',onclick:openSelected},['🔗 Open Selected']);selBtnEl.setAttribute('disabled','disabled');selBtnEl.setAttribute('title','Tick one or more rows in the left-hand column to enable this');return selBtnEl;})(),
-      btn('⟳ Cross-check Aconex Mail','Scan the Request For Information, Technical Query, Response to RFI and Response to Technical Query mails in the selected Aconex project and auto-fill the Aconex-sourced columns (matched on Aconex Reference No)',function(ev){fullScan();}),
+      btn('⟳ Cross-check Aconex Mail','Scan the Request For Information, Technical Query, Response to RFI and Response to Technical Query mails in the selected Aconex project and auto-fill the Aconex-sourced columns (matched on Aconex Reference No)',function(ev){fullScan(ev&&ev.currentTarget);}),
       null,
       el('span',{class:'muted',id:'xsync',style:'font-size:11px',title:'When the Aconex-sourced columns were last cross-checked against the mail module'},[lastXText()]),
       el('div',{class:'spacer'}),
@@ -1666,8 +1667,12 @@ function mpsRfiEnhance(){try{var sr=mpsRfiSR();if(!sr)return;var tips={'Date Res
 try{var __mpsOrigRB=renderBody;renderBody=function(){var _r=__mpsOrigRB.apply(this,arguments);try{mpsRfiEnhance();}catch(e){}return _r;};}catch(e){}
 try{(function(){var t=0;function tick(){t++;try{if(S&&S.allRows&&S.allRows.length){mpsRfiCorrectAll(false);return;}}catch(e){}if(t<60)setTimeout(tick,1000);}setTimeout(tick,1800);})();}catch(e){}
 
-async function fullScan(){
+async function fullScan(btn){
     if(S._fullScanning)return;S._fullScanning=true;
+    var _xl=root&&root.getElementById('xsync');var _ot=btn?btn.textContent:'';
+    function fsStat(t){try{if(_xl)_xl.textContent=t;}catch(e){}try{if(btn)btn.textContent=t;}catch(e){}}
+    if(btn){try{btn.disabled=true;btn.style.opacity='0.7';}catch(e){}}
+    fsStat('\u27F3 Cross-checking\u2026 (please wait)');
     try{ await resolveRefLinks();
       var pid=S.xProjectId||detectProjectId()||'2013294019';
       function tx2(n,sel){var e=n.querySelector(sel);return e?(e.textContent||'').trim():'';}
@@ -1678,10 +1683,10 @@ async function fullScan(){
       var cache={};
       async function getMail(id){if(cache[id])return cache[id];var d=await det(id);if(!d)return null;var mno=tx2(d,'MailNo');var m={id:id,mno:mno,tid:tx2(d,'ThreadId'),sd:tx2(d,'SentDate'),org:org2(mno),subj:tx2(d,'Subject')};cache[id]=m;return m;}
       var rows=S.allRows.filter(function(r){return r._refMailId;});
-      var oi=0;async function ow(){while(oi<rows.length){var r=rows[oi++];r.__o=await getMail(r._refMailId);}}
+      var oi=0,_d1=0;async function ow(){while(oi<rows.length){var r=rows[oi++];r.__o=await getMail(r._refMailId);_d1++;if(_d1%5===0||_d1===rows.length)fsStat('\u27F3 Cross-checking mail '+_d1+' / '+rows.length);}}
       await Promise.all([ow(),ow(),ow(),ow()]);
       var subjMem={},subs=[];rows.forEach(function(r){if(r.__o){var ns=nsub2(r.__o.subj);if(subjMem[ns]===undefined){subjMem[ns]=null;subs.push({ns:ns,subj:r.__o.subj});}}});
-      var si=0;async function sw(){while(si<subs.length){var so=subs[si++];var ids={};for(var bi=0;bi<2;bi++){var box=bi?'inbox':'sentbox';(await srch(box,so.subj)).forEach(function(id){ids[id]=1;});}var mem=[];var kk=Object.keys(ids);for(var z=0;z<kk.length;z++){var mm=await getMail(kk[z]);if(mm)mem.push(mm);}subjMem[so.ns]=mem;}}
+      var si=0,_d2=0;async function sw(){while(si<subs.length){var so=subs[si++];var ids={};for(var bi=0;bi<2;bi++){var box=bi?'inbox':'sentbox';(await srch(box,so.subj)).forEach(function(id){ids[id]=1;});}var mem=[];var kk=Object.keys(ids);for(var z=0;z<kk.length;z++){var mm=await getMail(kk[z]);if(mm)mem.push(mm);}subjMem[so.ns]=mem;_d2++;if(_d2%3===0||_d2===subs.length)fsStat('\u27F3 Matching threads '+_d2+' / '+subs.length);}}
       await Promise.all([sw(),sw(),sw(),sw(),sw()]);
       var updates={};
       rows.forEach(function(r){if(!r.__o)return;var ns=nsub2(r.__o.subj);var mem=(subjMem[ns]||[]).filter(function(m){return m.tid===r.__o.tid||nsub2(m.subj)===ns;});var have={};mem.forEach(function(m){have[m.id]=1;});if(!have[r.__o.id])mem.push(r.__o);
@@ -1698,11 +1703,18 @@ async function fullScan(){
       });
       updates.__full={ver:10,ts:Date.now()};
       saveXDataMerge(updates);
-      try{recomputeAuto();renderStats();renderDaysOpen();renderBody();}catch(e){}
-    }catch(e){}
+      try{saveXCache({ts:Date.now()});}catch(e){}
+      try{applyScope();recomputeAuto();renderStats();renderDaysOpen();renderBody();}catch(e){}
+      fsStat('\u2713 Cross-check complete');
+    }catch(e){fsStat('\u26A0 Cross-check error \u2014 try again');}
     S._fullScanning=false;
+    if(btn){try{btn.disabled=false;btn.style.opacity='';btn.textContent=_ot||'\u27F3 Cross-check Aconex Mail';}catch(e){}}
+    try{if(_xl)setTimeout(function(){_xl.textContent=lastXText();},1500);}catch(e){}
   }
   function maybeFullScan(){try{var xd=null;try{xd=JSON.parse(localStorage.getItem(('mps_aconex_rfi_xdata_'+CFG.mpsProjectNo))||'null');}catch(e){}if(xd&&xd.__full&&xd.__full.ver>=10)return;var todo=S.allRows.filter(function(r){return r.aconexRef;});if(todo.length)setTimeout(fullScan,1200);}catch(e){}}
+  // v12.70: auto cross-check on reload when the last one was >72h ago (or never). In-dashboard only
+  // (runs client-side on load from stored state) — NOT a Claude watcher. Progress shows in the status line.
+  function maybeAutoFullScan(){try{if(S._fullScanning||S._autoXDone)return;if(!(S.allRows&&S.allRows.length))return;var ts=lastXTs();if(ts&&(Date.now()-ts)<72*3600000)return;S._autoXDone=true;setTimeout(function(){fullScan(null);},1500);}catch(e){}}
   function renderBody(){
     var tb=root.getElementById('tbody');if(!tb)return;tb.innerHTML='';
     var cl=root.getElementById('countlbl');if(cl)cl.textContent=S.filtered.length+' of '+S.rows.length;
@@ -2335,7 +2347,7 @@ async function fullScan(){
       // fast team-sync (ghLoad) and global-default (gdefLoad) enrichments so they no longer each
       // trigger their own full rebuild. A 1200ms cap guarantees the first paint even if a sync is slow.
       var _bootPainted=false;
-      function bootPaint(){ if(_bootPainted)return; _bootPainted=true; try{descFixMigration();}catch(e){} applyScope(); renderAll(); reconcileAconexStatus(); }
+      function bootPaint(){ if(_bootPainted)return; _bootPainted=true; try{descFixMigration();}catch(e){} applyScope(); renderAll(); reconcileAconexStatus(); try{maybeAutoFullScan();}catch(e){} }
       if (ghToken()){
         var _g1=ghLoad().then(function(){ applyOverridesToRows(); recomputeAuto(); },function(){});
         var _g2=gdefLoad().then(function(){},function(){});
