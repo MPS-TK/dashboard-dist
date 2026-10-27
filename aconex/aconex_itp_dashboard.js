@@ -16,7 +16,7 @@
   if (window.__MPS_ACONEX && window.__MPS_ACONEX.__live) { window.__MPS_ACONEX.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.76', BUILD_DATE='27 Oct 2026';
+  var VERSION='v12.77', BUILD_DATE='27 Oct 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -192,7 +192,7 @@
          globalSearch:(C.globalSearch||''),colFilters:(C.colFilters&&typeof C.colFilters==='object'?C.colFilters:{}),sortKey:(C.sortKey||''),sortDir:(C.sortDir===-1?-1:1),
          order:C.order,cols:C.cols,fontSize:C.fontSize,rowPad:C.rowPad,wrap:C.wrap,
          phases:C.phases,chartType:C.chartType,hiddenDonuts:C.hiddenDonuts,selFilters:C.selFilters,selKnown:C.selKnown||{},chartScale:C.chartScale,colorSchemes:C.colorSchemes,fgSchemes:(C.fgSchemes||{status:{},lifecycleStatus:{},phase:{},toAction:{},dateRequired:{}}),
-         fontFamily:C.fontFamily,baseFont:C.baseFont,darkMode:C.darkMode,collapsed:C.collapsed,barExpanded:C.barExpanded,chartDataField:C.chartDataField,fontScale:C.fontScale,padScale:C.padScale,hpadScale:C.hpadScale||100,hdrFontSize:C.hdrFontSize,hdrMaxLines:C.hdrMaxLines||2,colNames:C.colNames||{},
+         fontFamily:C.fontFamily,baseFont:C.baseFont,darkMode:C.darkMode,collapsed:C.collapsed,barExpanded:C.barExpanded,chartDataField:C.chartDataField,chartFieldSet:C.chartFieldSet,chartSplitField:C.chartSplitField,fontScale:C.fontScale,padScale:C.padScale,hpadScale:C.hpadScale||100,hdrFontSize:C.hdrFontSize,hdrMaxLines:C.hdrMaxLines||2,colNames:C.colNames||{},
          packageSel:C.packageSel,delivSel:(C.delivSel!==undefined?C.delivSel:null),packageText:C.packageText||{},
          fltDate:(C.fltDate&&typeof C.fltDate==='object'?{from:C.fltDate.from||'',to:C.fltDate.to||'',preset:C.fltDate.preset||''}:{from:'',to:'',preset:''}),fltRef:(C.fltRef||''),hiddenRows:(C.hiddenRows&&C.hiddenRows.length?C.hiddenRows.slice():[]),
          overrides:loadOverrides()};
@@ -1919,9 +1919,12 @@
       S.seriesOrder = (c.seriesOrder && typeof c.seriesOrder === 'object') ? c.seriesOrder : {};
       S.colFilters = (c.colFilters && typeof c.colFilters === 'object') ? c.colFilters : {};
       S.globalSearch = c.globalSearch || '';
+      S.chartDataField = c.chartDataField || 'status';
+      S.chartFieldSet = !!c.chartFieldSet;
+      S.chartSplitField = c.chartSplitField || 'phase';
     } else {
       S.selFilters = {}; S.packageSel = null; S.delivSel = null; S.packageText = {}; S.fltDate = { from:'', to:'', preset:'' }; S.fltRef = ''; S.hiddenRows = [];
-      S.colorSchemes = normSchemes(null); S.fgSchemes = normFgSchemes(null); S.seriesOrder = {}; S.colFilters = {}; S.globalSearch = '';
+      S.colorSchemes = normSchemes(null); S.fgSchemes = normFgSchemes(null); S.seriesOrder = {}; S.colFilters = {}; S.globalSearch = ''; S.chartDataField = 'status'; S.chartFieldSet = false; S.chartSplitField = 'phase';
     }
   }
   function apvSelect(id, opts){
