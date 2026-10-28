@@ -16,7 +16,7 @@
   if (window.__MPS_ACONEX && window.__MPS_ACONEX.__live) { window.__MPS_ACONEX.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.77', BUILD_DATE='27 Oct 2026';
+  var VERSION='v12.78', BUILD_DATE='28 Oct 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -44,9 +44,15 @@
   var PRIORITIES=['','Very Low','Low','Medium','High','Urgent','Critical'];
   var PRIORITY_COLORS={'Very Low':'#8a939b','Low':'#1e7e34','Medium':'#e0a800','High':'#e08e0b','Urgent':'#e05a1c','Critical':'#c0392b'};
   var PHASE_PALETTE=['#2b6cb0','#1e7e34','#e0a800','#8a5db0','#e05a1c','#00897b','#c0392b','#5a4bc4'];
-  var DEFAULT_PHASES=[{id:'1',label:'Phase 1'},{id:'2',label:'Phase 2'},{id:'3',label:'Phase 3'},{id:'Generic',label:'Generic'}];
+  var LEGACY_PHASES=[{id:'1',label:'Phase 1'},{id:'2',label:'Phase 2'},{id:'3',label:'Phase 3'},{id:'Generic',label:'Generic'}];
+  var DEFAULT_PHASES=[{id:'s1',label:'Split 1'},{id:'s2',label:'Split 2'},{id:'s3',label:'Split 3'},{id:'s4',label:'Split 4'}];
+  var PH_DEF_LABEL={s1:'Split 1',s2:'Split 2',s3:'Split 3',s4:'Split 4'};
   function phaseLabel(id){for(var i=0;i<S.phases.length;i++)if(S.phases[i].id===id)return S.phases[i].label;return id||'';}
   function phaseColor(id){var cs=schemeGet('phase',id);if(cs)return cs;for(var i=0;i<S.phases.length;i++)if(S.phases[i].id===id)return PHASE_PALETTE[i%PHASE_PALETTE.length];return '#c2c9d2';}
+  function phaseUsed(id){var a=S.allRows||[];for(var i=0;i<a.length;i++){if(a[i].phase===id)return true;}return false;}
+  function phaseIsExample(p){return PH_DEF_LABEL[p.id]===p.label && !phaseUsed(p.id) && !(S.colorSchemes&&S.colorSchemes.phase&&S.colorSchemes.phase[p.id]);}
+  function phasesAreLegacyDefault(){if(!S.phases||S.phases.length!==LEGACY_PHASES.length)return false;for(var i=0;i<LEGACY_PHASES.length;i++){if(S.phases[i].id!==LEGACY_PHASES[i].id||S.phases[i].label!==LEGACY_PHASES[i].label)return false;}return true;}
+  function maybeMigratePhases(){if(!(S.allRows&&S.allRows.length))return;if(!phasesAreLegacyDefault())return;var i;for(i=0;i<LEGACY_PHASES.length;i++){if(phaseUsed(LEGACY_PHASES[i].id))return;}if(S.colorSchemes&&S.colorSchemes.phase){for(i=0;i<LEGACY_PHASES.length;i++){if(S.colorSchemes.phase[LEGACY_PHASES[i].id])return;}}S.phases=DEFAULT_PHASES.map(function(p){return {id:p.id,label:p.label};});saveCfg();}
   // ---- BHP Report phase pre-fill (DocumentNumber -> Phase) ----
   var BHP_PHASE={
     'MPSBE-1202158-ITP-0017':'1','MPSBE-1202158-ITP-0018':'1','MPSBE-1202158-ITP-0020':'1','MPSBE-1202158-ITP-0021':'1',
@@ -1041,6 +1047,7 @@
   var CT_NEXT={donut:'bar',bar:'pie',pie:'donut'};
   var CT_LABEL={donut:'Bars',bar:'Pie Charts',pie:'Donuts'};
   function renderCharts(){
+    maybeMigratePhases();
     var ctl=root.getElementById('chartctl');
     if(ctl){ctl.innerHTML='';
       ctl.appendChild(el('span',{class:'ccount',title:'Documents in the current Deliverable Type view'},[String(S.rows.length)+' · '+delivTitle()]));
@@ -1238,7 +1245,7 @@
     var old=root.getElementById('phasepanel');if(old)old.remove();
     var panel=el('div',{id:'phasepanel',class:'panel',style:'left:12px;top:150px;min-width:250px'},[el('h4',{},['Phases — rename & add']),el('div',{class:'muted',style:'font-size:11px;margin-bottom:6px'},['Rename how each phase appears in the Phase column and charts, or add a new one.'])]);
     (function(){var cn=el('input',{type:'text',value:colLabel('phase'),placeholder:'Phase',title:'Rename the Phase column \u2014 shown in the column header, the charts button and Column Settings.',style:'flex:1;border:1px solid #cfd8e3;border-radius:4px;padding:2px 6px;font-size:12px'});cn.onchange=function(){var v=(cn.value||'').trim();if(v&&v!==COLDEF.phase.label){S.colNames=S.colNames||{};S.colNames.phase=v;}else{if(S.colNames)delete S.colNames.phase;}saveCfg();renderTable();renderCharts();};panel.appendChild(el('div',{class:'crow',style:'margin-bottom:8px;align-items:center;gap:6px'},[el('span',{style:'font-size:11px;font-weight:700;color:#5b6674;flex:0 0 auto'},['Column name']),cn]));})();
-    S.phases.forEach(function(p){var sw=el('i',{style:'width:10px;height:10px;border-radius:2px;display:inline-block;background:'+phaseColor(p.id)});var i=el('input',{type:'text',value:p.label,style:'flex:1;border:1px solid #cfd8e3;border-radius:4px;padding:2px 6px;font-size:12px'});i.onchange=function(){p.label=i.value||p.id;saveCfg();renderTable();renderCharts();};var rm=el('button',{class:'mini',title:'Remove this phase',onclick:function(){S.phases=S.phases.filter(function(x){return x.id!==p.id;});saveCfg();renderTable();renderCharts();renderPhasePanel();}},['✕']);panel.appendChild(el('div',{class:'crow'},[sw,i,rm]));});
+    S.phases.forEach(function(p){var ex=phaseIsExample(p);var sw=el('i',{style:'width:10px;height:10px;border-radius:2px;display:inline-block;background:'+(ex?'#e4e8ee':phaseColor(p.id))});var i=el('input',{type:'text',value:p.label,title:ex?'Example split label — rename it, or assign documents to this split, to activate it.':'',style:'flex:1;border:1px solid #cfd8e3;border-radius:4px;padding:2px 6px;font-size:12px'+(ex?';color:#9aa6b2;font-style:italic':'')});i.onchange=function(){p.label=i.value||p.id;saveCfg();renderTable();renderCharts();renderPhasePanel();};var rm=el('button',{class:'mini',title:'Remove this phase',onclick:function(){S.phases=S.phases.filter(function(x){return x.id!==p.id;});saveCfg();renderTable();renderCharts();renderPhasePanel();}},['✕']);panel.appendChild(el('div',{class:'crow'},[sw,i,rm]));});
     var addv=el('input',{type:'text',placeholder:'New phase name…',style:'flex:1;border:1px solid #cfd8e3;border-radius:4px;padding:2px 6px;font-size:12px'});
     var add=el('button',{class:'btn',onclick:function(){var nm=addv.value.trim();if(!nm)return;var id='p_'+Date.now().toString(36)+'_'+S.phases.length;S.phases.push({id:id,label:nm});saveCfg();renderTable();renderCharts();renderPhasePanel();}},['Add']);
     panel.appendChild(el('div',{class:'crow',style:'margin-top:6px'},[addv,add]));
@@ -1536,7 +1543,7 @@
   function editCell(row,k,base){
     var td=el('td',{class:'edit',style:base});
     if(k==='priority'){var sel=el('select',{class:'mps-sel',title:'Set priority'});PRIORITIES.forEach(function(p){var o=el('option',{value:p});o.textContent=p||'—';if(row.priority===p)o.selected=true;sel.appendChild(o);});function paintPr(v){var c=v?(PRIORITY_COLORS[v]||'#fffdf5'):'';if(v){td.style.background=c;sel.style.backgroundColor=c;sel.style.color='#fff';sel.style.fontWeight='700';sel.classList.add('set');}else{td.style.background='';sel.style.backgroundColor='';sel.style.color='';sel.style.fontWeight='';sel.classList.remove('set');}}paintPr(row.priority);sel.onchange=function(){setOverride(row,'priority',sel.value);paintPr(sel.value);};td.appendChild(sel);}
-    else if(k==='phase'){var sel=el('select',{class:'mps-sel',title:'Select project phase (not held in Aconex)'});var o0=el('option',{value:''});o0.textContent='—';if(!row.phase)o0.selected=true;sel.appendChild(o0);S.phases.forEach(function(p){var o=el('option',{value:p.id});o.textContent=p.label;if((row.phase||'')===p.id)o.selected=true;sel.appendChild(o);});function paintPh(v){if(v){td.style.background=phaseColor(v);sel.style.backgroundColor=phaseColor(v);sel.style.color='#fff';sel.style.fontWeight='700';sel.classList.add('set');}else{td.style.background='';sel.style.backgroundColor='';sel.style.color='';sel.style.fontWeight='';sel.classList.remove('set');}}paintPh(row.phase);sel.onchange=function(){setOverride(row,'phase',sel.value);paintPh(sel.value);try{sel.blur();}catch(e){}renderCharts();renderStats();};td.appendChild(sel);}
+    else if(k==='phase'){var sel=el('select',{class:'mps-sel',title:'Select project phase (not held in Aconex)'});var o0=el('option',{value:''});o0.textContent='—';if(!row.phase)o0.selected=true;sel.appendChild(o0);S.phases.forEach(function(p){var o=el('option',{value:p.id});o.textContent=p.label;if(phaseIsExample(p))o.style.color='#9aa6b2';if((row.phase||'')===p.id)o.selected=true;sel.appendChild(o);});function paintPh(v){if(v){td.style.background=phaseColor(v);sel.style.backgroundColor=phaseColor(v);sel.style.color='#fff';sel.style.fontWeight='700';sel.classList.add('set');}else{td.style.background='';sel.style.backgroundColor='';sel.style.color='';sel.style.fontWeight='';sel.classList.remove('set');}}paintPh(row.phase);sel.onchange=function(){setOverride(row,'phase',sel.value);paintPh(sel.value);try{sel.blur();}catch(e){}renderCharts();renderStats();};td.appendChild(sel);}
     else if(k==='subsystem'){
       // Editable subsystem. The title-parsed value is the default; a typed value
       // overrides it and persists via the same overrides store as the other manual
@@ -1922,9 +1929,12 @@
       S.chartDataField = c.chartDataField || 'status';
       S.chartFieldSet = !!c.chartFieldSet;
       S.chartSplitField = c.chartSplitField || 'phase';
+      S.phases = (c.phases && c.phases.length) ? c.phases : DEFAULT_PHASES.map(function(p){return {id:p.id,label:p.label};});
+      S.colNames = c.colNames || {};
+      S.hiddenDonuts = c.hiddenDonuts || [];
     } else {
       S.selFilters = {}; S.packageSel = null; S.delivSel = null; S.packageText = {}; S.fltDate = { from:'', to:'', preset:'' }; S.fltRef = ''; S.hiddenRows = [];
-      S.colorSchemes = normSchemes(null); S.fgSchemes = normFgSchemes(null); S.seriesOrder = {}; S.colFilters = {}; S.globalSearch = ''; S.chartDataField = 'status'; S.chartFieldSet = false; S.chartSplitField = 'phase';
+      S.colorSchemes = normSchemes(null); S.fgSchemes = normFgSchemes(null); S.seriesOrder = {}; S.colFilters = {}; S.globalSearch = ''; S.chartDataField = 'status'; S.chartFieldSet = false; S.chartSplitField = 'phase'; S.phases = DEFAULT_PHASES.map(function(p){return {id:p.id,label:p.label};}); S.colNames = {}; S.hiddenDonuts = [];
     }
   }
   function apvSelect(id, opts){
