@@ -16,7 +16,7 @@
   if (window.__MPS_ACONEX && window.__MPS_ACONEX.__live) { window.__MPS_ACONEX.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.79', BUILD_DATE='30 Oct 2026';
+  var VERSION='v12.80', BUILD_DATE='30 Oct 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -1025,9 +1025,16 @@
      tile(revise,'Revise & Resubmit ('+pc(revise,base)+'%)',C('#e05a1c','#f2794a'),'Status = Revise and Resubmit'),
      tile(supObs,'Superseded / Obsolete ('+pc(supObs,grand)+'%)',C('#39424d','#aeb8c4'),'Superseded or Obsolete (status or lifecycle)'+(active?' \u2014 excluded from the stats above':''),active)
     ].forEach(function(t){box.appendChild(t);});
-    var sb=el('button',{title:(active?'Stats exclude Superseded/Obsolete documents \u2014 click to include them':'Stats include all documents \u2014 click to exclude Superseded/Obsolete'),style:'white-space:nowrap;border:1px solid #c0392b;border-radius:7px;padding:0 14px;font-size:12px;font-weight:700;cursor:pointer;align-self:stretch;'+(active?'background:#c0392b;color:#fff':'background:#fff;color:#c0392b')},['Exclude Superseded/Obsolete']);
-    sb.onclick=function(){S.excludeSupObs=!active;saveCfg();renderStats();};
-    box.appendChild(sb);
+    var supTile=box.lastChild;
+    (function(){
+      var hd=(box.parentNode&&box.parentNode.querySelector)?box.parentNode.querySelector('.cpanelhd'):null;if(!hd)return;
+      var oldb=hd.querySelector('.supexbtn');if(oldb)oldb.remove();
+      var lbl=active?'Include Superseded/Obsolete':'Exclude Superseded/Obsolete';
+      var sb=el('button',{class:'supexbtn',title:(active?'Stats currently exclude Superseded/Obsolete \u2014 click to include them':'Stats currently include Superseded/Obsolete \u2014 click to exclude them'),style:'white-space:nowrap;border:1px solid #c0392b;background:#c0392b;color:#fff;border-radius:6px;padding:2px 10px;font-size:11px;font-weight:700;cursor:pointer;line-height:1.5'},[lbl]);
+      sb.onclick=function(){S.excludeSupObs=!active;saveCfg();renderStats();};
+      hd.style.position='relative';hd.appendChild(sb);
+      requestAnimationFrame(function(){var rt=supTile.getBoundingClientRect(),rh=hd.getBoundingClientRect();if(rt.width>0){sb.style.position='absolute';sb.style.left=Math.round(rt.left-rh.left)+'px';sb.style.top='50%';sb.style.transform='translateY(-50%)';}else{sb.style.marginLeft='auto';}});
+    })();
   }
 
   function statusKeys(rows){var c={};rows.forEach(function(r){var k=r.status||'—';c[k]=(c[k]||0)+1;});return c;}
