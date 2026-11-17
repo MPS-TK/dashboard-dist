@@ -16,7 +16,7 @@
   if (window.__MPS_ACONEX && window.__MPS_ACONEX.__live) { window.__MPS_ACONEX.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.81', BUILD_DATE='30 Oct 2026';
+  var VERSION='v12.82', BUILD_DATE='17 Nov 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -157,7 +157,7 @@
     var su=loadStartup();
     if(su&&su.deliverables!=null){
       if(su.deliverables==='__ALL__')S.delivSel=null;
-      else{var dl=su.deliverables.filter(function(v){return S.deliverableTypes.indexOf(v)>=0;});S.delivSel=(dl.length>=S.deliverableTypes.length)?null:dl;}
+      else{var dl=su.deliverables.filter(function(v){return S.deliverableTypes.indexOf(v)>=0;});S.delivSel=((dl.length===0)||(dl.length>=S.deliverableTypes.length))?null:dl;}
     } else {
       var _dtd=loadDtDef();
       if(_dtd&&_dtd!=='__ALL__'&&S.deliverableTypes.indexOf(_dtd)>=0)S.delivSel=[_dtd];
@@ -614,7 +614,7 @@
     wrapEl.appendChild(panel);
     var l=panel.querySelector('.rlist');if(l)l.scrollTop=sc;
   }
-  function applyScope(){reconcileSelKnown();S.rows=(S.delivSel==null)?S.allRows.slice():S.allRows.filter(function(r){return S.delivSel.indexOf(r.deliverableType||'')>=0;});if(S.packageSel){if(S.packageSel.length){S.rows=S.rows.filter(function(r){return S.packageSel.indexOf(r.packageNo||'')>=0;});}else{S.rows=S.rows.filter(function(r){return !String(r.packageNo||'').trim();});}}S.rows=S.rows.filter(function(r){return !isRowHidden(r)&&passDateFilter(r)&&passRefFilter(r);});applyFilters();}
+  function applyScope(){reconcileSelKnown();if(S.delivSel!=null&&S.delivSel.length){var _ov=false,_dt=S.deliverableTypes||[];for(var _i=0;_i<S.delivSel.length;_i++){if(_dt.indexOf(S.delivSel[_i])>=0){_ov=true;break;}}if(!_ov)S.delivSel=null;}S.rows=(S.delivSel==null)?S.allRows.slice():S.allRows.filter(function(r){return S.delivSel.indexOf(r.deliverableType||'')>=0;});if(S.packageSel){if(S.packageSel.length){S.rows=S.rows.filter(function(r){return S.packageSel.indexOf(r.packageNo||'')>=0;});}else{S.rows=S.rows.filter(function(r){return !String(r.packageNo||'').trim();});}}S.rows=S.rows.filter(function(r){return !isRowHidden(r)&&passDateFilter(r)&&passRefFilter(r);});applyFilters();}
   function distinctPackages(){var m={};S.allRows.forEach(function(r){var p=(S.delivSel==null||S.delivSel.indexOf(r.deliverableType||'')>=0)?(r.packageNo||''):null;if(p!=null&&p!=='')m[p]=1;});return Object.keys(m).sort();}
 
   function fmtDate(v){if(!v)return '';var m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return m[3]+'/'+m[2]+'/'+m[1];var d=new Date(v);if(isNaN(d))return v;return ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear();}
@@ -1459,6 +1459,13 @@
     var fl=root.getElementById('fontlbl');if(fl)fl.textContent=S.fontSize+'px';
     if(S.loading){tw.appendChild(el('div',{class:'loading'},['Loading live data from Aconex…']));return;}
     if(S.error){tw.appendChild(el('div',{class:'err'},['Could not load: '+S.error]));return;}
+    if(S.allRows&&S.allRows.length&&(!S.filtered||!S.filtered.length)){
+      var _eb=el('div',{class:'emptyscope',style:'padding:24px 16px;text-align:center'});
+      _eb.appendChild(el('div',{style:'font-size:13px;font-weight:700;color:'+NAVY+';margin-bottom:4px'},[S.allRows.length+' document(s) loaded, but your current Deliverable Type / filter settings hide them all.']));
+      _eb.appendChild(el('div',{class:'muted',style:'font-size:11px;margin-bottom:12px;white-space:normal'},['This happens when a saved filter from another view does not match this project\u2019s data. Click below to clear the filters for this project.']));
+      _eb.appendChild(el('button',{class:'btn chart',title:'Clear the Deliverable Type, Package, hidden-row, date and search filters for this project',onclick:function(){S.delivSel=null;S.packageSel=null;S.hiddenRows=[];S.fltDate={from:'',to:'',preset:''};S.fltRef='';S.colFilters={};S.selFilters={};S.globalSearch='';try{saveStartup(null);saveDtDef('__ALL__');}catch(e){}saveCfg();applyScope();renderAll();}},['Show all documents']));
+      tw.appendChild(_eb);return;
+    }
     var table=el('table');table.style.fontSize=S.fontSize+'px';
     var thead=el('thead'),htr=el('tr',{class:'hdr'}),letr=el('tr',{class:'colletrow'});
     letr.appendChild(el('th',{class:'colc mps-selcell',title:'Selection column — tick rows here, then press “Open Selected”'},['☑']));
