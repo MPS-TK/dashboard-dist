@@ -16,7 +16,7 @@
   if (window.__MPS_ACONEX && window.__MPS_ACONEX.__live) { window.__MPS_ACONEX.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.82', BUILD_DATE='17 Nov 2026';
+  var VERSION='v12.83', BUILD_DATE='18 Nov 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -697,6 +697,12 @@
     +'.apvbtn{font-size:11px;padding:4px 10px;border:1px solid #D1D5DB;border-radius:5px;background:#fff;cursor:pointer;color:#374151}.apvbtn:hover{border-color:'+ACCENT+';color:'+ACCENT+'}'
     +'.apvsrch{margin-left:auto;font-size:11px;padding:4px 8px;border:1px solid #D1D5DB;border-radius:5px;width:130px;outline:none}'
     +'.apvlist{overflow-y:auto;flex:1 1 auto;min-height:60px}'
+    +'.apvcolhd{position:sticky;top:0;z-index:1;display:flex;align-items:center;gap:5px;height:24px;padding:0 12px;background:#F3F4F6;border-bottom:1px solid #E5E7EB}'
+    +'.apvch{flex-shrink:0;box-sizing:content-box;padding:0 5px;border:1px solid transparent;font-size:10px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:#6B7280;white-space:nowrap;text-align:left;overflow:hidden;cursor:default}'
+    +'.apvch.idx{width:20px;padding:0;border:0;text-align:right}.apvch.pre{width:44px}.apvch.num{width:54px}.apvch.bar{width:6px;padding:0;border:0}.apvch.ctl{width:38px}.apvch.xid{width:74px}.apvch.scp{width:120px}'
+    +'.apvch.nm{flex:1 1 auto;min-width:0;padding-left:20px}'
+    +'.apvpanel.wrap2 .apvrow{height:auto;min-height:30px;padding-top:3px;padding-bottom:3px}'
+    +'.apvpanel.wrap2 .apvname{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.25;word-break:break-word}'
     +'.apvrow{display:flex;align-items:center;gap:5px;height:30px;padding:0 12px;border-bottom:1px solid #F3F4F6}.apvrow.na{opacity:.5}'
     +'.apvpre,.apvnum,.apvctl,.apvxid{flex-shrink:0;font-size:11px;font-family:"Consolas",monospace;padding:3px 5px;border:1px solid #D1D5DB;border-radius:4px;outline:none;color:'+NAVY+'}'
     +'.apvpre{width:44px;text-transform:uppercase}.apvnum{width:54px}.apvctl{width:38px}.apvxid{width:74px}'
@@ -2017,6 +2023,16 @@
       el('input', { class: 'apvsrch', id: 'apvsrch', placeholder: 'Filter…' })
     ]);
     var listEl = el('div', { class: 'apvlist', id: 'apvlist' }, [dl]);
+    listEl.appendChild(el('div', { class: 'apvcolhd' }, [
+      el('span', { class: 'apvch idx', title: 'Row number (also shown in the project dropdown when it is open)' }, ['#']),
+      el('span', { class: 'apvch pre', title: 'MPS Ref prefix (CV, EL, BD, CM)' }, ['Prefix']),
+      el('span', { class: 'apvch num', title: 'MPS job number (padded to 6 digits on save)' }, ['Job No']),
+      el('span', { class: 'apvch bar' }, ['']),
+      el('span', { class: 'apvch ctl', title: 'MPS control number' }, ['Ctrl']),
+      el('span', { class: 'apvch xid', title: 'Project ID shown in brackets in the dropdown' }, ['ID']),
+      el('span', { class: 'apvch nm', title: 'Tick = shown in the dropdown for everyone. Aconex project name.' }, ['Show \u00B7 Project name']),
+      el('span', { class: 'apvch scp', title: 'Document-number scope; blank = whole project (first 250 documents)' }, ['Scope'])
+    ]));
     ids.forEach(function(id, idx){
       var na = !window.__apvAccessSet.has(id);
       var checked = !window.__apvHidden.has(id);
@@ -2048,7 +2064,19 @@
     ]);
     panel.appendChild(hd); panel.appendChild(tools); panel.appendChild(listEl); panel.appendChild(foot);
     wrapEl.appendChild(panel);
-    try { var ar = btn.getBoundingClientRect(), wr = wrapEl.getBoundingClientRect(); panel.style.left = Math.max(8, Math.min(ar.left - wr.left, wr.width - 636)) + 'px'; panel.style.top = (ar.bottom - wr.top + 6) + 'px'; } catch(e){}
+    try {
+      var ar = btn.getBoundingClientRect(), wr = wrapEl.getBoundingClientRect();
+      var baseW = 636, left0 = Math.max(8, Math.min(ar.left - wr.left, wr.width - baseW)), right = left0 + baseW;
+      panel.style.left = left0 + 'px'; panel.style.top = (ar.bottom - wr.top + 6) + 'px';
+      // v12.83: widen to the left so every project name shows in full; past the left edge, names wrap to 2 lines
+      var extra = 0; panel.querySelectorAll('.apvname').forEach(function(n){ var d = n.scrollWidth - n.clientWidth; if (d > extra) extra = d; });
+      if (extra > 0) {
+        right = Math.min(right, (wrapEl.clientWidth || wr.width) - 8);
+        var want = baseW + extra + 4, maxW = Math.max(baseW, right - 8), w = Math.min(want, maxW);
+        panel.style.width = w + 'px'; panel.style.left = (right - w) + 'px';
+        if (want > maxW) panel.classList.add('wrap2');
+      }
+    } catch(e){}
     function upd(){ var n = panel.querySelectorAll('.apvlist input[type=checkbox]:checked').length; var cc = root.getElementById('apvcount'); if (cc) cc.textContent = n + ' of ' + ids.length + ' shown'; panel.querySelectorAll('.apvrow').forEach(function(rw){ var c = rw.querySelector('input[type=checkbox]'); var off = c && !c.checked; rw.style.opacity = (off || rw.classList.contains('na')) ? '0.5' : '1'; }); }
     upd();
     panel.querySelectorAll('.apvlist input[type=checkbox]').forEach(function(c){ c.addEventListener('change', upd); });
