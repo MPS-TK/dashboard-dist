@@ -16,7 +16,7 @@
   if (window.__MPS_ACONEX && window.__MPS_ACONEX.__live) { window.__MPS_ACONEX.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.83', BUILD_DATE='18 Nov 2026';
+  var VERSION='v12.84', BUILD_DATE='18 Nov 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -146,11 +146,11 @@
   function normFgSchemes(cs){cs=cs||{};return {status:cs.status||{},lifecycleStatus:cs.lifecycleStatus||{},phase:cs.phase||{},toAction:cs.toAction||{},dateRequired:cs.dateRequired||{},subsystem:cs.subsystem||{}};}
   function saveCfg(){try{localStorage.setItem(LKEY,JSON.stringify({order:S.order,cols:S.cols,fontSize:S.fontSize,rowPad:S.rowPad,wrap:S.wrap,phases:S.phases,chartType:S.chartType,hiddenDonuts:S.hiddenDonuts,selFilters:S.selFilters,selKnown:S.selKnown,chartScale:S.chartScale,colorSchemes:S.colorSchemes,fgSchemes:S.fgSchemes,fontFamily:S.fontFamily,baseFont:S.baseFont,darkMode:S.darkMode,collapsed:S.collapsed,barExpanded:S.barExpanded,chartDataField:S.chartDataField,chartFieldSet:S.chartFieldSet,chartSplitField:S.chartSplitField,excludeSupObs:S.excludeSupObs,fontScale:S.fontScale,padScale:S.padScale,hpadScale:S.hpadScale,hdrFontSize:S.hdrFontSize,hdrMaxLines:S.hdrMaxLines,colPri:S.colPri,colDefW:S.colDefW,colNames:S.colNames,packageSel:S.packageSel,delivSel:S.delivSel,packageText:S.packageText,fltDate:S.fltDate,fltRef:S.fltRef,hiddenRows:S.hiddenRows,seriesOrder:S.seriesOrder,subFmt:S.subFmt,sortKey:S.sortKey,sortDir:S.sortDir,colFilters:S.colFilters,globalSearch:S.globalSearch}));}catch(e){}}
 
-  function dtDefKey(){return 'mps_aconex_dtdef_'+CFG.projectId;}
+  function dtDefKey(){return 'mps_aconex_dtdef_'+(CFG.entryKey||CFG.projectId);}
   function loadDtDef(){try{return localStorage.getItem(dtDefKey())||'__ALL__';}catch(e){return '__ALL__';}}
   function saveDtDef(v){try{localStorage.setItem(dtDefKey(),v);}catch(e){}}
   // ---- per-project startup defaults (Deliverable Type(s) + Package Number(s)) ----
-  function startupKey(){return 'mps_aconex_startup_'+CFG.projectId;}
+  function startupKey(){return 'mps_aconex_startup_'+(CFG.entryKey||CFG.projectId);}
   function loadStartup(){try{var j=JSON.parse(localStorage.getItem(startupKey())||'null');return (j&&typeof j==='object')?j:null;}catch(e){return null;}}
   function saveStartup(o){try{if(o)localStorage.setItem(startupKey(),JSON.stringify(o));else localStorage.removeItem(startupKey());}catch(e){}}
   function applyStartupDefaults(){
@@ -697,10 +697,17 @@
     +'.apvbtn{font-size:11px;padding:4px 10px;border:1px solid #D1D5DB;border-radius:5px;background:#fff;cursor:pointer;color:#374151}.apvbtn:hover{border-color:'+ACCENT+';color:'+ACCENT+'}'
     +'.apvsrch{margin-left:auto;font-size:11px;padding:4px 8px;border:1px solid #D1D5DB;border-radius:5px;width:130px;outline:none}'
     +'.apvlist{overflow-y:auto;flex:1 1 auto;min-height:60px}'
+    +'.apvpanel .apvlab{flex:0 1 var(--apvNameW,220px);min-width:120px;margin-left:0;box-sizing:border-box}'
+    +'.apvbase{flex:1 1 auto;min-width:0;font-size:12px;font-family:inherit;padding:2px 4px;border:1px solid #D1D5DB;border-radius:4px;color:#374151;background:#fff;outline:none}'
+    +'.apvlbl{flex:0 1 var(--apvLblW,220px);min-width:120px;box-sizing:border-box;font-size:12px;font-family:inherit;padding:3px 6px;border:1px solid #D1D5DB;border-radius:4px;outline:none;color:#111827}.apvlbl.auto{color:#6B7280}.apvlbl:focus,.apvbase:focus{border-color:'+ACCENT+'}'
+    +'.apvact{flex:0 0 74px;display:flex;align-items:center;gap:4px}'
+    +'.apvrm{width:20px;height:20px;line-height:16px;padding:0;border:1px solid #D1D5DB;border-radius:4px;background:#fff;color:#B91C1C;font-size:14px;font-weight:700;cursor:pointer}.apvrm:hover{border-color:#B91C1C}'
+    +'.apvrow.xtra{background:#FFF8F2}.apvrow.xtra .apvidx{color:'+ACCENT+';font-weight:700}'
+    +'.apvbtn.apvadd{border-color:'+ACCENT+';color:'+ACCENT+';font-weight:600}'
+    +'.apvch.nm{flex:0 1 var(--apvNameW,220px);min-width:120px;box-sizing:border-box;padding:0;border:0;text-indent:20px}.apvch.lbl{flex:0 1 var(--apvLblW,220px);min-width:120px;box-sizing:border-box;padding:0 6px;border:1px solid transparent}.apvch.act{flex:0 0 74px;padding:0;border:0}'
     +'.apvcolhd{position:sticky;top:0;z-index:1;display:flex;align-items:center;gap:5px;height:24px;padding:0 12px;background:#F3F4F6;border-bottom:1px solid #E5E7EB}'
-    +'.apvch{flex-shrink:0;box-sizing:content-box;padding:0 5px;border:1px solid transparent;font-size:10px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:#6B7280;white-space:nowrap;text-align:left;overflow:hidden;cursor:default}'
+    +'.apvch{flex-shrink:0;box-sizing:border-box;padding:0 5px;border:1px solid transparent;font-size:10px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:#6B7280;white-space:nowrap;text-align:left;overflow:hidden;cursor:default}'
     +'.apvch.idx{width:20px;padding:0;border:0;text-align:right}.apvch.pre{width:44px}.apvch.num{width:54px}.apvch.bar{width:6px;padding:0;border:0}.apvch.ctl{width:38px}.apvch.xid{width:74px}.apvch.scp{width:120px}'
-    +'.apvch.nm{flex:1 1 auto;min-width:0;padding-left:20px}'
     +'.apvpanel.wrap2 .apvrow{height:auto;min-height:30px;padding-top:3px;padding-bottom:3px}'
     +'.apvpanel.wrap2 .apvname{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.25;word-break:break-word}'
     +'.apvrow{display:flex;align-items:center;gap:5px;height:30px;padding:0 12px;border-bottom:1px solid #F3F4F6}.apvrow.na{opacity:.5}'
@@ -1214,7 +1221,7 @@
   function _cdist(h1,h2){var a=_hex2rgb(h1),b=_hex2rgb(h2);return Math.sqrt(Math.pow(a[0]-b[0],2)+Math.pow(a[1]-b[1],2)+Math.pow(a[2]-b[2],2));}
   function orderByColour(keys){return keys.slice().sort(function(a,b){var ca=_hue(fieldColor(a)),cb=_hue(fieldColor(b));if(ca.h!==cb.h)return ca.h-cb.h;return ca.l-cb.l;});}
   function orderGreedy(keys,maxc){keys=keys.slice();if(keys.length<=2)return keys;var out=[keys.shift()];while(keys.length){var last=fieldColor(out[out.length-1]),bi=0,bd=maxc?-1:Infinity;for(var i=0;i<keys.length;i++){var d=_cdist(last,fieldColor(keys[i]));if(maxc?(d>bd):(d<bd)){bd=d;bi=i;}}out.push(keys.splice(bi,1)[0]);}return out;}
-  function seriesDefKey(){return 'mps_aconex_seriesdef_'+CFG.projectId;}
+  function seriesDefKey(){return 'mps_aconex_seriesdef_'+(CFG.entryKey||CFG.projectId);}
   function saveSeriesDef(){try{localStorage.setItem(seriesDefKey(),JSON.stringify(S.seriesOrder||{}));}catch(e){}toast('Chart order saved as your default');}
   function restoreSeriesDef(){var d=null;try{d=JSON.parse(localStorage.getItem(seriesDefKey())||'null');}catch(e){}S.seriesOrder=(d&&typeof d==='object')?d:{};saveCfg();renderCharts();renderOrderPanel();toast(d?'Restored your saved chart order':'Reset to the built-in order');}
   function applySeriesOrder(keys){S.seriesOrder=S.seriesOrder||{};S.seriesOrder[chartField()]=keys.slice();saveCfg();renderCharts();renderOrderPanel();}
@@ -1829,12 +1836,16 @@
   window.__apvHidden = window.__apvHidden || new Set();
   window.__apvScope = window.__apvScope || {};
   window.__apvJN = window.__apvJN || {};
+  window.__apvExtra = window.__apvExtra || {};
+  window.__apvLabels = window.__apvLabels || {};
   window.__apvHiddenMeta = window.__apvHiddenMeta || {};
   window.__apvShas = window.__apvShas || {};
   var APV_REG = 'aconex/project_registry_au1.json';
   var APV_HID = 'aconex/project_hidden_au1.json';
   var APV_SCOPE = 'aconex/project_scope_au1.json';
   var APV_JN = 'aconex/project_jn_au1.json';
+  var APV_EXTRA = 'aconex/project_extra_au1.json';   // added entries {key:{base}}
+  var APV_LBL = 'aconex/project_label_au1.json';     // manual Project Name Shown {key:text}
   var APV_SELKEY = 'mps_aconex_selproj';
   var APV_DEFAULT_ID = '2013294019';            // CNPI CUSA
   var APV_DEFAULT_SCOPE = 'MPSBE-1202158-*';     // the CNPI CUSA package the dashboard shipped with
@@ -1844,11 +1855,15 @@
     if (String(id) === APV_DEFAULT_ID) return APV_DEFAULT_SCOPE;
     return '';
   }
-  function apvName(id){ return window.__apvRegistry[id] || window.__apvAccessNames[id] || String(id); }
+  // v12.84: entry keys. A base entry key is the Aconex project id; an added entry key is 'x~<rand>' and points at a base id.
+  function apvIsExtra(id){ return String(id || '').indexOf('x~') === 0; }
+  function apvBase(id){ if (apvIsExtra(id)) return String(((window.__apvExtra || {})[id] || {}).base || ''); return String(id); }
+  function apvName(id){ var b = apvBase(id); return window.__apvRegistry[b] || window.__apvAccessNames[b] || String(b); }
   function apvJnParse(id){ var raw = (window.__apvJN && window.__apvJN[id]) || ''; var pm = raw.split('|'); var left = pm[0] || ''; var ctl = pm[1] || ''; var ext = pm[2] || ''; var mm = left.match(/^([A-Za-z]{0,3})(.*)$/); var pre = (mm && mm[1] ? mm[1].toUpperCase() : ''); var num = (mm ? mm[2] : left) || ''; return { pre: pre, num: num, ctl: ctl, ext: ext }; }
   function apvJobNo(id){ var p = apvJnParse(id); if (!p.num) return ''; var n = parseInt(p.num, 10); return isNaN(n) ? '' : String(n); }
   function apvIdOf(id){ return apvJnParse(id).ext || ''; }
-  function apvLabel(id){ var jn = apvJobNo(id), xid = apvIdOf(id), nm = apvName(id); var p = []; if (jn) p.push(jn); if (xid) p.push('(' + xid + ')'); p.push(nm); return p.join(' '); }
+  function apvLabel(id){ var ov = window.__apvLabels && window.__apvLabels[id]; if (ov && String(ov).trim()) return String(ov).trim(); return apvAutoLabel(id); }
+  function apvAutoLabel(id){ var jn = apvJobNo(id), xid = apvIdOf(id), nm = apvName(id); var p = []; if (jn) p.push(jn); if (xid) p.push('(' + xid + ')'); p.push(nm); return p.join(' '); }
   function apvGhUrl(path){ return 'https://api.github.com/repos/' + GH.repo + '/contents/' + path; }
   function apvLoad(path){
     if (!ghToken()) return Promise.resolve(undefined);
@@ -1881,8 +1896,10 @@
     return apvSave(APV_REG, out);
   }
   function apvInit(){
-    return Promise.all([ apvLoad(APV_REG), apvLoad(APV_HID), apvLoad(APV_SCOPE), apvLoad(APV_JN) ]).then(function(res){
-      var reg = res[0], hid = res[1], sc = res[2], jn = res[3];
+    return Promise.all([ apvLoad(APV_REG), apvLoad(APV_HID), apvLoad(APV_SCOPE), apvLoad(APV_JN), apvLoad(APV_EXTRA), apvLoad(APV_LBL) ]).then(function(res){
+      var reg = res[0], hid = res[1], sc = res[2], jn = res[3], xt = res[4], lb = res[5];
+      if (xt && xt.extras && typeof xt.extras === 'object') window.__apvExtra = xt.extras;
+      if (lb && lb.labels && typeof lb.labels === 'object') window.__apvLabels = lb.labels;
       var next = {};
       if (reg && reg.projects && typeof reg.projects === 'object') Object.keys(reg.projects).forEach(function(id){ next[id] = (reg.projects[id] && reg.projects[id].name) || String(id); });
       var changed = (reg === undefined || reg === null);
@@ -1894,22 +1911,27 @@
       if (changed && ghToken()) return apvSaveRegistry();
     });
   }
-  function apvVisibleIds(){
-    var all = Object.keys(window.__apvRegistry || {});
-    var out = [], seen = {};
-    all.forEach(function(id){ if (!window.__apvHidden.has(id)){ out.push(id); seen[id] = 1; } });
-    window.__apvAccessSet.forEach(function(id){ if (!seen[id] && !window.__apvHidden.has(id)) out.push(id); });
-    out.sort(function(a,b){ return apvName(a).localeCompare(apvName(b)); });
+  function apvOrderedIds(){
+    // base projects by name, each followed by its added entries (oldest first)
+    var bases = Object.keys(window.__apvRegistry || {});
+    window.__apvAccessSet.forEach(function(id){ if (bases.indexOf(id) < 0) bases.push(id); });
+    bases.sort(function(a,b){ return apvName(a).localeCompare(apvName(b)); });
+    var ex = Object.keys(window.__apvExtra || {}).filter(apvIsExtra).sort(), out = [];
+    bases.forEach(function(b){ out.push(b); ex.forEach(function(k){ if (apvBase(k) === String(b)) out.push(k); }); });
+    ex.forEach(function(k){ if (out.indexOf(k) < 0) out.push(k); });
     return out;
+  }
+  function apvVisibleIds(){
+    return apvOrderedIds().filter(function(id){ return !window.__apvHidden.has(id); });
   }
   function apvRenderDropdown(){
     var sel = root && root.getElementById('psel'); if (!sel) return;
-    var cur = CFG.projectId; sel.innerHTML = '';
-    var allIds = Object.keys(window.__apvRegistry || {}).sort(function(a,b){ return apvName(a).localeCompare(apvName(b)); });
+    var cur = CFG.entryKey || CFG.projectId; sel.innerHTML = '';
+    var allIds = apvOrderedIds();
     var numMap = {}; allIds.forEach(function(id,i){ numMap[id] = i + 1; });
     apvVisibleIds().forEach(function(id){
       var o = document.createElement('option'); o.value = id;
-      var na = !window.__apvAccessSet.has(id);
+      var na = !window.__apvAccessSet.has(apvBase(id));
       var plain = apvLabel(id) + (na ? '  (NO ACCESS)' : '');
       var numbered = (numMap[id] || '?') + ') ' + plain;
       o.textContent = plain; o.setAttribute('data-num', numbered); o.setAttribute('data-plain', plain);
@@ -1930,7 +1952,7 @@
   }
   function apvReloadProjectView(){
     // Per-project saved view: reload this project's own filters so nothing bleeds across projects.
-    try { LKEY = 'mps_aconex_cfg_' + CFG.projectId; DKEY = 'mps_aconex_defcfg_' + CFG.projectId; } catch(e){}
+    try { LKEY = 'mps_aconex_cfg_' + (CFG.entryKey || CFG.projectId); DKEY = 'mps_aconex_defcfg_' + (CFG.entryKey || CFG.projectId); } catch(e){}
     var c;
     try { c = loadCfg(); } catch(e){ c = null; }
     if (c){
@@ -1962,7 +1984,8 @@
   function apvSelect(id, opts){
     opts = opts || {};
     if (!id) return;
-    CFG.projectId = id;
+    CFG.entryKey = id;
+    CFG.projectId = apvBase(id);
     CFG.projectName = apvName(id);
     CFG.docScope = apvScopeFor(id);
     try { localStorage.setItem(APV_SELKEY, id); } catch(e){}
@@ -1978,11 +2001,11 @@
   function apvAutoSelect(){
     var saved = ''; try { saved = localStorage.getItem(APV_SELKEY) || ''; } catch(e){}
     var vis = apvVisibleIds();
-    var pick = (saved && window.__apvAccessSet.has(saved)) ? saved
+    var pick = (saved && window.__apvAccessSet.has(apvBase(saved)) && (!apvIsExtra(saved) || (window.__apvExtra || {})[saved])) ? saved
              : (window.__apvAccessSet.has(CFG.projectId) ? CFG.projectId
              : (vis.filter(function(id){ return window.__apvAccessSet.has(id); })[0] || CFG.projectId));
     // set project + its scope + its saved view, without fetching yet (apvBoot fetches once)
-    CFG.projectId = pick; CFG.projectName = apvName(pick); CFG.docScope = apvScopeFor(pick);
+    CFG.entryKey = pick; CFG.projectId = apvBase(pick); CFG.projectName = apvName(pick); CFG.docScope = apvScopeFor(pick);
     try { localStorage.setItem(APV_SELKEY, pick); } catch(e){}
     apvReloadProjectView();
     try { S.overrides = loadOverrides(); } catch(e){}
@@ -2002,24 +2025,26 @@
     }).catch(function(){ if (!S.allRows.length && !S.loading) fetchData(); });
   }
   function apvOpenPanel(){
+    // v12.84: + Add project (extra entries that reuse an existing Aconex project with their own Doc No. Filter),
+    // PROJECT + PROJECT NAME SHOWN columns, fixed action column so every row lines up.
     var wrapEl = root.getElementById('wrap'); if (!wrapEl) return;
     var ex = root.getElementById('apvpanel'); if (ex){ ex.remove(); return; }
     var btn = root.getElementById('pselcfg'); if (!btn) return;
-    var ids = Object.keys(window.__apvRegistry);
-    if (!ids.length){ window.__apvAccessSet.forEach(function(id){ window.__apvRegistry[id] = window.__apvAccessNames[id] || String(id); }); ids = Object.keys(window.__apvRegistry); }
-    ids.sort(function(a,b){ return apvName(a).localeCompare(apvName(b)); });
-    // prefix datalist from prefixes already in use plus the common MPS set
+    if (!Object.keys(window.__apvRegistry).length){ window.__apvAccessSet.forEach(function(id){ window.__apvRegistry[id] = window.__apvAccessNames[id] || String(id); }); }
+    var ids = apvOrderedIds();
+    var baseIds = Object.keys(window.__apvRegistry).sort(function(a,b){ return apvName(a).localeCompare(apvName(b)); });
     var preSet = { CV:1, EL:1, BD:1, CM:1 };
     Object.keys(window.__apvJN || {}).forEach(function(k){ var lm = String(window.__apvJN[k]||'').match(/^([A-Za-z]{1,3})/); if (lm) preSet[lm[1].toUpperCase()] = 1; });
     var dl = el('datalist', { id: 'apvprelist' }, Object.keys(preSet).sort().map(function(p){ return el('option', { value: p }); }));
     var panel = el('div', { id: 'apvpanel', class: 'apvpanel' });
     var hd = el('div', { class: 'apvhd' }, [
       el('div', { class: 't' }, ['Project Management Dropdown']),
-      el('div', { class: 's' }, ['Untick to hide a project from the dropdown for everyone. Greyed projects are ones you can’t access yet, and they update automatically once access is granted. The boxes on the left set each project’s MPS Ref (prefix · job no · control). Scope limits a project to a document-number pattern (e.g. MPSBE-1202158-*); blank pulls the whole project (first 250 documents).'])
+      el('div', { class: 's' }, ['Untick to hide a project from the dropdown for everyone. Greyed projects are ones you can’t access yet; they update automatically once access is granted. Prefix · Job No · Ctrl · ID set the MPS Ref. Doc No. Filter limits an entry to a document-number pattern (e.g. MPSBE-1202158-*); blank pulls the whole project (first 250 documents). + Add project adds another entry for an existing Aconex project with its own filter. Project Name Shown fills in automatically; type to change it, clear it to go back to automatic.'])
     ]);
     var tools = el('div', { class: 'apvtools' }, [
       el('button', { class: 'apvbtn', id: 'apvall', title: 'Show every project in the selector, for everyone.' }, ['Show all']),
       el('button', { class: 'apvbtn', id: 'apvnone', title: 'Hide every project from the selector, for everyone.' }, ['Hide all']),
+      el('button', { class: 'apvbtn apvadd', id: 'apvadd', title: 'Add another dropdown entry that pulls from an existing Aconex project, with its own Doc No. Filter (for example a second package on the same project).' }, ['+ Add project']),
       el('input', { class: 'apvsrch', id: 'apvsrch', placeholder: 'Filter…' })
     ]);
     var listEl = el('div', { class: 'apvlist', id: 'apvlist' }, [dl]);
@@ -2030,57 +2055,109 @@
       el('span', { class: 'apvch bar' }, ['']),
       el('span', { class: 'apvch ctl', title: 'MPS control number' }, ['Ctrl']),
       el('span', { class: 'apvch xid', title: 'Project ID shown in brackets in the dropdown' }, ['ID']),
-      el('span', { class: 'apvch nm', title: 'Tick = shown in the dropdown for everyone. Aconex project name.' }, ['Show \u00B7 Project name']),
-      el('span', { class: 'apvch scp', title: 'Document-number scope; blank = whole project (first 250 documents)' }, ['Scope'])
+      el('span', { class: 'apvch nm', title: 'Tick = shown in the dropdown for everyone. The Aconex project the entry pulls its data from.' }, ['Project']),
+      el('span', { class: 'apvch lbl', title: 'The name shown in the project dropdown. Fills in automatically from Job No, ID and Project; type to change it.' }, ['Project Name Shown']),
+      el('span', { class: 'apvch scp', title: 'Doc No. Filter: document-number pattern for this entry (e.g. MPSBE-1202158-*). Blank = whole project (first 250 documents). Used by Doc. Registers.' }, ['Doc No. Filter']),
+      el('span', { class: 'apvch act' }, [''])
     ]));
-    ids.forEach(function(id, idx){
-      var na = !window.__apvAccessSet.has(id);
+    function rowBase(rw){ var s = rw.querySelector('.apvbase'); return s ? s.value : rw.getAttribute('data-pid'); }
+    function rowAuto(rw){
+      var num = ((rw.querySelector('.apvnum')||{}).value || '').replace(/\D/g,''), ext = ((rw.querySelector('.apvxid')||{}).value || '').trim();
+      var n = parseInt(num, 10), p = []; if (!isNaN(n)) p.push(String(n)); if (ext) p.push('(' + ext + ')'); p.push(apvName(rowBase(rw))); return p.join(' ');
+    }
+    function syncAuto(rw){ var li = rw.querySelector('.apvlbl'); if (li && li.getAttribute('data-manual') !== '1'){ li.value = rowAuto(rw); li.classList.add('auto'); } }
+    function makeRow(id, idxText, isExtra, base){
+      var na = !window.__apvAccessSet.has(String(base));
       var checked = !window.__apvHidden.has(id);
       var jp = apvJnParse(id);
-      var row = el('div', { class: 'apvrow' + (na ? ' na' : ''), 'data-pid': id });
-      row.appendChild(el('span', { class: 'apvidx' }, [String(idx + 1)]));
-      var preIn = el('input', { class: 'apvpre', list: 'apvprelist', maxlength: '3', placeholder: 'Pfx', title: 'MPS Ref prefix; pick from the list or type up to 3 letters', value: jp.pre }); if (na) preIn.disabled = true;
-      var numIn = el('input', { class: 'apvnum', maxlength: '7', placeholder: 'Job No', title: 'Job number (padded to 6 digits on save)', value: jp.num }); if (na) numIn.disabled = true;
-      var ctlIn = el('input', { class: 'apvctl', maxlength: '4', placeholder: 'Ctrl', title: 'MPS control number', value: jp.ctl }); if (na) ctlIn.disabled = true;
-      var idIn = el('input', { class: 'apvxid', maxlength: '16', placeholder: 'ID', title: 'Project ID shown in brackets in the dropdown (e.g. 1203062 or ODM10603)', value: jp.ext }); if (na) idIn.disabled = true;
+      var row = el('div', { class: 'apvrow' + (na ? ' na' : '') + (isExtra ? ' xtra' : ''), 'data-pid': id });
+      row.appendChild(el('span', { class: 'apvidx' }, [idxText]));
+      var preIn = el('input', { class: 'apvpre', list: 'apvprelist', maxlength: '3', placeholder: 'Pfx', title: 'MPS Ref prefix; pick from the list or type up to 3 letters', value: jp.pre });
+      var numIn = el('input', { class: 'apvnum', maxlength: '7', placeholder: 'Job No', title: 'Job number (padded to 6 digits on save)', value: jp.num });
+      var ctlIn = el('input', { class: 'apvctl', maxlength: '4', placeholder: 'Ctrl', title: 'MPS control number', value: jp.ctl });
+      var idIn = el('input', { class: 'apvxid', maxlength: '16', placeholder: 'ID', title: 'Project ID shown in brackets in the dropdown (e.g. 1203062 or ODM10603)', value: jp.ext });
       row.appendChild(preIn); row.appendChild(numIn);
       row.appendChild(el('span', { class: 'apvbar' }, ['|']));
       row.appendChild(ctlIn); row.appendChild(idIn);
       var lab = el('label', { class: 'apvlab' });
-      var cb = el('input', { type: 'checkbox', 'data-pid': id }); if (checked) cb.checked = true; if (na) cb.disabled = true;
+      var cb = el('input', { type: 'checkbox', 'data-pid': id }); if (checked) cb.checked = true;
       lab.appendChild(cb);
-      lab.appendChild(el('span', { class: 'apvname', title: apvName(id) }, [apvName(id)]));
+      if (isExtra){
+        var bs = el('select', { class: 'apvbase', title: 'The Aconex project this entry pulls its data from' });
+        baseIds.forEach(function(b){ var o = el('option', { value: b }, [apvName(b) + (window.__apvAccessSet.has(b) ? '' : ' (NO ACCESS)')]); if (!window.__apvAccessSet.has(b)) o.disabled = true; bs.appendChild(o); });
+        bs.value = String(base);
+        bs.onchange = function(){ var nb = !window.__apvAccessSet.has(bs.value); row.classList.toggle('na', nb); syncAuto(row); upd(); fit(); };
+        lab.appendChild(bs);
+      } else {
+        lab.appendChild(el('span', { class: 'apvname', title: apvName(id) }, [apvName(id)]));
+      }
       row.appendChild(lab);
-      var scin = el('input', { class: 'apvscope', 'data-pid': id, placeholder: 'Whole project', title: 'Document-number scope for this project (e.g. MPSBE-1202158-*). Blank pulls the whole project.', value: apvScopeFor(id) });
-      if (na) scin.disabled = true;
+      var ov = (window.__apvLabels && window.__apvLabels[id]) ? String(window.__apvLabels[id]) : '';
+      var lblIn = el('input', { class: 'apvlbl', title: 'Name shown in the project dropdown. Type to change it; clear it to go back to automatic.' });
+      if (ov){ lblIn.value = ov; lblIn.setAttribute('data-manual', '1'); }
+      lblIn.oninput = function(){ if (lblIn.value.trim()){ lblIn.setAttribute('data-manual', '1'); lblIn.classList.remove('auto'); } fit(); };
+      lblIn.onblur = function(){ if (!lblIn.value.trim()){ lblIn.removeAttribute('data-manual'); syncAuto(row); } };
+      row.appendChild(lblIn);
+      [numIn, idIn].forEach(function(inp){ inp.addEventListener('input', function(){ syncAuto(row); fit(); }); });
+      var scin = el('input', { class: 'apvscope', 'data-pid': id, placeholder: 'Whole project', title: 'Doc No. Filter for this entry (e.g. MPSBE-1202158-*). Blank pulls the whole project.', value: apvScopeFor(id) });
       row.appendChild(scin);
-      if (na) row.appendChild(el('span', { class: 'apvpill' }, ['NO ACCESS']));
-      listEl.appendChild(row);
-    });
+      var act = el('span', { class: 'apvact' });
+      if (isExtra){
+        var rm = el('button', { class: 'apvrm', title: 'Remove this added entry (applies when you click Save)' }, ['×']);
+        rm.onclick = function(ev){ ev.preventDefault(); row.remove(); upd(); };
+        act.appendChild(rm);
+      }
+      if (na) act.appendChild(el('span', { class: 'apvpill' }, ['NO ACCESS']));
+      row.appendChild(act);
+      if (na && !isExtra){ [preIn, numIn, ctlIn, idIn, cb, lblIn, scin].forEach(function(x){ x.disabled = true; }); }
+      syncAuto(row);
+      return row;
+    }
+    ids.forEach(function(id, idx){ listEl.appendChild(makeRow(id, String(idx + 1), apvIsExtra(id), apvBase(id))); });
     var foot = el('div', { class: 'apvfoot' }, [
       el('span', { class: 'apvcount', id: 'apvcount' }, ['']),
       el('button', { class: 'apvcancel', id: 'apvcancel', title: 'Close without applying changes.' }, ['Cancel']),
-      el('button', { class: 'apvsave', id: 'apvsave', title: 'Save the project visibility, MPS Refs and scope for everyone.' }, ['Save'])
+      el('button', { class: 'apvsave', id: 'apvsave', title: 'Save the project list, MPS Refs, names shown and filters for everyone.' }, ['Save'])
     ]);
     panel.appendChild(hd); panel.appendChild(tools); panel.appendChild(listEl); panel.appendChild(foot);
     wrapEl.appendChild(panel);
-    try {
-      var ar = btn.getBoundingClientRect(), wr = wrapEl.getBoundingClientRect();
-      var baseW = 636, left0 = Math.max(8, Math.min(ar.left - wr.left, wr.width - baseW)), right = left0 + baseW;
-      panel.style.left = left0 + 'px'; panel.style.top = (ar.bottom - wr.top + 6) + 'px';
-      // v12.83: widen to the left so every project name shows in full; past the left edge, names wrap to 2 lines
-      var extra = 0; panel.querySelectorAll('.apvname').forEach(function(n){ var d = n.scrollWidth - n.clientWidth; if (d > extra) extra = d; });
-      if (extra > 0) {
-        right = Math.min(right, (wrapEl.clientWidth || wr.width) - 8);
-        var want = baseW + extra + 4, maxW = Math.max(baseW, right - 8), w = Math.min(want, maxW);
+    function fit(){
+      if (!panel.isConnected) return;
+      try {
+        var ar = btn.getBoundingClientRect(), wr = wrapEl.getBoundingClientRect();
+        var baseW = 636, left0 = Math.max(8, Math.min(ar.left - wr.left, wr.width - baseW));
+        var edge = (wrapEl.clientWidth || wr.width) - 8, right = Math.min(left0 + baseW, edge);
+        panel.style.top = (ar.bottom - wr.top + 6) + 'px';
+        // Size the two name columns to their longest text, then fit the panel; past the left edge, names wrap to 2 lines.
+        var cv = document.createElement('canvas').getContext('2d');
+        function fnt(e){ if (!e) return '12px sans-serif'; var cs = getComputedStyle(e); return (cs.fontStyle || 'normal') + ' ' + (cs.fontWeight || '400') + ' ' + (cs.fontSize || '12px') + ' ' + (cs.fontFamily || 'sans-serif'); }
+        var sn = panel.querySelector('.apvname') || panel.querySelector('.apvbase'), sl = panel.querySelector('.apvlbl');
+        cv.font = fnt(sn);
+        var nameW = 140; panel.querySelectorAll('.apvname').forEach(function(n){ nameW = Math.max(nameW, cv.measureText(n.textContent).width + 8); });
+        panel.querySelectorAll('.apvbase').forEach(function(s){ var o = s.options[s.selectedIndex]; if (o) nameW = Math.max(nameW, cv.measureText(o.textContent).width + 40); });
+        cv.font = fnt(sl);
+        var lblW = 160; panel.querySelectorAll('.apvlbl').forEach(function(n){ lblW = Math.max(lblW, cv.measureText(n.value).width + 20); });
+        panel.style.setProperty('--apvNameW', Math.ceil(nameW + 20) + 'px');
+        panel.style.setProperty('--apvLblW', Math.ceil(lblW) + 'px');
+        panel.classList.remove('wrap2'); panel.style.width = '4000px'; panel.style.left = '0px';
+        var rw = panel.querySelector('.apvcolhd'), lst = panel.querySelector('.apvlist');
+        var want = Math.ceil(rw.lastChild.getBoundingClientRect().right - rw.getBoundingClientRect().left + 12 + (lst.offsetWidth - lst.clientWidth) + 2);
+        want = Math.max(want, 560);
+        right = Math.min(Math.max(right, left0 + want), edge);   // use free space to the right first, then grow left
+        var maxW = Math.max(400, right - 8), w = Math.min(want, maxW);
         panel.style.width = w + 'px'; panel.style.left = (right - w) + 'px';
         if (want > maxW) panel.classList.add('wrap2');
-      }
-    } catch(e){}
-    function upd(){ var n = panel.querySelectorAll('.apvlist input[type=checkbox]:checked').length; var cc = root.getElementById('apvcount'); if (cc) cc.textContent = n + ' of ' + ids.length + ' shown'; panel.querySelectorAll('.apvrow').forEach(function(rw){ var c = rw.querySelector('input[type=checkbox]'); var off = c && !c.checked; rw.style.opacity = (off || rw.classList.contains('na')) ? '0.5' : '1'; }); }
-    upd();
-    panel.querySelectorAll('.apvlist input[type=checkbox]').forEach(function(c){ c.addEventListener('change', upd); });
-    root.getElementById('apvsrch').oninput = function(){ var v = this.value.toLowerCase(); panel.querySelectorAll('.apvrow').forEach(function(rw){ var sc = (rw.querySelector('.apvscope')||{}).value || ''; var pr = (rw.querySelector('.apvpre')||{}).value || ''; var nu = (rw.querySelector('.apvnum')||{}).value || ''; var xi = (rw.querySelector('.apvxid')||{}).value || ''; rw.style.display = (rw.textContent + ' ' + sc + ' ' + pr + ' ' + nu + ' ' + xi).toLowerCase().indexOf(v) > -1 ? '' : 'none'; }); };
+      } catch(e){ panel.style.width = '636px'; }
+    }
+    function upd(){
+      var all = panel.querySelectorAll('.apvlist .apvrow');
+      var n = panel.querySelectorAll('.apvlist .apvrow input[type=checkbox]:checked').length;
+      var cc = root.getElementById('apvcount'); if (cc) cc.textContent = n + ' of ' + all.length + ' shown';
+      all.forEach(function(rw){ var c = rw.querySelector('input[type=checkbox]'); var off = c && !c.checked; rw.style.opacity = (off || rw.classList.contains('na')) ? '0.5' : '1'; });
+    }
+    fit(); upd();
+    panel.addEventListener('change', function(e){ if (e.target && e.target.type === 'checkbox') upd(); });
+    root.getElementById('apvsrch').oninput = function(){ var v = this.value.toLowerCase(); panel.querySelectorAll('.apvlist .apvrow').forEach(function(rw){ var t = rw.textContent; rw.querySelectorAll('input').forEach(function(i){ t += ' ' + (i.value || ''); }); var bs = rw.querySelector('.apvbase'); if (bs && bs.options[bs.selectedIndex]) t += ' ' + bs.options[bs.selectedIndex].textContent; rw.style.display = t.toLowerCase().indexOf(v) > -1 ? '' : 'none'; }); };
     function bulk(isShow){
       if (!confirm((isShow ? 'Show' : 'Hide') + ' EVERY project in the dropdown for all users?')) return;
       panel.querySelectorAll('.apvlist input[type=checkbox]').forEach(function(c){ if (!c.disabled) c.checked = isShow; });
@@ -2088,11 +2165,20 @@
     }
     root.getElementById('apvall').onclick = function(){ bulk(true); };
     root.getElementById('apvnone').onclick = function(){ bulk(false); };
+    root.getElementById('apvadd').onclick = function(){
+      var def = window.__apvAccessSet.has(String(CFG.projectId)) ? String(CFG.projectId) : (baseIds.filter(function(b){ return window.__apvAccessSet.has(b); })[0] || baseIds[0]);
+      if (!def) return;
+      var key = 'x~' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+      var rw = makeRow(key, '+', true, def);
+      listEl.appendChild(rw); fit(); upd();
+      try { rw.scrollIntoView({ block: 'nearest' }); var sc = rw.querySelector('.apvscope'); if (sc) sc.focus(); } catch(e){}
+    };
     root.getElementById('apvcancel').onclick = function(){ panel.remove(); };
     root.getElementById('apvsave').onclick = function(){
-      var hidden = [], scope = {}, jnMap = {};
-      panel.querySelectorAll('.apvrow').forEach(function(rw){
+      var hidden = [], scope = {}, jnMap = {}, extras = {}, labels = {};
+      panel.querySelectorAll('.apvlist .apvrow').forEach(function(rw){
         var pid = rw.getAttribute('data-pid');
+        var bs = rw.querySelector('.apvbase'); if (bs) extras[pid] = { base: bs.value };
         var c = rw.querySelector('input[type=checkbox]'); if (c && !c.checked) hidden.push(pid);
         var sc = ((rw.querySelector('.apvscope')||{}).value || '').trim(); if (sc) scope[pid] = sc;
         var pre = ((rw.querySelector('.apvpre')||{}).value || '').replace(/[^A-Za-z]/g,'').toUpperCase().slice(0,3);
@@ -2101,19 +2187,27 @@
         var ext = ((rw.querySelector('.apvxid')||{}).value || '').replace(/[^A-Za-z0-9\-_]/g,'').slice(0,16);
         if (num && num.length < 6) num = ('000000' + num).slice(-6);
         var left = pre + num; var parts = [left]; if (ctl || ext) parts.push(ctl); if (ext) parts.push(ext); var val = parts.join('|'); if (val) jnMap[pid] = val;
+        var li = rw.querySelector('.apvlbl'); if (li && li.getAttribute('data-manual') === '1'){ var lv = li.value.trim(); if (lv && lv !== rowAuto(rw)) labels[pid] = lv.slice(0, 200); }
       });
-      window.__apvHidden = new Set(hidden); window.__apvScope = scope; window.__apvJN = jnMap;
+      var prevKey = CFG.entryKey || CFG.projectId;
+      window.__apvHidden = new Set(hidden); window.__apvScope = scope; window.__apvJN = jnMap; window.__apvExtra = extras; window.__apvLabels = labels;
       var sv = root.getElementById('apvsave'); sv.textContent = 'Saving…'; sv.disabled = true;
       var iso = new Date().toISOString();
       Promise.all([
         apvSave(APV_HID, { hidden: hidden, updated: iso }),
         apvSave(APV_SCOPE, { scope: scope, updated: iso }),
-        apvSave(APV_JN, { jn: jnMap, updated: iso })
+        apvSave(APV_JN, { jn: jnMap, updated: iso }),
+        apvSave(APV_EXTRA, { extras: extras, updated: iso }),
+        apvSave(APV_LBL, { labels: labels, updated: iso })
       ]).then(function(oks){
-        var newScope = apvScopeFor(CFG.projectId);
-        apvRenderDropdown();
         panel.remove();
-        if (newScope !== CFG.docScope){ CFG.docScope = newScope; S.allRows = []; fetchData(); } else { renderAll(); }
+        if (apvIsExtra(prevKey) && !extras[prevKey]) { apvSelect(apvBase(prevKey) || String(CFG.projectId)); }
+        else if (apvBase(prevKey) !== String(CFG.projectId)) { apvSelect(prevKey); }
+        else {
+          var newScope = apvScopeFor(prevKey);
+          apvRenderDropdown();
+          if (newScope !== CFG.docScope && typeof fetchData === 'function'){ CFG.docScope = newScope; S.allRows = []; fetchData(); } else { renderAll(); }
+        }
         if (oks.indexOf(false) >= 0) toast('Saved locally, but the team copy on GitHub did not update; check Team Sync.');
         else toast('Project settings saved for the team.');
       });
