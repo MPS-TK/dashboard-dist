@@ -16,7 +16,7 @@
   if (window.__MPS_ACONEX && window.__MPS_ACONEX.__live) { window.__MPS_ACONEX.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.84', BUILD_DATE='18 Nov 2026';
+  var VERSION='v12.85', BUILD_DATE='18 Nov 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -723,6 +723,14 @@
     +'.apvcount{margin-right:auto;font-size:11px;color:#9BA3AF}'
     +'.apvcancel{font-size:12px;padding:7px 16px;border:1px solid #D1D5DB;border-radius:6px;background:#fff;cursor:pointer;color:#374151}'
     +'.apvsave{font-size:12px;font-weight:600;padding:7px 16px;border:none;border-radius:6px;background:'+NAVY+';color:#fff;cursor:pointer}'
+    +'.apvpanel .apvpre,.apvpanel .apvnum,.apvpanel .apvctl,.apvpanel .apvxid,.apvpanel .apvscope,.apvpanel .apvlbl,.apvpanel .apvbase,.apvpanel .apvch{box-sizing:border-box;margin:0}'
+    +'.apvpanel .apvpre,.apvpanel .apvch.pre{width:56px}.apvpanel .apvnum,.apvpanel .apvch.num{width:66px}.apvpanel .apvctl,.apvpanel .apvch.ctl{width:50px}.apvpanel .apvxid,.apvpanel .apvch.xid{width:86px}.apvpanel .apvscope,.apvpanel .apvch.scp{width:132px;flex-shrink:0}'
+    +'.apvpanel .apvlab input[type=checkbox]{margin:0}.apvpanel .apvact,.apvpanel .apvch.act{flex:0 0 96px}'
+    +'.apvdbtn{width:20px;height:20px;line-height:16px;padding:0;border:1px solid #D1D5DB;border-radius:4px;background:#fff;color:'+NAVY+';font-size:14px;font-weight:700;cursor:pointer;flex-shrink:0}.apvdbtn:hover,.apvdbtn.on{border-color:'+NAVY+';background:'+NAVY+';color:#fff}'
+    +'.apvdet{padding:8px 14px 10px 37px;background:#F9FAFB;border-bottom:1px solid #E5E7EB;font-size:11px;color:#374151;line-height:1.45}.apvdet b{color:'+NAVY+'}.apvdet .apvdl{margin-bottom:2px}'
+    +'.apvpanel .apvdet table{border-collapse:collapse;margin-top:6px;width:auto!important;min-width:0!important;max-width:100%;table-layout:auto!important;font-size:11px}'
+    +'.apvpanel .apvdet th,.apvpanel .apvdet td{font-size:11px!important;line-height:1.4!important;height:auto!important;padding:3px 14px 3px 0!important;text-align:left!important;vertical-align:top;background:none!important;border:0!important;border-bottom:1px solid #EEF0F3!important;color:#374151;font-weight:400;white-space:normal}'
+    +'.apvpanel .apvdet th{font-size:10px!important;font-weight:700!important;text-transform:uppercase;letter-spacing:.03em;color:#6B7280!important;border-bottom:1px solid #E5E7EB!important}.apvpanel .apvdet td.w{white-space:nowrap!important;color:#6B7280}'
     +'.toolbar{display:flex;align-items:center;gap:calc(7px*var(--ps,1));padding:calc(6px*var(--ps,1)) calc(12px*var(--hp,1));background:#fff;border-bottom:1px solid '+LINE+';flex-wrap:wrap}'
     +'.toolbar input[type=search],.toolbar select{border:1px solid #cfd8e3;border-radius:5px;padding:4px 8px;font-size:12px}.search{flex:1 1 120px;min-width:110px;max-width:240px}'
     +'.colrow{display:flex;align-items:center;gap:12px;padding:5px 12px;background:#fbfcfe;border-bottom:1px solid '+LINE+';flex-wrap:wrap;font-size:12px}'
@@ -1838,6 +1846,7 @@
   window.__apvJN = window.__apvJN || {};
   window.__apvExtra = window.__apvExtra || {};
   window.__apvLabels = window.__apvLabels || {};
+  window.__apvHist = window.__apvHist || {};
   window.__apvHiddenMeta = window.__apvHiddenMeta || {};
   window.__apvShas = window.__apvShas || {};
   var APV_REG = 'aconex/project_registry_au1.json';
@@ -1845,6 +1854,7 @@
   var APV_SCOPE = 'aconex/project_scope_au1.json';
   var APV_JN = 'aconex/project_jn_au1.json';
   var APV_EXTRA = 'aconex/project_extra_au1.json';   // added entries {key:{base}}
+  var APV_HIST = 'aconex/project_history_au1.json';  // change record per entry
   var APV_LBL = 'aconex/project_label_au1.json';     // manual Project Name Shown {key:text}
   var APV_SELKEY = 'mps_aconex_selproj';
   var APV_DEFAULT_ID = '2013294019';            // CNPI CUSA
@@ -1864,6 +1874,28 @@
   function apvIdOf(id){ return apvJnParse(id).ext || ''; }
   function apvLabel(id){ var ov = window.__apvLabels && window.__apvLabels[id]; if (ov && String(ov).trim()) return String(ov).trim(); return apvAutoLabel(id); }
   function apvAutoLabel(id){ var jn = apvJobNo(id), xid = apvIdOf(id), nm = apvName(id); var p = []; if (jn) p.push(jn); if (xid) p.push('(' + xid + ')'); p.push(nm); return p.join(' '); }
+  // v12.85: change record per entry (aconex/project_history_au1.json {history:{key:[{at,by,user,action,changes:[{f,from,to}]}]}})
+  function apvSnap(id){ return { shown: !window.__apvHidden.has(id), filter: apvScopeFor(id) || '', ref: (window.__apvJN || {})[id] || '', label: (window.__apvLabels || {})[id] || '', base: apvIsExtra(id) ? apvBase(id) : '' }; }
+  function apvFmtRef(v){ if (!v) return ''; var pm = String(v).split('|'), mm = (pm[0]||'').match(/^([A-Za-z]{0,3})(.*)$/), p = []; if (mm && mm[1]) p.push(mm[1].toUpperCase()); if (mm && mm[2]) p.push(mm[2]); var s = p.join(' '); if (pm[1]) s += ' | ' + pm[1]; if (pm[2]) s += ' | ID ' + pm[2]; return s; }
+  function apvSnapDiff(a, b){
+    var ch = [];
+    function add(f, x, y, blank){ if ((x||'') !== (y||'')) ch.push({ f: f, from: x || blank, to: y || blank }); }
+    if (!a || a.shown !== b.shown) ch.push({ f: 'Shown in dropdown', from: a ? (a.shown ? 'Yes' : 'No') : '', to: b.shown ? 'Yes' : 'No' });
+    add('Project', a ? (a.base ? apvName(a.base) : '') : '', b.base ? apvName(b.base) : '', '');
+    add('MPS Ref', a ? apvFmtRef(a.ref) : '', apvFmtRef(b.ref), '(blank)');
+    add('Project Name Shown', a ? a.label : '', b.label, '(automatic)');
+    add('Doc No. Filter', a ? a.filter : '', b.filter, 'Whole project');
+    return ch;
+  }
+  function apvAppendHist(list, whoP){
+    if (!list || !list.length || !ghToken()) return Promise.resolve(true);
+    return Promise.resolve(whoP).then(function(w){ return apvLoad(APV_HIST).then(function(cur){
+      var h = (cur && cur.history && typeof cur.history === 'object') ? cur.history : (window.__apvHist || {}), iso = new Date().toISOString();
+      list.forEach(function(e){ var a = h[e.key] = h[e.key] || []; a.push({ at: iso, by: (w && w.by) || 'Unknown', user: (w && w.user) || '', action: e.action, changes: e.changes || [] }); if (a.length > 100) h[e.key] = a.slice(-100); });
+      window.__apvHist = h;
+      return apvSave(APV_HIST, { history: h, updated: iso });
+    }); }).catch(function(){ return false; });
+  }
   function apvGhUrl(path){ return 'https://api.github.com/repos/' + GH.repo + '/contents/' + path; }
   function apvLoad(path){
     if (!ghToken()) return Promise.resolve(undefined);
@@ -1903,7 +1935,9 @@
       var next = {};
       if (reg && reg.projects && typeof reg.projects === 'object') Object.keys(reg.projects).forEach(function(id){ next[id] = (reg.projects[id] && reg.projects[id].name) || String(id); });
       var changed = (reg === undefined || reg === null);
-      window.__apvAccessSet.forEach(function(id){ var nm = window.__apvAccessNames[id] || String(id); if (next[id] !== nm){ next[id] = nm; changed = true; } });
+      var firstSeen = [];
+      window.__apvAccessSet.forEach(function(id){ var nm = window.__apvAccessNames[id] || String(id); if (next[id] !== nm){ if (reg && reg.projects && !next[id]) firstSeen.push(id); next[id] = nm; changed = true; } });
+      if (firstSeen.length && ghToken() && typeof gdefWhoAmI === 'function') apvAppendHist(firstSeen.map(function(id){ return { key: id, action: 'added', changes: [] }; }), gdefWhoAmI());
       window.__apvRegistry = next;
       if (hid && Array.isArray(hid.hidden)) { window.__apvHidden = new Set(hid.hidden.map(String)); window.__apvHiddenMeta = { lastAction: hid.lastAction||null, lastActor: hid.lastActor||null, lastActorAt: hid.lastActorAt||null }; }
       if (sc && sc.scope && typeof sc.scope === 'object') window.__apvScope = sc.scope;
@@ -2032,6 +2066,32 @@
     var btn = root.getElementById('pselcfg'); if (!btn) return;
     if (!Object.keys(window.__apvRegistry).length){ window.__apvAccessSet.forEach(function(id){ window.__apvRegistry[id] = window.__apvAccessNames[id] || String(id); }); }
     var ids = apvOrderedIds();
+    var prevSnap = {}; ids.forEach(function(id){ prevSnap[id] = apvSnap(id); });
+    var whoP = (typeof gdefWhoAmI === 'function') ? gdefWhoAmI() : Promise.resolve(null);
+    apvLoad(APV_HIST).then(function(h){ if (h && h.history && typeof h.history === 'object') window.__apvHist = h.history; refreshDets(); });
+    function fmtAt(iso){ try { return new Date(iso).toLocaleString('en-AU', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch(e){ return iso || ''; } }
+    function detEl(id){
+      var h = ((window.__apvHist || {})[id] || []).slice();
+      var d = el('div', { class: 'apvdet', 'data-for': id });
+      var rw = panel.querySelector('.apvrow[data-pid="' + id + '"]'), bs = rw && rw.querySelector('.apvbase');
+      var base = bs ? bs.value : (apvIsExtra(id) ? apvBase(id) : id);
+      d.appendChild(el('div', { class: 'apvdl' }, [el('b', {}, ['Entry: ']), (apvIsExtra(id) || bs) ? ('Added entry. Pulls its data from ' + apvName(base) + ' (Aconex project ' + base + ').') : ('Aconex project ' + id + '.')]));
+      var cr = h.filter(function(e){ return e.action === 'created' || e.action === 'added'; })[0];
+      var ctext = cr ? (fmtAt(cr.at) + ' by ' + (cr.by || 'Unknown') + (cr.action === 'added' ? ' (first seen in the project list)' : '')) : (prevSnap[id] ? 'Not recorded. This entry existed before change tracking started (v12.85).' : 'Not saved yet. The record starts when you click Save.');
+      d.appendChild(el('div', { class: 'apvdl' }, [el('b', {}, ['Created: ']), ctext]));
+      if (!h.length){ d.appendChild(el('div', { class: 'apvdl' }, [el('b', {}, ['Changes: ']), ghToken() ? 'None recorded yet.' : 'Connect Team Sync to see and record changes.'])); return d; }
+      var tb = el('table'), tr = el('tr', {}, [el('th', {}, ['When']), el('th', {}, ['Who']), el('th', {}, ['Change'])]); tb.appendChild(tr);
+      h.reverse().forEach(function(e){
+        var txt = e.action === 'created' ? 'Created' : e.action === 'added' ? 'Added to the list' : e.action === 'removed' ? 'Removed' : '';
+        var parts = (e.changes || []).map(function(c){ return c.f + ': ' + (c.from ? (c.from + ' \u2192 ') : '') + c.to; });
+        if (txt && parts.length) txt += '. '; txt += parts.join('; ');
+        tb.appendChild(el('tr', {}, [el('td', { class: 'w' }, [fmtAt(e.at)]), el('td', { class: 'w', title: e.user || '' }, [e.by || 'Unknown']), el('td', {}, [txt || '(no detail)'])]));
+      });
+      d.appendChild(tb); return d;
+    }
+    function detOf(rw){ var nx = rw && rw.nextSibling; return (nx && nx.classList && nx.classList.contains('apvdet')) ? nx : null; }
+    function toggleDet(rw, db){ var o = detOf(rw); if (o){ o.remove(); db.textContent = '+'; db.classList.remove('on'); return; } rw.parentNode.insertBefore(detEl(rw.getAttribute('data-pid')), rw.nextSibling); db.textContent = '\u2212'; db.classList.add('on'); }
+    function refreshDets(){ if (!panel.isConnected) return; panel.querySelectorAll('.apvdet').forEach(function(o){ o.replaceWith(detEl(o.getAttribute('data-for'))); }); }
     var baseIds = Object.keys(window.__apvRegistry).sort(function(a,b){ return apvName(a).localeCompare(apvName(b)); });
     var preSet = { CV:1, EL:1, BD:1, CM:1 };
     Object.keys(window.__apvJN || {}).forEach(function(k){ var lm = String(window.__apvJN[k]||'').match(/^([A-Za-z]{1,3})/); if (lm) preSet[lm[1].toUpperCase()] = 1; });
@@ -2102,9 +2162,12 @@
       var scin = el('input', { class: 'apvscope', 'data-pid': id, placeholder: 'Whole project', title: 'Doc No. Filter for this entry (e.g. MPSBE-1202158-*). Blank pulls the whole project.', value: apvScopeFor(id) });
       row.appendChild(scin);
       var act = el('span', { class: 'apvact' });
+      var db = el('button', { class: 'apvdbtn', title: 'Show who created this entry, when, and its record of changes' }, ['+']);
+      db.onclick = function(ev){ ev.preventDefault(); toggleDet(row, db); };
+      act.appendChild(db);
       if (isExtra){
         var rm = el('button', { class: 'apvrm', title: 'Remove this added entry (applies when you click Save)' }, ['×']);
-        rm.onclick = function(ev){ ev.preventDefault(); row.remove(); upd(); };
+        rm.onclick = function(ev){ ev.preventDefault(); var o = detOf(row); if (o) o.remove(); row.remove(); upd(); };
         act.appendChild(rm);
       }
       if (na) act.appendChild(el('span', { class: 'apvpill' }, ['NO ACCESS']));
@@ -2157,7 +2220,7 @@
     }
     fit(); upd();
     panel.addEventListener('change', function(e){ if (e.target && e.target.type === 'checkbox') upd(); });
-    root.getElementById('apvsrch').oninput = function(){ var v = this.value.toLowerCase(); panel.querySelectorAll('.apvlist .apvrow').forEach(function(rw){ var t = rw.textContent; rw.querySelectorAll('input').forEach(function(i){ t += ' ' + (i.value || ''); }); var bs = rw.querySelector('.apvbase'); if (bs && bs.options[bs.selectedIndex]) t += ' ' + bs.options[bs.selectedIndex].textContent; rw.style.display = t.toLowerCase().indexOf(v) > -1 ? '' : 'none'; }); };
+    root.getElementById('apvsrch').oninput = function(){ var v = this.value.toLowerCase(); panel.querySelectorAll('.apvlist .apvrow').forEach(function(rw){ var t = rw.textContent; rw.querySelectorAll('input').forEach(function(i){ t += ' ' + (i.value || ''); }); var bs = rw.querySelector('.apvbase'); if (bs && bs.options[bs.selectedIndex]) t += ' ' + bs.options[bs.selectedIndex].textContent; rw.style.display = t.toLowerCase().indexOf(v) > -1 ? '' : 'none'; var o = detOf(rw); if (o) o.style.display = rw.style.display; }); };
     function bulk(isShow){
       if (!confirm((isShow ? 'Show' : 'Hide') + ' EVERY project in the dropdown for all users?')) return;
       panel.querySelectorAll('.apvlist input[type=checkbox]').forEach(function(c){ if (!c.disabled) c.checked = isShow; });
@@ -2190,6 +2253,15 @@
         var li = rw.querySelector('.apvlbl'); if (li && li.getAttribute('data-manual') === '1'){ var lv = li.value.trim(); if (lv && lv !== rowAuto(rw)) labels[pid] = lv.slice(0, 200); }
       });
       var prevKey = CFG.entryKey || CFG.projectId;
+      var hidSet = new Set(hidden), hist = [];
+      panel.querySelectorAll('.apvlist .apvrow').forEach(function(rw){
+        var pid = rw.getAttribute('data-pid');
+        var b = { shown: !hidSet.has(pid), filter: scope[pid] || '', ref: jnMap[pid] || '', label: labels[pid] || '', base: extras[pid] ? String(extras[pid].base) : '' };
+        var ch = apvSnapDiff(prevSnap[pid], b);
+        if (!prevSnap[pid]) hist.push({ key: pid, action: 'created', changes: ch.filter(function(c){ return c.f === 'Project' || (c.to && c.to !== 'Whole project' && c.to !== '(automatic)' && c.to !== '(blank)'); }).map(function(c){ return { f: c.f, from: '', to: c.to }; }) });
+        else if (ch.length) hist.push({ key: pid, action: 'changed', changes: ch });
+      });
+      Object.keys(prevSnap).forEach(function(k){ if (apvIsExtra(k) && !extras[k]) hist.push({ key: k, action: 'removed', changes: [] }); });
       window.__apvHidden = new Set(hidden); window.__apvScope = scope; window.__apvJN = jnMap; window.__apvExtra = extras; window.__apvLabels = labels;
       var sv = root.getElementById('apvsave'); sv.textContent = 'Saving…'; sv.disabled = true;
       var iso = new Date().toISOString();
@@ -2198,7 +2270,8 @@
         apvSave(APV_SCOPE, { scope: scope, updated: iso }),
         apvSave(APV_JN, { jn: jnMap, updated: iso }),
         apvSave(APV_EXTRA, { extras: extras, updated: iso }),
-        apvSave(APV_LBL, { labels: labels, updated: iso })
+        apvSave(APV_LBL, { labels: labels, updated: iso }),
+        apvAppendHist(hist, whoP)
       ]).then(function(oks){
         panel.remove();
         if (apvIsExtra(prevKey) && !extras[prevKey]) { apvSelect(apvBase(prevKey) || String(CFG.projectId)); }
