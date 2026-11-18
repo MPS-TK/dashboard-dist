@@ -102,7 +102,7 @@
     title:{label:'Title',w:300,tip:'Document title in Aconex'},
     subsystem:{label:'Subsystem',w:95,edit:'text',dfilter:true,tip:'Subsystem code. Parsed from the title where the title carries one (e.g. 3150-02-01); type over it for documents whose title does not. Manual entries are saved and team-synced. Clear the box to go back to the parsed value.'},
     subsystemName:{label:'Subsystem Name',w:140,tip:'Subsystem description parsed from the title'},
-    revision:{label:'REV',w:60,tip:'Current revision'},
+    revision:{label:'REV',dfilter:true,w:60,tip:'Current revision'},
     status:{label:'Status',w:150,dfilter:true,tip:'Aconex document status'},
     dateModified:{label:'Date Modified',w:110,type:'date',tip:'Date the current version was last modified in Aconex'},
     lifecycleStatus:{label:'Lifecycle Status',w:120,dfilter:true,tip:'Aconex lifecycle status (e.g. For Use)'},
@@ -116,7 +116,7 @@
     priority:{label:'Priority',w:110,edit:'priority',tip:'MPS tracking: priority (colour-coded)'},
     dateResub1:{label:'Date Resubmitted 1',w:130,edit:'date',tip:'MPS tracking: first resubmission date'},
     dateResub2:{label:'Date Resubmitted 2',w:130,edit:'date',tip:'MPS tracking: second resubmission date'},
-    discipline:{label:'Discipline / Function',w:150,tip:'Aconex discipline / function'},
+    discipline:{label:'Discipline / Function',w:150,dfilter:true,tip:'Aconex discipline / function'},
     type:{label:'Type',w:150,tip:'Aconex document type'},
     packageNo:{label:'Package No',w:180,tip:'Aconex package number'},
     deliverableType:{label:'Deliverable Type',w:150,tip:'Aconex deliverable type (SelectList1)'},
@@ -136,8 +136,8 @@
   COLDEF.revHist={label:'Revision History',w:150,tip:'Every revision of this drawing, oldest to newest (from the Aconex document history). Point at a cell for versions, dates and statuses. Drawings tab.'};
   COLDEF.revCount={label:'Revs',w:55,tip:'Number of revisions issued. Drawings tab.'};
   COLDEF.firstIssued={label:'First Issued',w:105,type:'date',tip:'Date the first version of this drawing was issued in Aconex. Drawings tab.'};
-  COLDEF.asBuiltReq={label:'As-Built Required',w:115,edit:'opt',tip:'MPS tracking: is an as-built required for this drawing? Pick a value; 🎨 in the header sets the colours and adds options. Team-synced. Drawings tab.'};
-  COLDEF.asBuiltSub={label:'As-Built Submitted',w:120,edit:'opt',tip:'MPS tracking: as-built submission state (Y, N, Za-Zd). 🎨 in the header sets the colours and adds options. Team-synced. Drawings tab.'};
+  COLDEF.asBuiltReq={label:'As-Built Required',w:115,edit:'opt',dfilter:true,blankOpt:true,tip:'MPS tracking: is an as-built required for this drawing? Pick a value; 🎨 in the header sets the colours and adds options. Team-synced. Drawings tab.'};
+  COLDEF.asBuiltSub={label:'As-Built Submitted',w:120,edit:'opt',dfilter:true,blankOpt:true,tip:'MPS tracking: as-built submission state (Y, N, Za-Zd). 🎨 in the header sets the colours and adds options. Team-synced. Drawings tab.'};
   COLDEF.dlLast={label:'Downloaded',w:230,tip:'Last download of the current version in Aconex: REV | Version | who | date (from the document Downloaded tab). Aa in the header switches names to initials. Drawings tab.'};
   var OPT_DEF={asBuiltReq:[{id:'Y',label:'Y',c:'#1e7e34'},{id:'N',label:'N',c:'#9aa6b2'}],asBuiltSub:[{id:'Y',label:'Y',c:'#1e7e34'},{id:'N',label:'N',c:'#9aa6b2'},{id:'Za',label:'Za',c:'#1f6feb'},{id:'Zb',label:'Zb',c:'#6f42c1'},{id:'Zc',label:'Zc',c:'#e8923a'},{id:'Zd',label:'Zd',c:'#b91c1c'}]};
   function optList(k){return (S.optLists&&S.optLists[k])||OPT_DEF[k]||[];}
@@ -735,8 +735,9 @@
       else if(diff>=7){var lc=dateReqColor('late');inp.style.background=lc;inp.style.color=lumFg(lc);inp.style.fontWeight='700';}
     }
   }
+  function fltVal(row,k){var v=cellVal(row,k);return (v===''&&COLDEF[k]&&COLDEF[k].blankOpt)?'(Blank)':v;}
   function cellVal(row,key){var v=row[key];if(COLDEF[key]&&COLDEF[key].edit==='opt'){var _l=optList(key);for(var _i=0;_i<_l.length;_i++)if(_l[_i].id===v)return _l[_i].label;return v==null?'':String(v);}if(COLDEF[key]&&COLDEF[key].type==='date')return fmtDate(v);if(key==='phase')return v?phaseLabel(v):'';if(key==='packageNo'){var b=v==null?'':String(v);var ct=(b&&S.packageText)?S.packageText[b]:'';return ct?b+' — '+ct:b;}return v==null?'':String(v);}
-  function applyFilters(){var g=S.globalSearch.toLowerCase();S.filtered=S.rows.filter(function(row){if(g){if(S.order.map(function(k){return cellVal(row,k);}).join(' ').toLowerCase().indexOf(g)<0)return false;}for(var k in S.colFilters){var f=(S.colFilters[k]||'').toLowerCase();if(!f)continue;if(cellVal(row,k).toLowerCase().indexOf(f)<0)return false;}for(var sk in S.selFilters){var arr=S.selFilters[sk];if(!arr)continue;if(arr.indexOf(cellVal(row,sk))<0)return false;}return true;});if(S.sortKey){S.filtered.sort(function(a,b){var x=cellVal(a,S.sortKey),y=cellVal(b,S.sortKey);return x<y?-S.sortDir:x>y?S.sortDir:0;});}}
+  function applyFilters(){var g=S.globalSearch.toLowerCase();S.filtered=S.rows.filter(function(row){if(g){if(S.order.map(function(k){return cellVal(row,k);}).join(' ').toLowerCase().indexOf(g)<0)return false;}for(var k in S.colFilters){var f=(S.colFilters[k]||'').toLowerCase();if(!f)continue;if(cellVal(row,k).toLowerCase().indexOf(f)<0)return false;}for(var sk in S.selFilters){var arr=S.selFilters[sk];if(!arr)continue;if(arr.indexOf(fltVal(row,sk))<0)return false;}return true;});if(S.sortKey){S.filtered.sort(function(a,b){var x=cellVal(a,S.sortKey),y=cellVal(b,S.sortKey);return x<y?-S.sortDir:x>y?S.sortDir:0;});}}
 
   // ---- dom helpers ----
   var host,root;
@@ -1393,7 +1394,7 @@
   }
 
   // ---- multi-select persistent column filters (dfilter columns) ----
-  function distinctVals(k){var vals={};S.rows.forEach(function(r){var vv=cellVal(r,k);if(vv!=='')vals[vv]=1;});return Object.keys(vals).sort();}
+  function distinctVals(k){var vals={};S.rows.forEach(function(r){var vv=fltVal(r,k);if(vv!=='')vals[vv]=1;});return Object.keys(vals).sort();}
   function selSummary(k){var d=distinctVals(k);var sel=S.selFilters[k];if(sel==null)return 'All';var t=d.length,p=0;for(var _si=0;_si<t;_si++){if(sel.indexOf(d[_si])>=0)p++;}if(t===0)return 'All';if(p===0)return 'None';if(p>=t)return 'All';return p+'/'+t;}
   function multiFilterBtn(k){
     var b=el('div',{class:'mfbtn',title:'Filter '+COLDEF[k].label+' — tick the values to show (persists between sessions)'},[el('span',{class:'cv'},[selSummary(k)]),el('span',{},['▾'])]);
@@ -1843,7 +1844,7 @@
   // admitted automatically; values the user deliberately unticked stay unticked.
   // First run after this upgrade has no record, so the whitelist itself is treated as
   // "everything we knew about" and whatever it is currently hiding is re-admitted once.
-  function distinctForFilter(k){var m={};S.allRows.forEach(function(r){m[cellVal(r,k)]=1;});return Object.keys(m).sort();}
+  function distinctForFilter(k){var m={};S.allRows.forEach(function(r){m[fltVal(r,k)]=1;});return Object.keys(m).sort();}
   function sameSet(a,b){if(!Array.isArray(a)||a.length!==b.length)return false;for(var i=0;i<b.length;i++){if(a.indexOf(b[i])<0)return false;}return true;}
   function reconcileSelKnown(){
     if(!S.allRows||!S.allRows.length)return;
