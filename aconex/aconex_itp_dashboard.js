@@ -16,7 +16,7 @@
   if (window.__MPS_ACONEX && window.__MPS_ACONEX.__live) { window.__MPS_ACONEX.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.91', BUILD_DATE='19 Nov 2026';
+  var VERSION='v12.92', BUILD_DATE='19 Nov 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -358,7 +358,9 @@
   function gdefWhoAmI(){return fetch('/api/user',{headers:{Accept:'application/json'},credentials:'include'}).then(function(r){return r.json();}).then(function(j){var nm=(((j.userFirstName||'')+' '+(j.userLastName||'')).trim())||j.userName||'Unknown';return {by:nm,user:j.userName||'',org:j.organizationName||''};}).catch(function(){return {by:'Unknown',user:'',org:''};});}
   function gdefLoad(){
     if(!ghToken())return Promise.resolve(false);
+    var _gm=MODE; // v12.92: a reply for one tab must never be applied to the other tab
     return fetch('https://api.github.com/repos/'+GH.repo+'/contents/'+GDEF_FILE+'?ref='+GH.branch,{headers:ghHeaders()}).then(function(r){if(r.status===404){GDEF.sha=null;return null;}if(!r.ok)throw 0;return r.json();}).then(function(j){
+      if(_gm!==MODE)return false;
       var data={patches:[]};
       if(j){GDEF.sha=j.sha;try{data=JSON.parse(decodeURIComponent(escape(atob((j.content||'').replace(/\n/g,'')))))||data;}catch(e){}}
       GDEF.patches=(data&&data.patches)?data.patches:[];
@@ -593,7 +595,7 @@
     if(c.paged&&c.overMax)return 'This register is larger than 10,000 documents, the most the dashboard loads. Set a Doc No. Filter (\u25BE button) to split it into smaller entries.';
     if(c.paged)return 'Some pages of the Aconex register did not load (network or Aconex error). Click Refresh to load again. If this repeats, tell the dashboard owner.';
     return 'Aconex did not page this search, so only the first 250 and last 250 by document number loaded'+(S.capGap&&S.capGap[0]?(' (documents between '+S.capGap[0]+' and '+S.capGap[1]+' are missing)'):'')+'. Set a Doc No. Filter (\u25BE button), or use + Add project to split the register into entries under 500.';}
-  function fetchData(){S.loading=true;S.error='';renderAll();return fetchSchema().then(function(){return (function(){function grab(dir){return fetch(apiUrl(dir),{headers:{Accept:'application/xml'},credentials:'include'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.text();}).then(function(b){return [].slice.call(new DOMParser().parseFromString(b,'application/xml').querySelectorAll('Document'));});}
+  function fetchData(){var _fm=MODE;S.loading=true;S.error='';renderAll();return fetchSchema().then(function(){return (function(){function grab(dir){return fetch(apiUrl(dir),{headers:{Accept:'application/xml'},credentials:'include'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.text();}).then(function(b){return [].slice.call(new DOMParser().parseFromString(b,'application/xml').querySelectorAll('Document'));});}
       // v12.86: the register search pages when asked with search_type=PAGED (live-verified 19 Nov 2026: CNPI 720 docs = 3 pages of 250,
       // TotalResults reported). Load every page, 3 at a time. If Aconex does not report paging, fall back to the old docno ASC + DESC union (max ~500).
       var PMAX=40;S._pg=null;
@@ -604,7 +606,7 @@
         var np=Math.min(p1.pages||1,PMAX),todo=[],out=[p1.docs],fails=0;for(var n=2;n<=np;n++)todo.push(n);
         function run(){if(!todo.length)return Promise.resolve();return Promise.all(todo.splice(0,3).map(function(n){return page(n).then(function(p){return p.docs;}).catch(function(){fails++;return [];});})).then(function(rs){rs.forEach(function(x){out.push(x);});return run();});}
         return run().then(function(){S._pg={paged:true,total:p1.total,failed:fails,overMax:(p1.pages>PMAX)};return out;});
-      },function(){return union();});})();}).then(function(_parts){
+      },function(){return union();});})();}).then(function(_parts){if(_fm!==MODE)return;
       var _seen={},_els=[];_parts.forEach(function(_l){_l.forEach(function(el){var _id=el.getAttribute('DocumentId')||(el.querySelector('DocumentNumber')?el.querySelector('DocumentNumber').textContent:'');if(_id&&!_seen[_id]){_seen[_id]=1;_els.push(el);}});});
       S._ascN=_parts[0].length;S._descN=(_parts[1]?_parts[1].length:0);
       S.allRows=_els.map(function(el){
@@ -1558,7 +1560,7 @@
     function commit(){saveCfg();renderTable();}
     function isDefOn(k){var d=trimDefaults();return !!(d&&(d.on||[]).some(function(x){return trimNorm(x)===trimNorm(k);}));}
     function isDefMan(s){var d=trimDefaults();return !!(d&&s&&(d.manual||[]).some(function(x){return trimNorm(x)===trimNorm(s);}));}
-    function defTag(){return el('span',{style:'font-size:9px;font-weight:700;color:#1d4ed8;border:1px solid #93c5fd;border-radius:8px;padding:0 5px;margin-left:4px'},['default']);}
+    function defTag(){return el('span',{style:'font-size:9px;font-weight:700;color:#1d4ed8;border:1px solid #93c5fd;border-radius:8px;padding:0 5px'},['default']);}
     function build(){bodyEl.innerHTML='';var ign=!!S._trimIgnore;
       bodyEl.appendChild(el('div',{class:'muted',style:'font-size:10.5px;padding:2px 4px 6px'},['Tick to hide that text from the titles in this column. Automatic items are the most common text at the START of the titles. Grey = not in the current view. Count = in view / in this load. Blue = project default. Display only; saved for you, per project.']));
       if(ign)bodyEl.appendChild(el('div',{style:'font-size:11px;font-weight:700;color:#b91c1c;padding:2px 4px 6px'},['All trims are ignored until you reopen the Drawings tab (or click Restore).']));
@@ -1566,14 +1568,14 @@
       cands.forEach(function(cd){cd.v=vis.filter(function(t){return t.indexOf(cd.key)===0;}).length;});
       if(!cands.length)bodyEl.appendChild(el('div',{class:'muted',style:'font-size:11px;padding:4px'},['No repeated leading text found in the loaded titles.']));
       cands.forEach(function(cd){var cb=el('input',{type:'checkbox'});cb.checked=!!c.on[cd.s];cb.onchange=function(){if(cb.checked)c.on[cd.s]=true;else delete c.on[cd.s];commit();build();};var gr=!cd.v||ign,df=isDefOn(cd.s);
-        bodyEl.appendChild(el('label',{class:'mfrow',title:cd.s+' — '+cd.v+' in view, '+cd.n+' in this load'},[cb,el('span',{style:'flex:1;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:'+(gr?'#9CA3AF':(df?'#1d4ed8':'#111827'))},[cd.s]),(df?defTag():null),el('span',{style:'font-size:10px;color:'+(gr?'#C4C9D1':'#6B7280')},['('+cd.v+(cd.v!==cd.n?' / '+cd.n:'')+')'])]));});
+        bodyEl.appendChild(el('label',{class:'mfrow',title:cd.s+' — '+cd.v+' in view, '+cd.n+' in this load'},[cb,el('span',{style:'flex:1;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:'+(gr?'#9CA3AF':(df?'#1d4ed8':'#111827'))},[cd.s]),el('span',{style:'width:54px;flex-shrink:0;text-align:left'},[df?defTag():null]),el('span',{style:'width:64px;flex-shrink:0;text-align:right;font-size:10px;color:'+(gr?'#C4C9D1':'#6B7280')},['('+cd.v+(cd.v!==cd.n?' / '+cd.n:'')+')'])]));});
       var more=trimCands(nA+1).length>cands.length;bodyEl.appendChild(el('div',{class:'mfrow'},[more?el('a',{title:'Show the next most common leading text',style:'font-weight:700;cursor:pointer;color:'+NAVY,onclick:function(ev){ev.preventDefault();c.nAuto=nA+1;saveCfg();build();}},['+ Add']):el('span',{class:'muted',style:'font-size:10.5px'},['No more repeated leading text']),(nA>5?el('a',{title:'Show one less',style:'margin-left:10px;cursor:pointer;color:#6B7280',onclick:function(ev){ev.preventDefault();c.nAuto=nA-1;saveCfg();build();}},['− Less']):null)]));
-      Object.keys(c.on).forEach(function(k){if(cands.some(function(x){return x.s===k;}))return;var cb=el('input',{type:'checkbox'});cb.checked=!!c.on[k];cb.onchange=function(){if(!cb.checked)delete c.on[k];commit();build();};var df=isDefOn(k);bodyEl.appendChild(el('label',{class:'mfrow',title:k},[cb,el('span',{style:'flex:1;font-size:11px;color:'+(df?'#1d4ed8':'#9CA3AF')},[k+' (not in the automatic list)']),(df?defTag():null)]));});
+      Object.keys(c.on).forEach(function(k){if(cands.some(function(x){return x.s===k;}))return;var cb=el('input',{type:'checkbox'});cb.checked=!!c.on[k];cb.onchange=function(){if(!cb.checked)delete c.on[k];commit();build();};var df=isDefOn(k);bodyEl.appendChild(el('label',{class:'mfrow',title:k},[cb,el('span',{style:'flex:1;font-size:11px;color:'+(df?'#1d4ed8':'#9CA3AF')},[k+' (not in the automatic list)']),el('span',{style:'width:54px;flex-shrink:0;text-align:left'},[df?defTag():null]),el('span',{style:'width:64px;flex-shrink:0'},[''])]));});
       bodyEl.appendChild(el('div',{style:'border-top:1px solid #e3e9f0;margin:5px 0 3px;padding-top:4px;font-size:10.5px;font-weight:700;color:'+NAVY},['Manual (removes the text anywhere in the title)']));
       if(!c.manual.length)c.manual.push({s:'',on:true});
       c.manual.forEach(function(m,ix){var cb=el('input',{type:'checkbox'});cb.checked=!!m.on;cb.onchange=function(){m.on=cb.checked;commit();};var df=isDefMan(m.s);var tx=el('input',{type:'text',value:m.s||'',placeholder:'text to hide…',style:'flex:1;min-width:80px;font-size:11px;padding:2px 5px;border:1px solid '+(df?'#93c5fd':'#cfd8e3')+';border-radius:4px;color:'+(ign?'#9CA3AF':(df?'#1d4ed8':'#111827'))});tx.onchange=function(){m.s=tx.value;commit();build();};
         var rm=el('a',{title:'Remove this entry',style:'color:#c0392b;font-size:12px;text-decoration:none;cursor:pointer',onclick:function(ev){ev.preventDefault();c.manual.splice(ix,1);commit();build();}},['✕']);
-        bodyEl.appendChild(el('div',{class:'mfrow'},[cb,tx,(df?defTag():null),rm]));});
+        bodyEl.appendChild(el('div',{class:'mfrow'},[cb,tx,el('span',{style:'width:54px;flex-shrink:0;text-align:left'},[df?defTag():null]),rm]));});
       bodyEl.appendChild(el('div',{class:'mfrow'},[el('a',{title:'Add another manual entry',style:'font-weight:700;cursor:pointer;color:'+NAVY,onclick:function(ev){ev.preventDefault();c.manual.push({s:'',on:true});build();}},['+ Add'])]));
       ignA.textContent=ign?'Restore Selected':'Ignore All Selected';}
     var ignA=el('a',{title:'Show the full titles for now. Your ticks are kept; they apply again when you reopen the Drawings tab or click Restore Selected.',style:'margin-left:auto;font-size:11px;font-weight:700;color:#b91c1c;cursor:pointer',onclick:function(ev){ev.preventDefault();S._trimIgnore=!S._trimIgnore;if(S._trimIgnore)toast('All trims are ignored so you can see the full titles. They apply again when you reopen the Drawings tab.');renderTable();build();}},['Ignore All Selected']);
@@ -2519,6 +2521,7 @@
 
   function refreshDelivTitles(){try{[['total','TOTAL: '],['register','REGISTER: ']].forEach(function(p){var c=root.querySelector('.cpanel[data-cp="'+p[0]+'"]');if(!c||c.classList.contains('coll'))return;var t=c.querySelector('.cptitle');if(t)t.textContent=p[1]+delivTitle();});var ps=root.getElementById('pst');if(ps&&!S.loading)ps.textContent=S.rows.length+' of '+S.allRows.length+(MODE==='dwg'?' drawings':' documents');}catch(e){}}
   var CFG_FIELDS=['order','cols','fontSize','rowPad','wrap','phases','chartType','hiddenDonuts','selFilters','selKnown','chartScale','colorSchemes','fgSchemes','collapsed','barExpanded','chartDataField','chartFieldSet','chartSplitField','excludeSupObs','padScale','hpadScale','hdrFontSize','hdrMaxLines','colPri','colDefW','colNames','packageSel','delivSel','packageText','fltDate','fltRef','hiddenRows','seriesOrder','subFmt','globalSearch','colFilters','sortKey','sortDir','optLists','dlInitials','dlInitSet','lifeAbbr','titleTrim'];
+  function applyDwgLayout(){try{var d=null;try{d=JSON.parse(localStorage.getItem(DKEY)||'null');}catch(e){}var src=d?mergeCfg(d):factoryCfg();['order','cols','colNames','colDefW'].forEach(function(f){if(src[f])S[f]=JSON.parse(JSON.stringify(src[f]));});S._widthMode='';}catch(e){}}
   function applyDefWidths(){try{var d=S.colDefW||{};Object.keys(d).forEach(function(k){if(S.cols&&S.cols[k]&&d[k])S.cols[k].w=d[k];});S._widthMode='';}catch(e){}}
   function setModeVars(){
     GDEF_FILE=MODE==='dwg'?'aconex/global_defaults_dwg.json':'aconex/global_defaults_itp.json';
@@ -2533,7 +2536,7 @@
     if(m==='doc'&&S._docEntry){var k=S._docEntry;if(!apvIsExtra(k)||(window.__apvExtra||{})[k]){CFG.entryKey=k;CFG.projectId=apvBase(k);CFG.projectName=apvName(k);CFG.docScope=apvScopeFor(k);}}
     try{LKEY='mps_aconex_cfg_'+(CFG.entryKey||CFG.projectId)+MS();DKEY='mps_aconex_defcfg_'+(CFG.entryKey||CFG.projectId)+MS();}catch(e){}
     var C2=loadCfg();CFG_FIELDS.forEach(function(f){if(C2[f]!==undefined)S[f]=C2[f];});
-    if(m==='dwg')applyDefWidths();
+    if(m==='dwg')applyDwgLayout();
     S._trimIgnore=false;
     try{apvReloadProjectView();}catch(e){}
     S.allRows=[];S.rows=[];S.filtered=[];S.revHist=null;S._revTok=null;S.capHit=false;
