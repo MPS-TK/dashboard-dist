@@ -16,7 +16,7 @@
   if (window.__MPS_ACONEX && window.__MPS_ACONEX.__live) { window.__MPS_ACONEX.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.92', BUILD_DATE='19 Nov 2026';
+  var VERSION='v12.93', BUILD_DATE='19 Nov 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -1556,19 +1556,19 @@
   }
   function trimPanel(anchor){
     var wrapEl=root.getElementById('wrap');var ex=root.getElementById('trimpanel');if(ex){ex.remove();return;}
-    var c=trimCfg();var panel=el('div',{id:'trimpanel',class:'mfpanel',style:'min-width:340px;max-width:560px;max-height:70vh;overflow:auto'});var bodyEl=el('div',{});
+    var c=trimCfg();var panel=el('div',{id:'trimpanel',class:'mfpanel',style:'min-width:340px;width:max-content;max-height:70vh;overflow:auto;box-sizing:border-box'});var bodyEl=el('div',{});
     function commit(){saveCfg();renderTable();}
     function isDefOn(k){var d=trimDefaults();return !!(d&&(d.on||[]).some(function(x){return trimNorm(x)===trimNorm(k);}));}
     function isDefMan(s){var d=trimDefaults();return !!(d&&s&&(d.manual||[]).some(function(x){return trimNorm(x)===trimNorm(s);}));}
     function defTag(){return el('span',{style:'font-size:9px;font-weight:700;color:#1d4ed8;border:1px solid #93c5fd;border-radius:8px;padding:0 5px'},['default']);}
     function build(){bodyEl.innerHTML='';var ign=!!S._trimIgnore;
-      bodyEl.appendChild(el('div',{class:'muted',style:'font-size:10.5px;padding:2px 4px 6px'},['Tick to hide that text from the titles in this column. Automatic items are the most common text at the START of the titles. Grey = not in the current view. Count = in view / in this load. Blue = project default. Display only; saved for you, per project.']));
-      if(ign)bodyEl.appendChild(el('div',{style:'font-size:11px;font-weight:700;color:#b91c1c;padding:2px 4px 6px'},['All trims are ignored until you reopen the Drawings tab (or click Restore).']));
+      bodyEl.appendChild(el('div',{class:'muted',style:'width:0;min-width:100%;font-size:10.5px;padding:2px 4px 6px;box-sizing:border-box'},['Tick to hide that text from the titles in this column. Automatic items are the most common text at the START of the titles. Grey = not in the current view. Count = in view / in this load. Blue = project default. Display only; saved for you, per project.']));
+      if(ign)bodyEl.appendChild(el('div',{style:'width:0;min-width:100%;box-sizing:border-box;font-size:11px;font-weight:700;color:#b91c1c;padding:2px 4px 6px'},['All trims are ignored until you reopen the Drawings tab (or click Restore).']));
       var nA=c.nAuto||5,cands=trimCands(nA),vis=(S.filtered||[]).map(function(r){return trimNorm(r.title)+' ';});
       cands.forEach(function(cd){cd.v=vis.filter(function(t){return t.indexOf(cd.key)===0;}).length;});
       if(!cands.length)bodyEl.appendChild(el('div',{class:'muted',style:'font-size:11px;padding:4px'},['No repeated leading text found in the loaded titles.']));
       cands.forEach(function(cd){var cb=el('input',{type:'checkbox'});cb.checked=!!c.on[cd.s];cb.onchange=function(){if(cb.checked)c.on[cd.s]=true;else delete c.on[cd.s];commit();build();};var gr=!cd.v||ign,df=isDefOn(cd.s);
-        bodyEl.appendChild(el('label',{class:'mfrow',title:cd.s+' — '+cd.v+' in view, '+cd.n+' in this load'},[cb,el('span',{style:'flex:1;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:'+(gr?'#9CA3AF':(df?'#1d4ed8':'#111827'))},[cd.s]),el('span',{style:'width:54px;flex-shrink:0;text-align:left'},[df?defTag():null]),el('span',{style:'width:64px;flex-shrink:0;text-align:right;font-size:10px;color:'+(gr?'#C4C9D1':'#6B7280')},['('+cd.v+(cd.v!==cd.n?' / '+cd.n:'')+')'])]));});
+        bodyEl.appendChild(el('label',{class:'mfrow',title:cd.s+' — '+cd.v+' in view, '+cd.n+' in this load'},[cb,el('span',{style:'flex:1;min-width:0;font-size:11px;white-space:normal;overflow-wrap:anywhere;color:'+(gr?'#9CA3AF':(df?'#1d4ed8':'#111827'))},[cd.s]),el('span',{style:'width:54px;flex-shrink:0;text-align:left'},[df?defTag():null]),el('span',{style:'width:64px;flex-shrink:0;text-align:right;font-size:10px;color:'+(gr?'#C4C9D1':'#6B7280')},['('+cd.v+(cd.v!==cd.n?' / '+cd.n:'')+')'])]));});
       var more=trimCands(nA+1).length>cands.length;bodyEl.appendChild(el('div',{class:'mfrow'},[more?el('a',{title:'Show the next most common leading text',style:'font-weight:700;cursor:pointer;color:'+NAVY,onclick:function(ev){ev.preventDefault();c.nAuto=nA+1;saveCfg();build();}},['+ Add']):el('span',{class:'muted',style:'font-size:10.5px'},['No more repeated leading text']),(nA>5?el('a',{title:'Show one less',style:'margin-left:10px;cursor:pointer;color:#6B7280',onclick:function(ev){ev.preventDefault();c.nAuto=nA-1;saveCfg();build();}},['− Less']):null)]));
       Object.keys(c.on).forEach(function(k){if(cands.some(function(x){return x.s===k;}))return;var cb=el('input',{type:'checkbox'});cb.checked=!!c.on[k];cb.onchange=function(){if(!cb.checked)delete c.on[k];commit();build();};var df=isDefOn(k);bodyEl.appendChild(el('label',{class:'mfrow',title:k},[cb,el('span',{style:'flex:1;font-size:11px;color:'+(df?'#1d4ed8':'#9CA3AF')},[k+' (not in the automatic list)']),el('span',{style:'width:54px;flex-shrink:0;text-align:left'},[df?defTag():null]),el('span',{style:'width:64px;flex-shrink:0'},[''])]));});
       bodyEl.appendChild(el('div',{style:'border-top:1px solid #e3e9f0;margin:5px 0 3px;padding-top:4px;font-size:10.5px;font-weight:700;color:'+NAVY},['Manual (removes the text anywhere in the title)']));
@@ -1585,6 +1585,7 @@
   }
   // keep the Trim panel attached to the Title header while the page or the grid scrolls
   function trimPlace(){var p=root&&root.getElementById('trimpanel');if(!p)return;var wrapEl=root.getElementById('wrap');var a=root.querySelector('.mps-trimbtn');if(!a||!wrapEl)return;var ar=a.getBoundingClientRect(),wr=wrapEl.getBoundingClientRect();
+    p.style.maxWidth=Math.max(340,Math.min(wr.width,document.documentElement.clientWidth-wr.left)-16)+'px';
     p.style.left=Math.min(Math.max(4,wr.width-p.offsetWidth-8),Math.max(4,ar.left-wr.left))+'px';p.style.top=(ar.bottom-wr.top+2)+'px';}
   (function(){var raf=0;function q(){if(raf)return;raf=requestAnimationFrame(function(){raf=0;trimPlace();});}document.addEventListener('scroll',q,true);window.addEventListener('resize',q);})();
   function optPanel(k,anchor){
