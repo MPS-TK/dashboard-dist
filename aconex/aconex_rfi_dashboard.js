@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.85', BUILD_DATE='18 Nov 2026';
+  var VERSION='v12.86', BUILD_DATE='19 Nov 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -750,7 +750,7 @@
     +'.pbrl{font-size:11px;font-weight:700;text-transform:uppercase;color:#6B7280;letter-spacing:.5px}'
     +'select.psel{border:1px solid #cfd7e0;border-radius:6px;padding:5px 10px;font-size:12px;color:'+INK+';background:#fff;min-width:360px;max-width:560px;outline:none;font-family:inherit}'
     +'.pselcfg{margin-left:-9px;height:29px;display:inline-flex;align-items:center;justify-content:center;padding:0 8px;border:1px solid #cfd7e0;border-radius:6px;background:#fff;color:#C0392B;font-size:12px;font-weight:700;cursor:pointer;line-height:1}.pselcfg:hover{border-color:'+ACCENT+'}'
-    +'.pst{font-size:11px;color:#9BA3AF;margin-left:6px}'
+    +'.pst{font-size:11px;color:#9BA3AF;margin-left:6px}.pcap{font-size:11px;font-weight:600;color:#B91C1C;background:#FEF2F2;border:1px solid #FECACA;border-radius:5px;padding:2px 8px;margin-left:6px;cursor:help}'
     +'.apvpanel{position:absolute;z-index:60;background:#fff;border:1px solid #D1D5DB;border-radius:8px;box-shadow:0 12px 40px rgba(11,42,74,.22);width:636px;max-height:62vh;display:flex;flex-direction:column}'
     +'.apvhd{padding:12px 14px;background:'+NAVY+';color:#fff;border-radius:8px 8px 0 0;flex-shrink:0}.apvhd .t{font-weight:700;font-size:13px}.apvhd .s{font-size:11px;opacity:.85;margin-top:3px;line-height:1.4}'
     +'.apvtools{padding:8px 14px;display:flex;gap:8px;border-bottom:1px solid #F3F4F6;align-items:center;flex-shrink:0}'
@@ -1053,7 +1053,8 @@
       el('span',{class:'pbrl'},['Project']),
       (function(){var s=el('select',{class:'psel',id:'psel',title:'Choose which Aconex project’s RFIs / TQs to load'});s.onchange=function(){if(s.value)apvSelect(s.value);};return s;})(),
       el('button',{class:'pselcfg',id:'pselcfg',title:'Manage the project list: hide projects and set each project’s MPS Ref for the whole team',onclick:apvOpenPanel},['▾']),
-      el('span',{class:'pst',id:'pst'},[(S.loading?'loading…':(S.rows.length+' of '+S.allRows.length+' entries'))])
+      el('span',{class:'pst',id:'pst'},[(S.loading?'loading…':(S.rows.length+' of '+S.allRows.length+' entries'))]),
+      (S.rfiIncomplete&&!S.loading?el('span',{class:'pcap',title:rfiCapHelp()},['\u26A0 Not all RFIs/TQs loaded']):null)
     ]));
     apvRenderDropdown();apvBindSelSwap();
     appendSyncBanner(wrap);
@@ -2372,6 +2373,7 @@ async function fullScan(btn){
     }).catch(function(){ if (!S.allRows.length && !S.loading) fetchRFIsLive(); });
   }
   // ---- live RFI/TQ fetch from Aconex Mail (per selected project) ----
+  function rfiCapHelp(){ return (S._rfiFail||0) > 0 ? 'Some pages of the Aconex mail search did not load (network or Aconex error). Click Reload to load again.' : 'A mail search returned more results than the dashboard can load (500 when Aconex does not page, or 10,000). Tell the dashboard owner so the search can be split.'; }
   function fetchRFIsLive(){
     var pid = CFG.projectId; if (!pid){ S.allRows = []; renderAll(); return Promise.resolve(); }
     S.loading = true; renderAll();
@@ -2389,12 +2391,27 @@ async function fullScan(btn){
           .then(function(t){ var d = new DOMParser().parseFromString(t, 'application/xml'); return [].slice.call(d.querySelectorAll('Mail')).map(function(m){ function T(s){ var n = m.querySelector(s); return n ? (n.textContent||'').trim() : ''; } return { no: T('MailNo'), subj: T('Subject'), sent: T('SentDate'), ct: T('CorrespondenceType').toLowerCase(), rrq: T('ResponseRequired'), id: m.getAttribute('MailId')||'', box: b }; }); })
           .catch(function(){ return []; });
       }
-      // Aconex mail search hard-caps at 250 and ignores paging; a sentdate DESC + ASC union recovers
-      // every RFI/TQ when a box has >250 matches (e.g. BHP-issued RFIs received in the inbox).
-      return grab('DESC').then(function(a){ if (a.length < 250) return a; return grab('ASC').then(function(b2){ return a.concat(b2); }); });
+      // v12.86: mail search pages when asked with search_type=PAGED (live-verified 19 Nov 2026: CNPI inbox 'RFI' = 572 results,
+      // 3 pages of 250; the old DESC + ASC union stopped at 500). Load every page; fall back to the union if paging is not reported.
+      function page(n){
+        return fetch('/api/projects/' + pid + '/mail?mail_box=' + b + '&search_type=PAGED&page_size=250&page_number=' + n + '&return_fields=' + RF + '&search_query=' + encodeURIComponent(term) + '&sort_field=sentdate&sort_direction=DESC', { headers: { Accept: 'application/xml' }, credentials: 'include' })
+          .then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+          .then(function(t){ var d = new DOMParser().parseFromString(t, 'application/xml'), rt = d.documentElement; return { total: parseInt(rt.getAttribute('TotalResults'), 10), pages: parseInt(rt.getAttribute('TotalPages'), 10), rows: [].slice.call(d.querySelectorAll('Mail')).map(function(m){ function T(s){ var n = m.querySelector(s); return n ? (n.textContent||'').trim() : ''; } return { no: T('MailNo'), subj: T('Subject'), sent: T('SentDate'), ct: T('CorrespondenceType').toLowerCase(), rrq: T('ResponseRequired'), id: m.getAttribute('MailId')||'', box: b }; }) }; });
+      }
+      function union(){ return grab('DESC').then(function(a){ if (a.length < 250) return a; return grab('ASC').then(function(b2){ if (b2.length >= 250) S._rfiCut = (S._rfiCut||0) + 1; return a.concat(b2); }); }); }
+      return page(1).then(function(p1){
+        if (isNaN(p1.total)) return union();
+        var np = Math.min(p1.pages || 1, 40), jobs = [];
+        for (var n = 2; n <= np; n++) jobs.push(page(n).then(function(p){ return p.rows; }).catch(function(){ S._rfiFail = (S._rfiFail||0) + 1; return []; }));
+        if (p1.pages > 40) S._rfiCut = (S._rfiCut||0) + 1;
+        return Promise.all(jobs).then(function(rs){ return p1.rows.concat.apply(p1.rows, rs); });
+      }, function(){ return union(); });
     }
+    S._rfiFail = 0; S._rfiCut = 0;
     var jobs = []; ['sentbox', 'inbox'].forEach(function(b){ TERMS.forEach(function(term){ jobs.push(q(b, term)); }); });
     return Promise.all(jobs).then(function(res){
+      S.rfiIncomplete = (S._rfiFail||0) > 0 || (S._rfiCut||0) > 0;
+      if (S.rfiIncomplete){ try { toast('Not all RFIs/TQs loaded from Aconex. ' + rfiCapHelp()); } catch(e){} }
       var raw = [].concat.apply([], res); var seen = {}, all = [];
       raw.forEach(function(m){ if (m.no && !seen[m.no]){ seen[m.no] = 1; all.push(m); } });
       var RFI_T = { 'request for information': 'rfi', 'technical query': 'tq' };
@@ -2472,7 +2489,7 @@ async function fullScan(btn){
     var panel = el('div', { id: 'apvpanel', class: 'apvpanel' });
     var hd = el('div', { class: 'apvhd' }, [
       el('div', { class: 't' }, ['Project Management Dropdown']),
-      el('div', { class: 's' }, ['Untick to hide a project from the dropdown for everyone. Greyed projects are ones you can’t access yet; they update automatically once access is granted. Prefix · Job No · Ctrl · ID set the MPS Ref. Doc No. Filter limits an entry to a document-number pattern (e.g. MPSBE-1202158-*); blank pulls the whole project (first 250 documents). + Add project adds another entry for an existing Aconex project with its own filter. Project Name Shown fills in automatically; type to change it, clear it to go back to automatic.'])
+      el('div', { class: 's' }, ['Untick to hide a project from the dropdown for everyone. Greyed projects are ones you can’t access yet; they update automatically once access is granted. Prefix · Job No · Ctrl · ID set the MPS Ref. Doc No. Filter limits an entry to a document-number pattern (e.g. MPSBE-1202158-*); blank pulls the whole project. + Add project adds another entry for an existing Aconex project with its own filter. Project Name Shown fills in automatically; type to change it, clear it to go back to automatic.'])
     ]);
     var tools = el('div', { class: 'apvtools' }, [
       el('button', { class: 'apvbtn', id: 'apvall', title: 'Show every project in the selector, for everyone.' }, ['Show all']),
@@ -2490,7 +2507,7 @@ async function fullScan(btn){
       el('span', { class: 'apvch xid', title: 'Project ID shown in brackets in the dropdown' }, ['ID']),
       el('span', { class: 'apvch nm', title: 'Tick = shown in the dropdown for everyone. The Aconex project the entry pulls its data from.' }, ['Project']),
       el('span', { class: 'apvch lbl', title: 'The name shown in the project dropdown. Fills in automatically from Job No, ID and Project; type to change it.' }, ['Project Name Shown']),
-      el('span', { class: 'apvch scp', title: 'Doc No. Filter: document-number pattern for this entry (e.g. MPSBE-1202158-*). Blank = whole project (first 250 documents). Used by Doc. Registers.' }, ['Doc No. Filter']),
+      el('span', { class: 'apvch scp', title: 'Doc No. Filter: document-number pattern for this entry (e.g. MPSBE-1202158-*). Blank = whole project. Used by Doc. Registers.' }, ['Doc No. Filter']),
       el('span', { class: 'apvch act' }, [''])
     ]));
     function rowBase(rw){ var s = rw.querySelector('.apvbase'); return s ? s.value : rw.getAttribute('data-pid'); }

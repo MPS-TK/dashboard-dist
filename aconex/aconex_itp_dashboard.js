@@ -16,7 +16,7 @@
   if (window.__MPS_ACONEX && window.__MPS_ACONEX.__live) { window.__MPS_ACONEX.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.85', BUILD_DATE='18 Nov 2026';
+  var VERSION='v12.86', BUILD_DATE='19 Nov 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -503,9 +503,23 @@
     sel.onchange=function(){pickCustField(sel.value);};try{requestAnimationFrame(function(){try{var tb=sel.closest('.toolbar');var ref=tb&&tb.querySelector('button.pkgbtn');if(ref&&ref.offsetHeight)sel.style.height=ref.offsetHeight+'px';}catch(e){}});}catch(e){}
     return sel;
   }
+  function capText(){var c=S.capInfo||{};if(c.paged)return '\u26A0 '+S.allRows.length+' of '+c.total+' documents loaded';return '\u26A0 Aconex limit: 500 documents loaded, more exist';}
+  function capHelp(){var c=S.capInfo||{};
+    if(c.paged&&c.overMax)return 'This register is larger than 10,000 documents, the most the dashboard loads. Set a Doc No. Filter (\u25BE button) to split it into smaller entries.';
+    if(c.paged)return 'Some pages of the Aconex register did not load (network or Aconex error). Click Refresh to load again. If this repeats, tell the dashboard owner.';
+    return 'Aconex did not page this search, so only the first 250 and last 250 by document number loaded'+(S.capGap&&S.capGap[0]?(' (documents between '+S.capGap[0]+' and '+S.capGap[1]+' are missing)'):'')+'. Set a Doc No. Filter (\u25BE button), or use + Add project to split the register into entries under 500.';}
   function fetchData(){S.loading=true;S.error='';renderAll();return fetchSchema().then(function(){return (function(){function grab(dir){return fetch(apiUrl(dir),{headers:{Accept:'application/xml'},credentials:'include'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.text();}).then(function(b){return [].slice.call(new DOMParser().parseFromString(b,'application/xml').querySelectorAll('Document'));});}
-      // The Aconex register endpoint hard-caps at 250 docs and ignores paging; a docno ASC + DESC union recovers every doc for registers up to ~500 (e.g. OCRP: 342 with no package numbers).
-      return grab('ASC').then(function(_a){if(_a.length<250)return [_a];return grab('DESC').then(function(_d){return [_a,_d];});});})();}).then(function(_parts){
+      // v12.86: the register search pages when asked with search_type=PAGED (live-verified 19 Nov 2026: CNPI 720 docs = 3 pages of 250,
+      // TotalResults reported). Load every page, 3 at a time. If Aconex does not report paging, fall back to the old docno ASC + DESC union (max ~500).
+      var PMAX=40;S._pg=null;
+      function page(n){return fetch(apiUrl('ASC')+'&search_type=PAGED&page_number='+n,{headers:{Accept:'application/xml'},credentials:'include'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.text();}).then(function(b){var d=new DOMParser().parseFromString(b,'application/xml'),rt=d.documentElement;return {docs:[].slice.call(d.querySelectorAll('Document')),total:parseInt(rt.getAttribute('TotalResults'),10),pages:parseInt(rt.getAttribute('TotalPages'),10)};});}
+      function union(){return grab('ASC').then(function(_a){S._pg={paged:false};if(_a.length<250)return [_a];return grab('DESC').then(function(_d){return [_a,_d];});});}
+      return page(1).then(function(p1){
+        if(isNaN(p1.total))return union();
+        var np=Math.min(p1.pages||1,PMAX),todo=[],out=[p1.docs],fails=0;for(var n=2;n<=np;n++)todo.push(n);
+        function run(){if(!todo.length)return Promise.resolve();return Promise.all(todo.splice(0,3).map(function(n){return page(n).then(function(p){return p.docs;}).catch(function(){fails++;return [];});})).then(function(rs){rs.forEach(function(x){out.push(x);});return run();});}
+        return run().then(function(){S._pg={paged:true,total:p1.total,failed:fails,overMax:(p1.pages>PMAX)};return out;});
+      },function(){return union();});})();}).then(function(_parts){
       var _seen={},_els=[];_parts.forEach(function(_l){_l.forEach(function(el){var _id=el.getAttribute('DocumentId')||(el.querySelector('DocumentNumber')?el.querySelector('DocumentNumber').textContent:'');if(_id&&!_seen[_id]){_seen[_id]=1;_els.push(el);}});});
       S._ascN=_parts[0].length;S._descN=(_parts[1]?_parts[1].length:0);
       S.allRows=_els.map(function(el){
@@ -514,7 +528,11 @@
         var bm=BHP_MANUAL[docNo]||{};function pre(key){return (ov[key]!=null)?ov[key]:(bm[key]||'');}
         return {documentId:el.getAttribute('DocumentId'),fileType:txt(el,'FileType'),docNo:docNo,title:title,subsystem:((ov.subsystem!=null&&ov.subsystem!=='')?ov.subsystem:d.subsystem),_subParsed:d.subsystem,subsystemName:d.subsystemName,phase:phase,revision:txt(el,'Revision'),status:txt(el,'DocumentStatus'),lifecycleStatus:txt(el,'Attribute2 AttributeTypeNames'),dateModified:txt(el,'DateModified'),dateCreated:txt(el,'DateCreated'),discipline:txt(el,'Discipline'),type:txt(el,'DocumentType'),packageNo:txt(el,'PackageNumber'),custom:{selectList1:txt(el,'SelectList1'),selectList2:txt(el,'SelectList2'),selectList3:txt(el,'SelectList3'),selectList4:txt(el,'SelectList4'),selectList5:txt(el,'SelectList5'),attribute1:txt(el,'Attribute1 AttributeTypeNames'),attribute2:txt(el,'Attribute2 AttributeTypeNames'),attribute3:txt(el,'Attribute3 AttributeTypeNames'),attribute4:txt(el,'Attribute4 AttributeTypeNames')},deliverableType:txt(el,'SelectList1'),deliverableName:txt(el,'SelectList2'),createdBy:txt(el,'Author'),versionNumber:txt(el,'VersionNumber'),reviewStatus:txt(el,'ReviewStatus'),comments:txt(el,'Comments'),trackingId:txt(el,'TrackingId'),transmittalNo:ov.transmittalNo||'',priority:ov.priority||'',toAction:pre('toAction'),dateRequired:pre('dateRequired'),dateResub1:ov.dateResub1||'',dateResub2:ov.dateResub2||''  ,comment:pre('comment')};
       });
-      S.capHit=(S._ascN>=250&&S._descN>=250&&S.allRows.length>=500);
+      // v12.86: incomplete-load check. Paged: loaded < Aconex TotalResults. Union fallback: both halves full and no overlap (more than 500 exist).
+      var _pg=S._pg||{};S.loadTotal=_pg.paged?_pg.total:null;S.capInfo=_pg;
+      S.capHit=_pg.paged?(S.allRows.length<_pg.total):(S._ascN>=250&&S._descN>=250&&S.allRows.length>=500);
+      if(!_pg.paged&&S.capHit){var _nos=_parts[0].map(function(e){var n=e.querySelector('DocumentNumber');return n?n.textContent:'';});var _dn=(_parts[1]||[]).map(function(e){var n=e.querySelector('DocumentNumber');return n?n.textContent:'';});S.capGap=[_nos[_nos.length-1]||'',_dn[_dn.length-1]||''];}else S.capGap=null;
+      if(S.capHit){try{toast(capText()+'. '+capHelp());}catch(e){}}
       applyCustomField();
       applyStartupDefaults();
       gdefApplyNew();
@@ -690,7 +708,7 @@
     +'select.psel{border:1px solid #cfd7e0;border-radius:6px;padding:5px 10px;font-size:12px;color:'+INK+';background:#fff;min-width:340px;max-width:520px;outline:none;font-family:inherit}'
     +'.pselcfg{margin-left:-9px;height:29px;display:inline-flex;align-items:center;justify-content:center;padding:0 8px;border:1px solid #cfd7e0;border-radius:6px;background:#fff;color:#C0392B;font-size:12px;font-weight:700;cursor:pointer;line-height:1}.pselcfg:hover{border-color:'+ACCENT+'}'
     +'.pst{font-size:11px;color:#9BA3AF;margin-left:6px}'
-    +'.pcap{font-size:11px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:5px;padding:2px 8px;margin-left:6px}'
+    +'.pcap{font-size:11px;font-weight:600;color:#B91C1C;background:#FEF2F2;border:1px solid #FECACA;border-radius:5px;padding:2px 8px;margin-left:6px;cursor:help}'
     +'.apvpanel{position:absolute;z-index:60;background:#fff;border:1px solid #D1D5DB;border-radius:8px;box-shadow:0 12px 40px rgba(11,42,74,.22);width:636px;max-height:62vh;display:flex;flex-direction:column}'
     +'.apvhd{padding:12px 14px;background:'+NAVY+';color:#fff;border-radius:8px 8px 0 0;flex-shrink:0}.apvhd .t{font-weight:700;font-size:13px}.apvhd .s{font-size:11px;opacity:.85;margin-top:3px;line-height:1.4}'
     +'.apvtools{padding:8px 14px;display:flex;gap:8px;border-bottom:1px solid #F3F4F6;align-items:center;flex-shrink:0}'
@@ -975,7 +993,7 @@
       (function(){var s=el('select',{class:'psel',id:'psel',title:'Choose which Aconex project to load'});s.onchange=function(){if(s.value)apvSelect(s.value);};return s;})(),
       el('button',{class:'pselcfg',id:'pselcfg',title:'Manage the project list: hide projects and set each project’s document scope for the whole team',onclick:apvOpenPanel},['▾']),
       el('span',{class:'pst',id:'pst'},[(S.loading?'loading…':(S.rows.length+' of '+S.allRows.length+' documents'))]),
-      (S.capHit?el('span',{class:'pcap',title:'The Aconex register search returns at most 500 documents and cannot page beyond that. Set a Scope for this project (the ▾ button) to narrow it under 250.'},['⚠ first 250 shown · set a Scope']):null)
+      (S.capHit?el('span',{class:'pcap',title:capHelp()},[capText()]):null)
     ]));
     apvRenderDropdown();apvBindSelSwap();
     // toolbar
@@ -2099,7 +2117,7 @@
     var panel = el('div', { id: 'apvpanel', class: 'apvpanel' });
     var hd = el('div', { class: 'apvhd' }, [
       el('div', { class: 't' }, ['Project Management Dropdown']),
-      el('div', { class: 's' }, ['Untick to hide a project from the dropdown for everyone. Greyed projects are ones you can’t access yet; they update automatically once access is granted. Prefix · Job No · Ctrl · ID set the MPS Ref. Doc No. Filter limits an entry to a document-number pattern (e.g. MPSBE-1202158-*); blank pulls the whole project (first 250 documents). + Add project adds another entry for an existing Aconex project with its own filter. Project Name Shown fills in automatically; type to change it, clear it to go back to automatic.'])
+      el('div', { class: 's' }, ['Untick to hide a project from the dropdown for everyone. Greyed projects are ones you can’t access yet; they update automatically once access is granted. Prefix · Job No · Ctrl · ID set the MPS Ref. Doc No. Filter limits an entry to a document-number pattern (e.g. MPSBE-1202158-*); blank pulls the whole project. + Add project adds another entry for an existing Aconex project with its own filter. Project Name Shown fills in automatically; type to change it, clear it to go back to automatic.'])
     ]);
     var tools = el('div', { class: 'apvtools' }, [
       el('button', { class: 'apvbtn', id: 'apvall', title: 'Show every project in the selector, for everyone.' }, ['Show all']),
@@ -2117,7 +2135,7 @@
       el('span', { class: 'apvch xid', title: 'Project ID shown in brackets in the dropdown' }, ['ID']),
       el('span', { class: 'apvch nm', title: 'Tick = shown in the dropdown for everyone. The Aconex project the entry pulls its data from.' }, ['Project']),
       el('span', { class: 'apvch lbl', title: 'The name shown in the project dropdown. Fills in automatically from Job No, ID and Project; type to change it.' }, ['Project Name Shown']),
-      el('span', { class: 'apvch scp', title: 'Doc No. Filter: document-number pattern for this entry (e.g. MPSBE-1202158-*). Blank = whole project (first 250 documents). Used by Doc. Registers.' }, ['Doc No. Filter']),
+      el('span', { class: 'apvch scp', title: 'Doc No. Filter: document-number pattern for this entry (e.g. MPSBE-1202158-*). Blank = whole project. Used by Doc. Registers.' }, ['Doc No. Filter']),
       el('span', { class: 'apvch act' }, [''])
     ]));
     function rowBase(rw){ var s = rw.querySelector('.apvbase'); return s ? s.value : rw.getAttribute('data-pid'); }
