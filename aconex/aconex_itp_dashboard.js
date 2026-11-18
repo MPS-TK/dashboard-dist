@@ -16,7 +16,7 @@
   if (window.__MPS_ACONEX && window.__MPS_ACONEX.__live) { window.__MPS_ACONEX.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.86', BUILD_DATE='19 Nov 2026';
+  var VERSION='v12.87', BUILD_DATE='19 Nov 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -128,12 +128,25 @@
     comments:{label:'Aconex Comments',w:200,tip:'Comments held in Aconex'},
     trackingId:{label:'Tracking ID',w:100,tip:'Aconex tracking id'}
   };
+  // v12.87: Drawings tab (MODE 'dwg') runs this same module with its own saved views, global defaults and revision columns.
+  var MODE='doc';
+  function MS(){return MODE==='dwg'?'_dwg':'';}
+  COLDEF.revDate={label:'Rev Date',w:105,type:'date',tip:'Date the current revision was first issued in Aconex (first version of this revision). Drawings tab.'};
+  COLDEF.prevRev={label:'Prev Rev',w:70,tip:'The revision before the current one. Drawings tab.'};
+  COLDEF.revHist={label:'Revision History',w:150,tip:'Every revision of this drawing, oldest to newest (from the Aconex document history). Point at a cell for versions, dates and statuses. Drawings tab.'};
+  COLDEF.revCount={label:'Revs',w:55,tip:'Number of revisions issued. Drawings tab.'};
+  COLDEF.firstIssued={label:'First Issued',w:105,type:'date',tip:'Date the first version of this drawing was issued in Aconex. Drawings tab.'};
+  var DWG_ONLY={revDate:1,prevRev:1,revHist:1,revCount:1,firstIssued:1};
+  var DWG_ORDER=['rowNo','docNo','title','revision','revDate','prevRev','revHist','revCount','firstIssued','status','lifecycleStatus','dateModified','discipline','toAction','dateRequired','comment','subsystem','subsystemName','phase','fileType','transmittalNo','priority','dateResub1','dateResub2','type','packageNo','deliverableType','deliverableName','createdBy','dateCreated','versionNumber','reviewStatus','comments','trackingId'];
+  var DWG_SHOW={rowNo:1,docNo:1,title:1,revision:1,revDate:1,prevRev:1,revHist:1,revCount:1,status:1,lifecycleStatus:1,dateModified:1,discipline:1,toAction:1,comment:1};
+  function fOrder(){return MODE==='dwg'?DWG_ORDER:FACTORY_ORDER;}
+  function fShow(k){return MODE==='dwg'?!!DWG_SHOW[k]:!!FACTORY_SHOW[k];}
   var FACTORY_ORDER=['rowNo','docNo','title','subsystem','subsystemName','revision','status','dateModified','lifecycleStatus','phase','toAction','dateRequired','comment','fileType','transmittalNo','priority','dateResub1','dateResub2','discipline','type','packageNo','deliverableType','deliverableName','createdBy','dateCreated','versionNumber','reviewStatus','comments','trackingId'];
   var FACTORY_SHOW={rowNo:1,docNo:1,title:1,subsystem:1,subsystemName:1,revision:1,status:1,dateModified:1,lifecycleStatus:1,phase:1,toAction:1,dateRequired:1,comment:1};
 
   function factoryCfg(){
-    var cols={}; FACTORY_ORDER.forEach(function(k){cols[k]={show:!!FACTORY_SHOW[k],w:COLDEF[k].w};});
-    return {order:FACTORY_ORDER.slice(),cols:cols,fontSize:12,rowPad:0,wrap:false,phases:DEFAULT_PHASES.map(function(p){return {id:p.id,label:p.label};}),chartType:'donut',hiddenDonuts:[],selFilters:{},selKnown:{},chartScale:1,colorSchemes:{status:{},lifecycleStatus:{},phase:{},toAction:{},dateRequired:{},subsystem:{}},fgSchemes:{status:{},lifecycleStatus:{},phase:{},toAction:{},dateRequired:{},subsystem:{}},fontFamily:'',baseFont:DEF_BASEPX,darkMode:false,collapsed:{},barExpanded:false,chartDataField:'status',chartFieldSet:false,chartSplitField:'phase',excludeSupObs:true,fontScale:100,padScale:20,hpadScale:100,hdrFontSize:null,hdrMaxLines:2,colPri:{},colDefW:{},colNames:{},packageSel:null,delivSel:null,packageText:{},fltDate:{from:'',to:'',preset:''},fltRef:'',hiddenRows:[],seriesOrder:{},subFmt:'XXX-XX-XX'};
+    var cols={}; fOrder().forEach(function(k){cols[k]={show:fShow(k),w:COLDEF[k].w};});
+    return {order:fOrder().slice(),cols:cols,fontSize:12,rowPad:0,wrap:false,phases:DEFAULT_PHASES.map(function(p){return {id:p.id,label:p.label};}),chartType:'donut',hiddenDonuts:[],selFilters:{},selKnown:{},chartScale:1,colorSchemes:{status:{},lifecycleStatus:{},phase:{},toAction:{},dateRequired:{},subsystem:{}},fgSchemes:{status:{},lifecycleStatus:{},phase:{},toAction:{},dateRequired:{},subsystem:{}},fontFamily:'',baseFont:DEF_BASEPX,darkMode:false,collapsed:{},barExpanded:false,chartDataField:'status',chartFieldSet:false,chartSplitField:'phase',excludeSupObs:true,fontScale:100,padScale:20,hpadScale:100,hdrFontSize:null,hdrMaxLines:2,colPri:{},colDefW:{},colNames:{},packageSel:null,delivSel:null,packageText:{},fltDate:{from:'',to:'',preset:''},fltRef:'',hiddenRows:[],seriesOrder:{},subFmt:'XXX-XX-XX'};
   }
   var LKEY='mps_aconex_cfg_'+CFG.projectId, DKEY='mps_aconex_defcfg_'+CFG.projectId;
   function loadCfg(){
@@ -141,16 +154,16 @@
     try{var d=localStorage.getItem(DKEY);if(d)return mergeCfg(JSON.parse(d));}catch(e){}
     return factoryCfg();
   }
-  function mergeCfg(saved){var f=factoryCfg();var o=(saved.order||f.order).filter(function(k){return COLDEF[k];});FACTORY_ORDER.forEach(function(k){if(o.indexOf(k)<0)o.push(k);});o=o.filter(function(k){return k!=='rowNo';});o.unshift('rowNo');var cols={};o.forEach(function(k){var s=(saved.cols||{})[k]||{};cols[k]={show:s.show!=null?!!s.show:!!FACTORY_SHOW[k],w:s.w||COLDEF[k].w};});return {order:o,cols:cols,fontSize:saved.fontSize||12,rowPad:(saved.rowPad!=null?saved.rowPad:0),wrap:!!saved.wrap,phases:(saved.phases&&saved.phases.length?saved.phases:f.phases),chartType:saved.chartType||'donut',hiddenDonuts:saved.hiddenDonuts||[],selFilters:saved.selFilters||{},selKnown:saved.selKnown||{},chartScale:saved.chartScale||1,colorSchemes:normSchemes(saved.colorSchemes),fgSchemes:normFgSchemes(saved.fgSchemes),fontFamily:saved.fontFamily||'',baseFont:saved.baseFont||DEF_BASEPX,darkMode:!!saved.darkMode,collapsed:saved.collapsed||{},barExpanded:!!saved.barExpanded,chartDataField:saved.chartDataField||'status',chartFieldSet:!!saved.chartFieldSet,chartSplitField:saved.chartSplitField||'phase',excludeSupObs:(saved.excludeSupObs!==false),fontScale:saved.fontScale||(saved.baseFont?Math.round(saved.baseFont/DEF_BASEPX*100):100),padScale:(saved.padScale!=null?saved.padScale:20),hpadScale:saved.hpadScale||100,hdrFontSize:(saved.hdrFontSize!=null?saved.hdrFontSize:null),hdrMaxLines:saved.hdrMaxLines||2,colPri:saved.colPri||{},colDefW:saved.colDefW||{},colNames:saved.colNames||{},packageSel:(saved.packageSel!=null?saved.packageSel:null),delivSel:(saved.delivSel!==undefined?saved.delivSel:null),packageText:saved.packageText||{},fltDate:(saved.fltDate&&typeof saved.fltDate==='object')?{from:saved.fltDate.from||'',to:saved.fltDate.to||'',preset:saved.fltDate.preset||''}:{from:'',to:'',preset:''},fltRef:saved.fltRef||'',hiddenRows:(saved.hiddenRows&&saved.hiddenRows.length?saved.hiddenRows.slice():[]),seriesOrder:(saved.seriesOrder&&typeof saved.seriesOrder==='object'?saved.seriesOrder:{}),subFmt:(saved.subFmt||'XXX-XX-XX'),sortKey:saved.sortKey||'',sortDir:(saved.sortDir===-1?-1:1),colFilters:(saved.colFilters&&typeof saved.colFilters==='object'?saved.colFilters:{}),globalSearch:saved.globalSearch||''};}
+  function mergeCfg(saved){var f=factoryCfg();var o=(saved.order||f.order).filter(function(k){return COLDEF[k]&&(MODE==='dwg'||!DWG_ONLY[k]);});fOrder().forEach(function(k){if(o.indexOf(k)<0)o.push(k);});o=o.filter(function(k){return k!=='rowNo';});o.unshift('rowNo');var cols={};o.forEach(function(k){var s=(saved.cols||{})[k]||{};cols[k]={show:s.show!=null?!!s.show:fShow(k),w:s.w||COLDEF[k].w};});return {order:o,cols:cols,fontSize:saved.fontSize||12,rowPad:(saved.rowPad!=null?saved.rowPad:0),wrap:!!saved.wrap,phases:(saved.phases&&saved.phases.length?saved.phases:f.phases),chartType:saved.chartType||'donut',hiddenDonuts:saved.hiddenDonuts||[],selFilters:saved.selFilters||{},selKnown:saved.selKnown||{},chartScale:saved.chartScale||1,colorSchemes:normSchemes(saved.colorSchemes),fgSchemes:normFgSchemes(saved.fgSchemes),fontFamily:saved.fontFamily||'',baseFont:saved.baseFont||DEF_BASEPX,darkMode:!!saved.darkMode,collapsed:saved.collapsed||{},barExpanded:!!saved.barExpanded,chartDataField:saved.chartDataField||'status',chartFieldSet:!!saved.chartFieldSet,chartSplitField:saved.chartSplitField||'phase',excludeSupObs:(saved.excludeSupObs!==false),fontScale:saved.fontScale||(saved.baseFont?Math.round(saved.baseFont/DEF_BASEPX*100):100),padScale:(saved.padScale!=null?saved.padScale:20),hpadScale:saved.hpadScale||100,hdrFontSize:(saved.hdrFontSize!=null?saved.hdrFontSize:null),hdrMaxLines:saved.hdrMaxLines||2,colPri:saved.colPri||{},colDefW:saved.colDefW||{},colNames:saved.colNames||{},packageSel:(saved.packageSel!=null?saved.packageSel:null),delivSel:(saved.delivSel!==undefined?saved.delivSel:null),packageText:saved.packageText||{},fltDate:(saved.fltDate&&typeof saved.fltDate==='object')?{from:saved.fltDate.from||'',to:saved.fltDate.to||'',preset:saved.fltDate.preset||''}:{from:'',to:'',preset:''},fltRef:saved.fltRef||'',hiddenRows:(saved.hiddenRows&&saved.hiddenRows.length?saved.hiddenRows.slice():[]),seriesOrder:(saved.seriesOrder&&typeof saved.seriesOrder==='object'?saved.seriesOrder:{}),subFmt:(saved.subFmt||'XXX-XX-XX'),sortKey:saved.sortKey||'',sortDir:(saved.sortDir===-1?-1:1),colFilters:(saved.colFilters&&typeof saved.colFilters==='object'?saved.colFilters:{}),globalSearch:saved.globalSearch||''};}
   function normSchemes(cs){cs=cs||{};return {status:cs.status||{},lifecycleStatus:cs.lifecycleStatus||{},phase:cs.phase||{},toAction:cs.toAction||{},dateRequired:cs.dateRequired||{},subsystem:cs.subsystem||{}};}
   function normFgSchemes(cs){cs=cs||{};return {status:cs.status||{},lifecycleStatus:cs.lifecycleStatus||{},phase:cs.phase||{},toAction:cs.toAction||{},dateRequired:cs.dateRequired||{},subsystem:cs.subsystem||{}};}
   function saveCfg(){try{localStorage.setItem(LKEY,JSON.stringify({order:S.order,cols:S.cols,fontSize:S.fontSize,rowPad:S.rowPad,wrap:S.wrap,phases:S.phases,chartType:S.chartType,hiddenDonuts:S.hiddenDonuts,selFilters:S.selFilters,selKnown:S.selKnown,chartScale:S.chartScale,colorSchemes:S.colorSchemes,fgSchemes:S.fgSchemes,fontFamily:S.fontFamily,baseFont:S.baseFont,darkMode:S.darkMode,collapsed:S.collapsed,barExpanded:S.barExpanded,chartDataField:S.chartDataField,chartFieldSet:S.chartFieldSet,chartSplitField:S.chartSplitField,excludeSupObs:S.excludeSupObs,fontScale:S.fontScale,padScale:S.padScale,hpadScale:S.hpadScale,hdrFontSize:S.hdrFontSize,hdrMaxLines:S.hdrMaxLines,colPri:S.colPri,colDefW:S.colDefW,colNames:S.colNames,packageSel:S.packageSel,delivSel:S.delivSel,packageText:S.packageText,fltDate:S.fltDate,fltRef:S.fltRef,hiddenRows:S.hiddenRows,seriesOrder:S.seriesOrder,subFmt:S.subFmt,sortKey:S.sortKey,sortDir:S.sortDir,colFilters:S.colFilters,globalSearch:S.globalSearch}));}catch(e){}}
 
-  function dtDefKey(){return 'mps_aconex_dtdef_'+(CFG.entryKey||CFG.projectId);}
+  function dtDefKey(){return 'mps_aconex_dtdef_'+(CFG.entryKey||CFG.projectId)+MS();}
   function loadDtDef(){try{return localStorage.getItem(dtDefKey())||'__ALL__';}catch(e){return '__ALL__';}}
   function saveDtDef(v){try{localStorage.setItem(dtDefKey(),v);}catch(e){}}
   // ---- per-project startup defaults (Deliverable Type(s) + Package Number(s)) ----
-  function startupKey(){return 'mps_aconex_startup_'+(CFG.entryKey||CFG.projectId);}
+  function startupKey(){return 'mps_aconex_startup_'+(CFG.entryKey||CFG.projectId)+MS();}
   function loadStartup(){try{var j=JSON.parse(localStorage.getItem(startupKey())||'null');return (j&&typeof j==='object')?j:null;}catch(e){return null;}}
   function saveStartup(o){try{if(o)localStorage.setItem(startupKey(),JSON.stringify(o));else localStorage.removeItem(startupKey());}catch(e){}}
   function applyStartupDefaults(){
@@ -178,10 +191,10 @@
     var d=S.deliverableTypes.slice();
     var panel=el('div',{id:'dlvpanel',class:'mfpanel',style:'min-width:280px;max-width:440px'});
     function curSel(){var sx=S.delivSel;return sx==null?d.slice():sx.slice();}
-    function refreshOutputs(){applyScope();saveCfg();renderStats();renderCharts();renderBody();var cl=root.getElementById('countlbl');if(cl)cl.textContent=S.filtered.length+' of '+S.rows.length;var ds=root.getElementById('dtsum');if(ds)ds.textContent=delivSummary();var ps=root.getElementById('pksum');if(ps)ps.textContent=packageSummary();}
+    function refreshOutputs(){applyScope();saveCfg();renderStats();renderCharts();renderBody();refreshDelivTitles();var cl=root.getElementById('countlbl');if(cl)cl.textContent=S.filtered.length+' of '+S.rows.length;var ds=root.getElementById('dtsum');if(ds)ds.textContent=delivSummary();var ps=root.getElementById('pksum');if(ps)ps.textContent=packageSummary();}
     function setSel(arr){S.delivSel=(arr.length>=d.length)?null:arr;refreshOutputs();}
     var listWrap=el('div',{});
-    function rebuild(){listWrap.innerHTML='';if(!d.length){listWrap.appendChild(el('div',{class:'muted',style:'font-size:11px;padding:4px'},['No values for this field in this project.']));return;}var sel=curSel();d.forEach(function(v){var cb=el('input',{type:'checkbox',title:'Show '+delivDisp(v)});cb.checked=sel.indexOf(v)>=0;cb.onchange=function(){var sx=curSel();var i=sx.indexOf(v);if(cb.checked){if(i<0)sx.push(v);}else if(i>=0)sx.splice(i,1);setSel(sx);};listWrap.appendChild(el('label',{class:'mfrow pkrow'},[cb,el('span',{class:'pkno'},[delivDisp(v)])]));});}
+    function rebuild(){listWrap.innerHTML='';if(!d.length){listWrap.appendChild(el('div',{class:'muted',style:'font-size:11px;padding:4px'},['No values for this field in this project.']));return;}var sel=curSel();d.forEach(function(v){var cb=el('input',{type:'checkbox',title:'Show '+delivDisp(v)});cb.checked=sel.indexOf(v)>=0;cb.onchange=function(){var sx=curSel();var i=sx.indexOf(v);if(cb.checked){if(i<0)sx.push(v);}else if(i>=0)sx.splice(i,1);setSel(sx);};var _n=S.allRows.filter(function(r){return (r.deliverableType||'')===v;}).length;var _lb=el('label',{class:'mfrow pkrow',title:_n?(_n+' in this project load'):'None in this project load. If you expect some, check the Doc No. Filter for this entry (\u25BE next to the project).'},[cb,el('span',{class:'pkno'},[delivDisp(v)]),el('span',{style:'margin-left:auto;padding-left:8px;font-size:10px;color:'+(_n?'#6B7280':'#C0392B')},['('+_n+')'])]);if(!_n)_lb.style.opacity='.6';listWrap.appendChild(_lb);});}
     panel.appendChild(el('div',{class:'mfhd'},[
       el('span',{style:'font-weight:700;color:'+NAVY+';font-size:11px'},[activeFieldLabel()]),
       el('a',{title:'Select all',style:'margin-left:auto',onclick:function(){setSel(d.slice());rebuild();}},['(All)']),
@@ -279,7 +292,7 @@
   // ================= GLOBAL DEFAULTS (team-wide, per-tab) =================
   // Field-level patch model: publishing pushes ONLY the settings the admin changed
   // (a diff), never a full config sweep. Stored in the private team-sync repo, per module.
-  var GDEF_FILE='aconex/global_defaults_itp.json';
+  var GDEF_FILE='aconex/global_defaults_itp.json';   // switched per tab by setModeVars()
   var GDEF_CACHE='mps_aconex_gdef_itp', GDEF_APPLIED='mps_aconex_gdefapplied_itp';
   var GDEF={sha:null,patches:[]};
   try{GDEF.patches=JSON.parse(localStorage.getItem(GDEF_CACHE)||'[]')||[];}catch(e){}
@@ -425,7 +438,7 @@
   function openSyncPanel(){var ex=root.getElementById('syncpanel');if(ex){ex.remove();return;}var panel=el('div',{id:'syncpanel',class:'panel',style:'right:12px;top:44px;min-width:250px'},[el('h4',{},[ghToken()?'Team sync connected':'Connect team sync']),el('div',{class:'muted',style:'font-size:11px;margin-bottom:6px;max-width:240px'},['Paste a GitHub token (repo scope) to share edits with your team. Stored only in this browser, on the Aconex site.'])]);var inp=el('input',{type:'password',placeholder:'ghp_…',style:'width:230px;border:1px solid #cfd8e3;border-radius:5px;padding:5px 8px'});var save=el('button',{class:'btn primary',style:'margin-top:8px',onclick:function(){var v=inp.value.trim();if(v){try{localStorage.setItem('mps_gh_token',v);}catch(e){}}panel.remove();ghLoad().then(function(){renderAll();});}},['Save & Connect']);panel.appendChild(inp);var row=el('div',{},[save]);if(ghToken())row.appendChild(el('button',{class:'btn',style:'margin-left:6px',onclick:function(){try{localStorage.removeItem('mps_gh_token');}catch(e){}panel.remove();renderAll();}},['Disconnect']));panel.appendChild(row);collapsiblePanel(panel);root.getElementById('wrap').appendChild(panel);}
 
   // ---- data ----
-  function apiUrl(dir){var rf=['docno','title','revision','statusid','discipline','doctype','packageNumber','filetype','author','current','versionNumber','reviewStatus','comments','confidential','category','attribute1','attribute2','attribute3','attribute4','registered','revisionDate','milestoneDate','received','filename','trackingId','contractDeliverable','selectList1','selectList2','selectList3','selectList4','selectList5','vdrCode'].join(',');var _sc=(CFG.docScope!=null?String(CFG.docScope).trim():'');var _q=_sc?('&search_query='+encodeURIComponent('docno:'+_sc)):'';var _s=dir?('&sort_field=docno&sort_direction='+dir):'';return '/api/projects/'+CFG.projectId+'/register?page_size=250'+_q+_s+'&return_fields='+rf;}
+  function apiUrl(dir){var rf=['docno','title','revision','statusid','discipline','doctype','packageNumber','filetype','author','current','versionNumber','reviewStatus','comments','confidential','category','attribute1','attribute2','attribute3','attribute4','registered','revisionDate','milestoneDate','received','filename','trackingId','contractDeliverable','selectList1','selectList2','selectList3','selectList4','selectList5','vdrCode'].join(',');var _sc=(CFG.docScope!=null?String(CFG.docScope).trim():'');var _q=(MODE==='dwg')?('&search_query='+encodeURIComponent('selectList1:Drawing')):(_sc?('&search_query='+encodeURIComponent('docno:'+_sc)):'');var _s=dir?('&sort_field=docno&sort_direction='+dir):'';return '/api/projects/'+CFG.projectId+'/register?page_size=250'+_q+_s+'&return_fields='+rf;}
   function txt(el,sel){var n=el.querySelector(sel);return n?(n.textContent||'').trim():'';}
   function subRegex(){var f=S.subFmt||'XXX-XX-XX';if(f==='XXX-XX')return /(\d{3,4}[-_]\d{2})[-_\s]*([^-_]*)/;if(f==='XXXX-XX-XX')return /(\d{4}[-_]\d{2}[-_]\d{2})[-_\s]*([^-_]*)/;return /(\d{3,4}[-_]\d{2}[-_]\d{2})[-_\s]*([^-_]*)/;}
   function parseTitle(t){var out={subsystem:'',subsystemName:''};var after=(t||'').replace(/^.*?ITP[\s\-_]*/i,'');var m=after.match(subRegex());if(m){out.subsystem=m[1].replace(/_/g,'-');out.subsystemName=(m[2]||'').trim().slice(0,40);}return out;}
@@ -503,6 +516,30 @@
     sel.onchange=function(){pickCustField(sel.value);};try{requestAnimationFrame(function(){try{var tb=sel.closest('.toolbar');var ref=tb&&tb.querySelector('button.pkgbtn');if(ref&&ref.offsetHeight)sel.style.height=ref.offsetHeight+'px';}catch(e){}});}catch(e){}
     return sel;
   }
+  function loadRevHist(){
+    // v12.87: Aconex document history for every drawing (show_document_history=true; live-verified 19 Nov 2026: CNPI 408 drawings = 973 versions).
+    var pid=CFG.projectId,tok={};S._revTok=tok;S.revLoading=true;S.revErr=false;
+    var base='/api/projects/'+pid+'/register?search_type=PAGED&page_size=250&show_document_history=true&search_query='+encodeURIComponent('selectList1:Drawing')+'&return_fields=docno,revision,versionNumber,statusid,current&sort_field=docno&sort_direction=ASC';
+    function T(e,s){var x=e.querySelector(s);return x?(x.textContent||'').trim():'';}
+    function page(n){return fetch(base+'&page_number='+n,{headers:{Accept:'application/xml'},credentials:'include'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.text();}).then(function(t){var d=new DOMParser().parseFromString(t,'application/xml');return {pages:parseInt(d.documentElement.getAttribute('TotalPages'),10)||1,v:[].map.call(d.querySelectorAll('Document'),function(e){return {no:T(e,'DocumentNumber'),rev:T(e,'Revision'),ver:parseInt(T(e,'VersionNumber'),10)||0,st:T(e,'DocumentStatus'),dm:T(e,'DateModified')};})};});}
+    return page(1).then(function(p1){var np=Math.min(p1.pages,80),todo=[],all=p1.v.slice();for(var n=2;n<=np;n++)todo.push(n);
+      function run(){if(!todo.length)return Promise.resolve();return Promise.all(todo.splice(0,3).map(function(n){return page(n).then(function(p){return p.v;});})).then(function(rs){rs.forEach(function(x){all=all.concat(x);});return run();});}
+      return run().then(function(){return all;});
+    }).then(function(all){
+      if(S._revTok!==tok||MODE!=='dwg')return;
+      var by={};all.forEach(function(v){(by[v.no]=by[v.no]||[]).push(v);});
+      S.revHist=by;S.allRows.forEach(applyRev);S.revLoading=false;applyScope();renderAll();
+    }).catch(function(){if(S._revTok!==tok)return;S.revLoading=false;S.revErr=true;try{toast('Drawing revision history did not load from Aconex. Click Refresh to try again.');}catch(e){}renderAll();});
+  }
+  function applyRev(r){
+    var vs=((S.revHist||{})[r.docNo]||[]).slice().sort(function(a,b){return a.ver-b.ver;});if(!vs.length)return;
+    var revs=[],first={};vs.forEach(function(v){if(!(v.rev in first)){first[v.rev]=v.dm;revs.push(v.rev);}});
+    var cur=r.revision||vs[vs.length-1].rev;
+    r.revCount=String(revs.length);r.revHist=revs.join(' → ');
+    var ci=revs.lastIndexOf(cur);r.prevRev=ci>0?revs[ci-1]:'';
+    r.revDate=first[cur]||'';r.firstIssued=vs[0].dm||'';
+    r._revTip=vs.map(function(v){return 'Rev '+(v.rev||'-')+'  v'+v.ver+'  '+fmtDate(v.dm)+'  '+v.st;}).join('\n');
+  }
   function capText(){var c=S.capInfo||{};if(c.paged)return '\u26A0 '+S.allRows.length+' of '+c.total+' documents loaded';return '\u26A0 Aconex limit: 500 documents loaded, more exist';}
   function capHelp(){var c=S.capInfo||{};
     if(c.paged&&c.overMax)return 'This register is larger than 10,000 documents, the most the dashboard loads. Set a Doc No. Filter (\u25BE button) to split it into smaller entries.';
@@ -537,6 +574,7 @@
       applyStartupDefaults();
       gdefApplyNew();
       S.loading=false;applyScope();renderAll();
+      if(MODE==='dwg')loadRevHist();
       if(ghToken())ghLoad().then(function(ok){if(ok){applyScope();renderAll();}});
       if(ghToken())gdefLoad().then(function(ap){if(ap){applyScope();renderAll();}});
     }).catch(function(e){S.loading=false;S.error=String(e.message||e);renderAll();});}
@@ -854,7 +892,7 @@
     var hd=el('div',{class:'cpanelhd'},[chev,ttl]);
     if(ctlEl)hd.appendChild(ctlEl);
     bodyEl.classList.add('cpbody');
-    var panel=el('div',{class:'cpanel'+(coll?' coll':'')},[hd,bodyEl]);
+    var panel=el('div',{class:'cpanel'+(coll?' coll':''),'data-cp':id},[hd,bodyEl]);
     function toggle(){var c=!panel.classList.contains('coll');panel.classList.toggle('coll',c);chev.textContent=c?'▸':'▾';chev.setAttribute('title',c?'Expand this panel':'Roll up this panel');if(shortTitle)ttl.textContent=c?shortTitle:titleText;S.collapsed=S.collapsed||{};S.collapsed[id]=c;saveCfg();equalizeChartHeaders();fitRegisterHeight();}
     chev.onclick=toggle;ttl.onclick=toggle;
     return panel;
@@ -970,7 +1008,7 @@
     // top bar
     wrap.appendChild(el('div',{class:'top'},[
       (function(){var b=el('div',{class:'brand'});b.innerHTML='MPS <span>GROUP</span>';return b;})(),
-      el('div',{class:'title',title:'MPS live register dashboard, reading straight from the Aconex REST API'},['Aconex Register']),
+      el('div',{class:'title',title:'MPS live register dashboard, reading straight from the Aconex REST API'},[MODE==='dwg'?'Aconex Drawing Register':'Aconex Register']),
       el('div',{class:'vbadge',title:'Dashboard version · build date'},[VERSION+' · '+BUILD_DATE]),
       el('div',{class:'muted'},['· '+CFG.projectName]),
       btn('↻ Refresh','Re-pull the latest data live from Aconex',function(){fetchData();}),
@@ -986,13 +1024,13 @@
       el('button',{class:'btn ghost',title:'Close the dashboard',onclick:close},['✕'])
     ]));
     // tabs
-    wrap.appendChild(el('div',{class:'tabs'},[el('div',{class:'tab active',title:'Document registers'},['Doc. Registers']),el('div',{class:'tab',title:'RFI / TQ register',onclick:gotoRFI},['RFIs/TQs']),el('div',{class:'tab',title:'Variation register',onclick:gotoVAR},['Variations']),el('div',{class:'tab disabled',title:'Coming soon'},['Drawings'])]));
+    wrap.appendChild(el('div',{class:'tabs'},[el('div',{class:'tab'+(MODE==='doc'?' active':''),title:'Document registers',onclick:function(){switchMode('doc');}},['Doc. Registers']),el('div',{class:'tab',title:'RFI / TQ register',onclick:gotoRFI},['RFIs/TQs']),el('div',{class:'tab',title:'Variation register',onclick:gotoVAR},['Variations']),el('div',{class:'tab'+(MODE==='dwg'?' active':''),title:'Drawing register: every drawing in the project with its revision history',onclick:function(){switchMode('dwg');}},['Drawings'])]));
     // ---- project selector bar (team-wide registry + per-project scope) ----
     wrap.appendChild(el('div',{class:'pbr'},[
       el('span',{class:'pbrl'},['Project']),
       (function(){var s=el('select',{class:'psel',id:'psel',title:'Choose which Aconex project to load'});s.onchange=function(){if(s.value)apvSelect(s.value);};return s;})(),
       el('button',{class:'pselcfg',id:'pselcfg',title:'Manage the project list: hide projects and set each project’s document scope for the whole team',onclick:apvOpenPanel},['▾']),
-      el('span',{class:'pst',id:'pst'},[(S.loading?'loading…':(S.rows.length+' of '+S.allRows.length+' documents'))]),
+      el('span',{class:'pst',id:'pst'},[(S.loading?'loading…':(S.rows.length+' of '+S.allRows.length+(MODE==='dwg'?' drawings':' documents')+(MODE==='dwg'&&S.revLoading?' · loading revision history…':'')))]),
       (S.capHit?el('span',{class:'pcap',title:capHelp()},[capText()]):null)
     ]));
     apvRenderDropdown();apvBindSelSwap();
@@ -1247,7 +1285,7 @@
   function _cdist(h1,h2){var a=_hex2rgb(h1),b=_hex2rgb(h2);return Math.sqrt(Math.pow(a[0]-b[0],2)+Math.pow(a[1]-b[1],2)+Math.pow(a[2]-b[2],2));}
   function orderByColour(keys){return keys.slice().sort(function(a,b){var ca=_hue(fieldColor(a)),cb=_hue(fieldColor(b));if(ca.h!==cb.h)return ca.h-cb.h;return ca.l-cb.l;});}
   function orderGreedy(keys,maxc){keys=keys.slice();if(keys.length<=2)return keys;var out=[keys.shift()];while(keys.length){var last=fieldColor(out[out.length-1]),bi=0,bd=maxc?-1:Infinity;for(var i=0;i<keys.length;i++){var d=_cdist(last,fieldColor(keys[i]));if(maxc?(d>bd):(d<bd)){bd=d;bi=i;}}out.push(keys.splice(bi,1)[0]);}return out;}
-  function seriesDefKey(){return 'mps_aconex_seriesdef_'+(CFG.entryKey||CFG.projectId);}
+  function seriesDefKey(){return 'mps_aconex_seriesdef_'+(CFG.entryKey||CFG.projectId)+MS();}
   function saveSeriesDef(){try{localStorage.setItem(seriesDefKey(),JSON.stringify(S.seriesOrder||{}));}catch(e){}toast('Chart order saved as your default');}
   function restoreSeriesDef(){var d=null;try{d=JSON.parse(localStorage.getItem(seriesDefKey())||'null');}catch(e){}S.seriesOrder=(d&&typeof d==='object')?d:{};saveCfg();renderCharts();renderOrderPanel();toast(d?'Restored your saved chart order':'Reset to the built-in order');}
   function applySeriesOrder(keys){S.seriesOrder=S.seriesOrder||{};S.seriesOrder[chartField()]=keys.slice();saveCfg();renderCharts();renderOrderPanel();}
@@ -1334,7 +1372,7 @@
     var d=distinctPackages();
     var panel=el('div',{id:'pkpanel',class:'mfpanel',style:'min-width:320px;max-width:440px'});
     function curSel(){var s=S.packageSel;return s==null?d.slice():s.slice();}
-    function refreshOutputs(){applyScope();saveCfg();renderStats();renderCharts();renderBody();var cl=root.getElementById('countlbl');if(cl)cl.textContent=S.filtered.length+' of '+S.rows.length;var ps=root.getElementById('pksum');if(ps)ps.textContent=packageSummary();}
+    function refreshOutputs(){applyScope();saveCfg();renderStats();renderCharts();renderBody();refreshDelivTitles();var cl=root.getElementById('countlbl');if(cl)cl.textContent=S.filtered.length+' of '+S.rows.length;var ps=root.getElementById('pksum');if(ps)ps.textContent=packageSummary();}
     function setSel(arr){S.packageSel=(arr.length>=d.length)?null:arr;refreshOutputs();}
     var listWrap=el('div',{});
     function rebuild(){listWrap.innerHTML='';if(!d.length){listWrap.appendChild(el('div',{class:'muted',style:'font-size:11px;padding:4px'},['No Package Numbers in this Deliverable Type.']));return;}var sel=curSel();d.forEach(function(v){var cb=el('input',{type:'checkbox',title:'Show rows in package '+v});cb.checked=sel.indexOf(v)>=0;cb.onchange=function(){var s=curSel();var i=s.indexOf(v);if(cb.checked){if(i<0)s.push(v);}else if(i>=0)s.splice(i,1);setSel(s);};
@@ -1586,6 +1624,7 @@
         else if(k==='title'){var a=el('a',{class:'doclink',href:docUrl(row.documentId),target:'_blank',rel:'noopener',title:'Open '+row.docNo+' in Aconex'},[cellVal(row,k)]);td=el('td',{style:base,title:cellVal(row,k)},[a]);}
         else if(k==='status'){td=el('td',{style:base},[el('span',{class:'pill',style:'background:'+statusColor(row.status)+';color:'+statusFg(row.status),title:row.status||''},[statusDisp(row.status)])]);}
         else if(k==='lifecycleStatus'){var lv=row.lifecycleStatus||'';td=el('td',{style:base,title:lv},[lv?el('span',{class:'pill',style:'background:'+lifeColor(lv)+';color:'+lifeFg(lv)},[lv]):lv]);}
+        else if(k==='revHist'&&row._revTip){td=el('td',{style:base,title:row._revTip},[cellVal(row,k)]);}
         else{td=el('td',{style:base,title:cellVal(row,k)},[cellVal(row,k)]);}
         tr.appendChild(td);
       });
@@ -1831,7 +1870,7 @@
     var ct='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>';
     return zipStore([{name:'[Content_Types].xml',data:u8(ct)},{name:'_rels/.rels',data:u8(rels)},{name:'xl/workbook.xml',data:u8(wb)},{name:'xl/_rels/workbook.xml.rels',data:u8(wbRels)},{name:'xl/styles.xml',data:u8(styles)},{name:'xl/worksheets/sheet1.xml',data:u8(sheet)}]);
   }
-  function exportExcel(){try{var keys=visKeys(),data=buildXlsx(keys,S.filtered);var blob=new Blob([data],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Aconex_ITP_Register_'+CFG.projectName.replace(/\s+/g,'')+'_'+new Date().toISOString().slice(0,10)+'.xlsx';document.documentElement.appendChild(a);a.click();a.remove();}catch(e){alert('Export failed: '+e);}}
+  function exportExcel(){try{var keys=visKeys(),data=buildXlsx(keys,S.filtered);var blob=new Blob([data],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(MODE==='dwg'?'Aconex_Drawing_Register_':'Aconex_ITP_Register_')+CFG.projectName.replace(/\s+/g,'')+'_'+new Date().toISOString().slice(0,10)+'.xlsx';document.documentElement.appendChild(a);a.click();a.remove();}catch(e){alert('Export failed: '+e);}}
 
   function gotoRFI(){try{if(window.__MPS_ACONEX_RFI){close();window.__MPS_ACONEX_RFI.boot();return;}var u='https://api.github.com/repos/MPS-TK/ITR-Dashboard/contents/aconex/aconex_rfi_dashboard.js?ref=main';var h={Accept:'application/vnd.github.raw'};var t=(function(){try{return localStorage.getItem('mps_gh_token')||localStorage.getItem('__itr_gh_token__')||'';}catch(e){return '';}})();if(t)h.Authorization='token '+t;fetch(u,{headers:h}).then(function(r){return r.text();}).then(function(s){(0,eval)(s);close();if(window.__MPS_ACONEX_RFI)window.__MPS_ACONEX_RFI.boot();}).catch(function(e){alert('Could not load the RFI module: '+e);});}catch(e){}}
   // Variations tab — lazy-loads the Variations module from the public dist (token-free);
@@ -1974,7 +2013,7 @@
     return out;
   }
   function apvVisibleIds(){
-    return apvOrderedIds().filter(function(id){ return !window.__apvHidden.has(id); });
+    return apvOrderedIds().filter(function(id){ return !window.__apvHidden.has(id) && !(MODE === 'dwg' && apvIsExtra(id)); });
   }
   function apvRenderDropdown(){
     var sel = root && root.getElementById('psel'); if (!sel) return;
@@ -2004,7 +2043,7 @@
   }
   function apvReloadProjectView(){
     // Per-project saved view: reload this project's own filters so nothing bleeds across projects.
-    try { LKEY = 'mps_aconex_cfg_' + (CFG.entryKey || CFG.projectId); DKEY = 'mps_aconex_defcfg_' + (CFG.entryKey || CFG.projectId); } catch(e){}
+    try { LKEY = 'mps_aconex_cfg_' + (CFG.entryKey || CFG.projectId) + MS(); DKEY = 'mps_aconex_defcfg_' + (CFG.entryKey || CFG.projectId) + MS(); } catch(e){}
     var c;
     try { c = loadCfg(); } catch(e){ c = null; }
     if (c){
@@ -2306,7 +2345,26 @@
     setTimeout(function(){ function away(e){ var p = root.getElementById('apvpanel'); if (!p) { root.removeEventListener('mousedown', away, true); return; } if (!p.contains(e.target) && e.target !== btn){ p.remove(); root.removeEventListener('mousedown', away, true); } } root.addEventListener('mousedown', away, true); }, 0);
   }
 
-  function boot(){ensureShell();host.style.display='block';refreshRsrc();if(!window.__apvBooted){window.__apvBooted=true;apvBoot();}else{if(!S.allRows.length&&!S.loading)fetchData();else renderAll();}}
+  function refreshDelivTitles(){try{[['total','TOTAL: '],['register','REGISTER: ']].forEach(function(p){var c=root.querySelector('.cpanel[data-cp="'+p[0]+'"]');if(!c||c.classList.contains('coll'))return;var t=c.querySelector('.cptitle');if(t)t.textContent=p[1]+delivTitle();});var ps=root.getElementById('pst');if(ps&&!S.loading)ps.textContent=S.rows.length+' of '+S.allRows.length+(MODE==='dwg'?' drawings':' documents');}catch(e){}}
+  var CFG_FIELDS=['order','cols','fontSize','rowPad','wrap','phases','chartType','hiddenDonuts','selFilters','selKnown','chartScale','colorSchemes','fgSchemes','collapsed','barExpanded','chartDataField','chartFieldSet','chartSplitField','excludeSupObs','padScale','hpadScale','hdrFontSize','hdrMaxLines','colPri','colDefW','colNames','packageSel','delivSel','packageText','fltDate','fltRef','hiddenRows','seriesOrder','subFmt','globalSearch','colFilters','sortKey','sortDir'];
+  function setModeVars(){
+    GDEF_FILE=MODE==='dwg'?'aconex/global_defaults_dwg.json':'aconex/global_defaults_itp.json';
+    GDEF_CACHE=MODE==='dwg'?'mps_aconex_gdef_dwg':'mps_aconex_gdef_itp';GDEF_APPLIED=MODE==='dwg'?'mps_aconex_gdefapplied_dwg':'mps_aconex_gdefapplied_itp';
+    GDEF.sha=null;try{GDEF.patches=JSON.parse(localStorage.getItem(GDEF_CACHE)||'[]')||[];}catch(e){GDEF.patches=[];}
+  }
+  function switchMode(m, noFetch){
+    if(m!=='dwg')m='doc';if(m===MODE){if(!noFetch&&!S.allRows.length&&!S.loading)fetchData();return;}
+    try{saveCfg();}catch(e){}
+    if(m==='dwg'){S._docEntry=CFG.entryKey||CFG.projectId;if(apvIsExtra(S._docEntry)){CFG.entryKey=apvBase(S._docEntry);}}
+    MODE=m;setModeVars();
+    if(m==='doc'&&S._docEntry){var k=S._docEntry;if(!apvIsExtra(k)||(window.__apvExtra||{})[k]){CFG.entryKey=k;CFG.projectId=apvBase(k);CFG.projectName=apvName(k);CFG.docScope=apvScopeFor(k);}}
+    try{LKEY='mps_aconex_cfg_'+(CFG.entryKey||CFG.projectId)+MS();DKEY='mps_aconex_defcfg_'+(CFG.entryKey||CFG.projectId)+MS();}catch(e){}
+    var C2=loadCfg();CFG_FIELDS.forEach(function(f){if(C2[f]!==undefined)S[f]=C2[f];});
+    try{apvReloadProjectView();}catch(e){}
+    S.allRows=[];S.rows=[];S.filtered=[];S.revHist=null;S._revTok=null;S.capHit=false;
+    if(!noFetch)fetchData();else renderAll();
+  }
+  function boot(mode){if(mode==='doc'||mode==='dwg'){if(mode!==MODE&&window.__apvBooted){ensureShell();host.style.display='block';switchMode(mode);return;}if(mode!==MODE){MODE=mode;setModeVars();}}ensureShell();host.style.display='block';refreshRsrc();if(!window.__apvBooted){window.__apvBooted=true;apvBoot();}else{if(!S.allRows.length&&!S.loading)fetchData();else renderAll();}}
   function close(){if(host)host.style.display='none';}
   window.__MPS_ACONEX={__live:true,boot:boot,close:close,_state:S,_cfg:CFG,buildXlsx:buildXlsx};
   boot();

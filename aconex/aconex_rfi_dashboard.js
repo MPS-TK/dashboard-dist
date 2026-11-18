@@ -17,7 +17,7 @@
   if (window.__MPS_ACONEX_RFI && window.__MPS_ACONEX_RFI.__live) { window.__MPS_ACONEX_RFI.boot(); return; }
 
   var NAVY='#0B2A4A', NAVY2='#123a63', ACCENT='#F26522', LINE='#dfe4ea', INK='#1f2d3d';
-  var VERSION='v12.86', BUILD_DATE='19 Nov 2026';
+  var VERSION='v12.87', BUILD_DATE='19 Nov 2026';
   var UI_FONTS=['Segoe UI','Arial','Calibri','Helvetica','Roboto','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New','system-ui'];
   var DEF_FONT='"Segoe UI",Arial,sans-serif', DEF_BASEPX=13;
   function fontStack(f){return f?('"'+f+'","Segoe UI",Arial,sans-serif'):DEF_FONT;}
@@ -924,7 +924,8 @@
   }
 
   // ---- tab cross-launch ----
-  function gotoITP(){try{if(window.__MPS_ACONEX){close();window.__MPS_ACONEX.boot();return;}}catch(e){}toast('Doc. Registers module not loaded on this page.');}
+  function gotoITP(){try{if(window.__MPS_ACONEX){close();window.__MPS_ACONEX.boot('doc');return;}}catch(e){}toast('Doc. Registers module not loaded on this page.');}
+  function gotoDWG(){try{if(window.__MPS_ACONEX){close();window.__MPS_ACONEX.boot('dwg');return;}}catch(e){}toast('Doc. Registers module not loaded on this page.');}
   // Variations tab — lazy-loads the Variations module from the public dist (token-free);
   // falls back to the private repo with a token if the public fetch is blocked.
   function gotoVAR(){
@@ -1046,7 +1047,7 @@
       el('div',{class:'tab link',title:'Switch to the Document (ITP) registers',onclick:gotoITP},['Doc. Registers']),
       el('div',{class:'tab active',title:'RFI / TQ register'},['RFIs/TQs']),
       el('div',{class:'tab link',title:'Switch to the Variation register',onclick:gotoVAR},['Variations']),
-      el('div',{class:'tab disabled',title:'Coming soon'},['Drawings'])
+      el('div',{class:'tab link',title:'Switch to the Drawing register',onclick:gotoDWG},['Drawings'])
     ]));
     // ---- project selector bar (team-wide registry; drives which project's RFIs load) ----
     wrap.appendChild(el('div',{class:'pbr'},[

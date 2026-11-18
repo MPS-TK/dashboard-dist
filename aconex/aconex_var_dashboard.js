@@ -21,7 +21,7 @@
   if (window.__MPS_ACONEX_VAR && window.__MPS_ACONEX_VAR.__live) { window.__MPS_ACONEX_VAR.boot(); return; }
 
   var NAVY = '#0B2A4A', NAVY2 = '#123a63', ACCENT = '#F26522', LINE = '#dfe4ea', INK = '#1f2d3d';
-  var VERSION = 'v12.86', BUILD_DATE = '19 Nov 2026';
+  var VERSION = 'v12.87', BUILD_DATE = '19 Nov 2026';
   var UI_FONTS = ['Segoe UI', 'Arial', 'Calibri', 'Helvetica', 'Roboto', 'Verdana', 'Tahoma', 'Trebuchet MS', 'Georgia', 'Times New Roman', 'Courier New', 'system-ui'];
   var DEF_FONT = '"Segoe UI",Arial,sans-serif', DEF_BASEPX = 13;
   function fontStack(f) { return f ? ('"' + f + '","Segoe UI",Arial,sans-serif') : DEF_FONT; }
@@ -1379,7 +1379,8 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
 
   /* ---- tab cross-launch ---- */
   var DIST = 'https://raw.githubusercontent.com/MPS-TK/dashboard-dist/main/';
-  function gotoITP() { try { if (window.__MPS_ACONEX) { close(); window.__MPS_ACONEX.boot(); return; } } catch (e) { } toast('Doc. Registers module not loaded on this page.'); }
+  function gotoITP() { try { if (window.__MPS_ACONEX) { close(); window.__MPS_ACONEX.boot('doc'); return; } } catch (e) { } toast('Doc. Registers module not loaded on this page.'); }
+  function gotoDWG() { try { if (window.__MPS_ACONEX) { close(); window.__MPS_ACONEX.boot('dwg'); return; } } catch (e) { } toast('Doc. Registers module not loaded on this page.'); }
   function gotoRFI() {
     try { if (window.__MPS_ACONEX_RFI) { close(); window.__MPS_ACONEX_RFI.boot(); return; } } catch (e) { }
     fetch(DIST + 'aconex/aconex_rfi_dashboard.js?_=' + Date.now(), { cache: 'no-store' })
@@ -1483,7 +1484,7 @@ var RATE_LIB=[{"desc":"Project Engineer-CNPI-Day","type":"Labour","unit":"Hours"
       el('div', { class: 'tab link', title: 'Switch to the Document (ITP) registers', onclick: gotoITP }, ['Doc. Registers']),
       el('div', { class: 'tab link', title: 'Switch to the RFI / TQ register', onclick: gotoRFI }, ['RFIs/TQs']),
       el('div', { class: 'tab active', title: 'Variation register' }, ['Variations']),
-      el('div', { class: 'tab disabled', title: 'Coming soon' }, ['Drawings'])
+      el('div', { class: 'tab', title: 'Switch to the Drawing register', onclick: gotoDWG }, ['Drawings'])
     ]));
 
     var content = el('div', { class: 'content' });
